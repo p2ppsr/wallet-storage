@@ -1,5 +1,5 @@
 {
-  "name": "wallet",
+  "name": "wallet-storage",
   "version": "0.0.1",
   "description": "BRC100 conforming wallet storage component",
   "main": "./out/src/index.js",

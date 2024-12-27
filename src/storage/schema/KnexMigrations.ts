@@ -87,7 +87,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.text('history', 'longtext').notNullable().defaultTo('{}')
                     table.text('notify', 'longtext').notNullable().defaultTo('{}')
                     table.binary('rawTx')
-                    table.binary('beef').notNullable()
+                    table.binary('inputBEEF').notNullable()
                     table.index('status')
                     table.index('batch')
                 })
@@ -139,12 +139,12 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('txid', 64)
                     table.string('reference', 64)
                     table.boolean('isOutgoing')
-                    table.bigint('amount')
+                    table.bigint('satoshis')
                     table.integer('version').unsigned().nullable()
                     table.integer('lockTime').unsigned().nullable()
                     table.string('description', 500)
                     table.binary('rawTx') // Genesis limits transactions to 1GB
-                    table.binary('beef').notNullable()
+                    table.binary('inputBEEF').notNullable()
                     table.index('status')
                 })
                 await knex.schema.createTable('commissions', table => {
@@ -167,7 +167,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.boolean('change').defaultTo(false)
                     table.string('txid', 64)
                     table.integer('vout', 10)
-                    table.bigint('amount')
+                    table.bigint('satoshis')
                     table.bigint('scriptLength').unsigned().nullable()
                     table.bigint('scriptOffset').unsigned().nullable()
                     table.string('providedBy', 130)
@@ -177,11 +177,11 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('derivationPrefix', 32)
                     table.string('derivationSuffix', 32)
                     table.string('customInstructions', 2500)
-                    table.string('description') // Size constraints?
+                    table.string('outputDescription', 50)
                     table.integer('spentBy').unsigned().references('transactionId').inTable('transactions')
-                    table.integer('sequence').unsigned().nullable()
+                    table.integer('sequenceNumber').unsigned().nullable()
                     table.string('spendingDescription')
-                    table.binary('outputScript', maxOutputScriptLength) // Genesis limits transactions to 1GB
+                    table.binary('lockingScript', maxOutputScriptLength) // Genesis limits transactions to 1GB
                     table.unique(['transactionId', 'vout', 'userId'])
                 })
                 await knex.schema.createTable('output_tags', table => {
@@ -235,7 +235,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('storageName')
                     table.string('status').notNullable().defaultTo('unknown')
                     table.dateTime('when')
-                    table.bigint('total')
+                    table.bigint('satoshis')
                     table.boolean('init').notNullable().defaultTo(false)
                     table.string('refNum').notNullable().unique()
                     table.text('errorLocal', 'longtext')
@@ -245,10 +245,10 @@ export class KnexMigrations implements MigrationSource<string> {
 
                 if (dbtype === 'MySQL') {
                     await knex.raw('ALTER TABLE proven_tx_reqs MODIFY COLUMN rawTx LONGBLOB');
-                    await knex.raw('ALTER TABLE proven_tx_reqs MODIFY COLUMN beef LONGBLOB');
+                    await knex.raw('ALTER TABLE proven_tx_reqs MODIFY COLUMN inputBEEF LONGBLOB');
                     await knex.raw('ALTER TABLE proven_txs MODIFY COLUMN rawTx LONGBLOB');
                     await knex.raw('ALTER TABLE transactions MODIFY COLUMN rawTx LONGBLOB');
-                    await knex.raw('ALTER TABLE transactions MODIFY COLUMN beef LONGBLOB');
+                    await knex.raw('ALTER TABLE transactions MODIFY COLUMN inputBEEF LONGBLOB');
                 } else {
                     await knex.schema.alterTable('proven_tx_reqs', table => {
                         table.binary('rawTx', 10000000).alter()

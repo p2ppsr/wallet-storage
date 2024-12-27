@@ -42,7 +42,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken) : Promise<number> {
         const e = await this.validateEntityForInsert(tx, trx)
         if (e.provenTxId === 0) delete e.provenTxId
-        tx.provenTxId = await this.toDb(trx)<table.ProvenTx>('proven_txs').insert(e)
+        const [id] = await this.toDb(trx)<table.ProvenTx>('proven_txs').insert(e)
+        tx.provenTxId = id
         this.isDirty = true
         return tx.provenTxId
     }
@@ -56,6 +57,19 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         await this.knex.migrate.latest(config)
         const version = await this.knex.migrate.currentVersion(config)
         return version
+    }
+
+    async dropAllData(): Promise<void> {
+        const config = { migrationSource: new KnexMigrations(this.chain, '', 1024) }
+        const count = Object.keys(config.migrationSource.migrations).length
+        for (let i = 0; i < count; i++) {
+            try {
+                const r = await this.knex.migrate.down(config)
+                expect(r).toBeTruthy()
+            } catch (eu: unknown) {
+                break;
+            }
+        }
     }
 
     override async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
@@ -173,6 +187,12 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
             for (const df of dateFields) {
                 if (v[df])
                     v[df] = this.validateOptionalEntityDate(v[df])
+            }
+        }
+        for (const key of Object.keys(v)) {
+            const val = v[key]
+            if (Array.isArray(val) && (val.length === 0 || typeof val[0] === 'number')) {
+                v[key] = Buffer.from(val)
             }
         }
         return v

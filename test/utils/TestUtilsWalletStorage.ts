@@ -4,6 +4,11 @@ import { randomBytesHex, sdk } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
 
+import * as dotenv from 'dotenv'
+dotenv.config();
+
+const localMySqlConnection = process.env.LOCAL_MYSQL_CONNECTION || ''
+
 export abstract class TestUtilsWalletStorage {
 
     /**
@@ -47,11 +52,24 @@ export abstract class TestUtilsWalletStorage {
         return dstPath
     }
 
-    static createLocalSqlite (filename: string) : Knex {
+    static createLocalSQLite (filename: string) : Knex {
         const config: Knex.Config = {
             client: 'sqlite3',
             connection: { filename },
             useNullAsDefault: true,
+        }
+        const knex = makeKnex(config)
+        return knex
+    }
+
+    static createLocalMySQL (database: string) : Knex {
+        const connection = JSON.parse(localMySqlConnection || '{}')
+        connection['database'] = database
+        const config: Knex.Config = {
+            client: 'mysql2',
+            connection,
+            useNullAsDefault: true,
+            pool: { min: 0, max: 7, idleTimeoutMillis: 15000 }
         }
         const knex = makeKnex(config)
         return knex

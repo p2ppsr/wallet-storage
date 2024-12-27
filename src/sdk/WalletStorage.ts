@@ -1,12 +1,27 @@
-import { sdk } from "..";
+import { sdk, table } from "..";
 
 export interface WalletStorage {
+
+   destroy(): Promise<void>
+   migrate(storageName: string): Promise<string>
+   transaction<T>(scope: (trx: TrxToken) => Promise<T>, trx?: TrxToken): Promise<T>
+
+   getSettings(trx?: sdk.TrxToken): Promise<table.Settings>
 
    listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.ListActionsResult>
    listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.ListOutputsResult>
 
    createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<StorageCreateTransactionSdkResult>
    processActionSdk(params: StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<StorageProcessActionSdkResults>
+
+   insertProvenTx(tx: table.ProvenTx, trx?: TrxToken) : Promise<number>
+}
+
+/**
+ * Place holder for the transaction control object used by actual storage provider implementation.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface TrxToken {
 }
 
 export type StorageProvidedBy = 'you' | 'storage' | 'you-and-storage'

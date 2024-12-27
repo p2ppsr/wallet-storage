@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Knex } from 'knex'
-import { randomBytesHex, sdk } from '../..';
+import { DBType, randomBytesHex, sdk } from '../..';
 
 interface Migration {
     up: (knex: Knex) => Promise<void>;
@@ -46,7 +46,7 @@ export class KnexMigrations implements MigrationSource<string> {
 
         const migrations: Record<string, Migration> = {}
 
-        const addTimeStamps = (knex: Knex<any, any[]>, table: Knex.CreateTableBuilder, dbtype: 'SQLite' | 'MySQL') => {
+        const addTimeStamps = (knex: Knex<any, any[]>, table: Knex.CreateTableBuilder, dbtype: DBType) => {
             if (dbtype === 'MySQL') {
                 table.timestamp('created_at', { precision: 3 }).defaultTo(knex.fn.now(3)).notNullable()
                 table.timestamp('updated_at', { precision: 3 }).defaultTo(knex.fn.now(3)).notNullable()
@@ -64,14 +64,14 @@ export class KnexMigrations implements MigrationSource<string> {
 
                 await knex.schema.createTable('proven_txs', table => {
                     addTimeStamps(knex, table, dbtype)
-                    table.increments('provenTxId')
+                    table.increments('provenTxId').notNullable()
                     table.string('txid', 64).notNullable().unique()
                     table.integer('height').unsigned().notNullable()
                     table.integer('index').unsigned().notNullable()
-                    table.binary('nodes').notNullable()
+                    table.binary('merklePath').notNullable()
                     table.binary('rawTx').notNullable()
-                    table.binary('blockHash', 32).notNullable()
-                    table.binary('merkleRoot', 32).notNullable()
+                    table.string('blockHash', 64).notNullable()
+                    table.string('merkleRoot', 64).notNullable()
                 })
                 await knex.schema.createTable('proven_tx_reqs', table => {
                     addTimeStamps(knex, table, dbtype)
@@ -280,9 +280,9 @@ export class KnexMigrations implements MigrationSource<string> {
                 await knex.schema.dropTable('output_tags')
                 await knex.schema.dropTable('outputs')
                 await knex.schema.dropTable('output_baskets')
-                await knex.schema.dropTable('transactions')
-                await knex.schema.dropTable('tx_labels')
                 await knex.schema.dropTable('tx_labels_map')
+                await knex.schema.dropTable('tx_labels')
+                await knex.schema.dropTable('transactions')
                 await knex.schema.dropTable('users')
                 await knex.schema.dropTable('proven_tx_reqs')
                 await knex.schema.dropTable('proven_txs')
@@ -293,9 +293,9 @@ export class KnexMigrations implements MigrationSource<string> {
 
     /**
      * @param knex 
-     * @returns {'SQLite' | 'MySQL'} connected database engine variant
+     * @returns {DBType} connected database engine variant
      */
-    static async dbtype(knex: Knex<any, any[]>): Promise<'SQLite' | 'MySQL'> {
+    static async dbtype(knex: Knex<any, any[]>): Promise<DBType> {
         try {
             const q = `SELECT 
     CASE 

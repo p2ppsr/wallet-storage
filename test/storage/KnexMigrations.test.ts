@@ -23,10 +23,29 @@ describe('KnexMigrations tests', () => {
     })
 
     let done0 = false
-
     const waitFor0 = async () => { while (!done0) await wait(100) }
+    let done1 = false
+    const waitFor1 = async () => { while (!done1) await wait(100) }
 
-    test('0 migragte to latest', async () => {
+
+    test('0 migragte down', async () => {
+        for (const knex of knexs) {
+            const config = { migrationSource: new KnexMigrations('test', '0 migration test', 1000) }
+            const count = Object.keys(config.migrationSource.migrations).length
+            for (let i = 0; i < count; i++) {
+                try {
+                    const r = await knex.migrate.down(config)
+                    expect(r).toBeTruthy()
+                } catch (eu: unknown) {
+                    break;
+                }
+            }
+        }
+        done0 = true
+    })
+
+    test('1 migragte to latest', async () => {
+        await waitFor0()
         for (const knex of knexs) {
             const config = { migrationSource: new KnexMigrations('test', '0 migration test', 1000) }
             const latest = await KnexMigrations.latestMigration()
@@ -34,27 +53,11 @@ describe('KnexMigrations tests', () => {
             const version = await knex.migrate.currentVersion(config)
             expect(version).toBe(latest)
         }
-        done0 = true
+        done1 = true
     })
 
-    test.skip('0a migragte down', async () => {
-        for (const knex of knexs) {
-            const config = { migrationSource: new KnexMigrations('test', '0 migration test', 1000) }
-            for (; ;) {
-                try {
-                    const r = await knex.migrate.down(config)
-                    expect(r).toBeTruthy()
-                    break;
-                } catch (eu: unknown) {
-                    break;
-                }
-            }
-        }
-    })
-
-    test('1 getSettings', async () => {
-        await waitFor0()
-
+    test('2 getSettings', async () => {
+        await waitFor1()
         for (const knex of knexs) {
             const storage = new StorageKnex({ chain: 'test', knex })
             const r = await storage.getSettings()

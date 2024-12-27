@@ -49,7 +49,7 @@ export interface StorageIdentity {
    name: string
 }
 
-export interface EntityWithTime {
+export interface EntityTimeStamp {
     created_at: Date
     updated_at: Date
 }

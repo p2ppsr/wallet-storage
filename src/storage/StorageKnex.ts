@@ -1,18 +1,8 @@
 import { sdk, verifyOne, verifyOneOrNone } from "..";
-import { table } from "."
+import { KnexMigrations, table } from "."
 
 import { Knex } from "knex";
-
-/**
- * Place holder for the transaction control object used by actual storage provider implementation.
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TrxToken {
-}
-
-export interface StorageBaseOptions {
-    chain: sdk.Chain
-}
+import { StorageBase, StorageBaseOptions } from "./StorageBase";
 
 export interface StorageKnexOptions extends StorageBaseOptions {
     /**
@@ -21,34 +11,10 @@ export interface StorageKnexOptions extends StorageBaseOptions {
     knex: Knex
 }
 
-export abstract class StorageBase implements sdk.WalletStorage {
-
-    static createStorageBaseOptions(chain: sdk.Chain) : StorageBaseOptions {
-        const options: StorageBaseOptions = {
-            chain
-        }
-        return options
-    }
-
-    isDirty = false
-    whenLastAccess?: Date
-    
-    chain: sdk.Chain
-
-    constructor(options: StorageBaseOptions) {
-        this.chain = options.chain
-    }
-
-    abstract getSettings(trx?: TrxToken): Promise<table.Settings>
-
-    abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
-    abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> 
-    abstract createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> 
-    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> 
-}
-
 export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     knex: Knex
+    settings?: table.Settings
+    get dbtype() : DBType | undefined { return this.settings?.dbtype }
 
     constructor(options: StorageKnexOptions) {
         super(options)
@@ -56,7 +22,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         this.knex = options.knex
     }
 
-    override async getSettings(trx?: TrxToken): Promise<table.Settings> {
+    override async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
         return this.validateEntity(verifyOne(await this.toDb(trx)<table.Settings>('settings')))
     }
 
@@ -73,11 +39,40 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         throw new Error("Method not implemented.");
     }
 
+    override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(tx, trx)
+        if (e.provenTxId === 0) delete e.provenTxId
+        tx.provenTxId = await this.toDb(trx)<table.ProvenTx>('proven_txs').insert(e)
+        this.isDirty = true
+        return tx.provenTxId
+    }
+
+    override async destroy(): Promise<void> {
+        await this.knex?.destroy()
+    }
+
+    async migrate(storageName: string): Promise<string> {
+        const config = { migrationSource: new KnexMigrations(this.chain, storageName, 1024) }
+        await this.knex.migrate.latest(config)
+        const version = await this.knex.migrate.currentVersion(config)
+        return version
+    }
+
+    override async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
+        if (trx)
+            return await scope(trx)
+        
+        return await this.knex.transaction<T>(async knextrx => {
+            const trx = knextrx as sdk.TrxToken
+            return await scope(trx)
+        })
+    }
+
     /**
      * Convert the standard optional `TrxToken` parameter into either a direct knex database instance,
      * or a Knex.Transaction as appropriate.
      */
-    toDb(trx?: TrxToken) {
+    toDb(trx?: sdk.TrxToken) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = !trx ? this.knex : <Knex.Transaction<any, any[]>>trx
         this.whenLastAccess = new Date()
@@ -93,11 +88,101 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return r
     }
 
+    validateOptionalDate(date: Date | string | number | null | undefined) : Date | undefined {
+        if (date === null || date === undefined) return undefined
+        return this.validateDate(date)
+    }
+
+    /**
+     * Make sure database is ready for access:
+     * 
+     * - dateScheme is known
+     * - foreign key constraints are enabled
+     * 
+     * @param trx
+     */
+    async verifyReadyForDatabaseAccess(trx?: sdk.TrxToken) : Promise<DBType> {
+        if (!this.settings) {
+
+            this.settings = await this.getSettings()
+
+            // Make sure foreign key constraint checking is turned on in SQLite.
+            if (this.settings.dbtype === 'SQLite') {
+                await this.toDb(trx).raw("PRAGMA foreign_keys = ON;")
+            }
+        }
+        
+        return this.settings.dbtype
+    }
+
+    /**
+     * Force dates to strings on SQLite and Date objects on MySQL
+     * @param date 
+     * @returns 
+     */
+    validateEntityDate(date: Date | string | number)
+    : Date | string {
+        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
+        let r: Date | string = this.validateDate(date)
+        switch (this.dbtype) {
+            case 'MySQL':
+                break
+            case 'SQLite':
+                r = r.toISOString()
+                break
+            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
+        }
+        return r
+    }
+
+    /**
+     * 
+     * @param date 
+     * @param useNowAsDefault if true and date is null or undefiend, set to current time.
+     * @returns 
+     */
+    validateOptionalEntityDate(date: Date | string | number | null | undefined, useNowAsDefault?: boolean)
+    : Date | string | undefined {
+        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
+        let r: Date | string | undefined = this.validateOptionalDate(date)
+        if (!r && useNowAsDefault) r = new Date()
+        switch (this.dbtype) {
+            case 'MySQL':
+                break
+            case 'SQLite':
+                if (r)
+                    r = r.toISOString()
+                break
+            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
+        }
+        return r
+    }
+
+    /**
+     * Helper to force uniform behavior across database engines.
+     * Use to process new entities being inserted into the database.
+     */
+    async validateEntityForInsert<T extends sdk.EntityTimeStamp>(entity: T, trx?: sdk.TrxToken, dateFields?: string[]): Promise<any> {
+        await this.verifyReadyForDatabaseAccess(trx)
+        const v: any = { ...entity }
+        v.created_at = this.validateOptionalEntityDate(v.created_at, true)!
+        v.updated_at = this.validateOptionalEntityDate(v.updated_at, true)!
+        if (!v.created_at) delete v.created_at
+        if (!v.updated_at) delete v.updated_at
+        if (dateFields) {
+            for (const df of dateFields) {
+                if (v[df])
+                    v[df] = this.validateOptionalEntityDate(v[df])
+            }
+        }
+        return v
+    }
+
     /**
      * Helper to force uniform behavior across database engines.
      * Use to process all individual records with time stamps retreived from database.
      */
-    validateEntity<T extends sdk.EntityWithTime>(entity: T, dateFields?: string[], booleanFields?: string[]) : T {
+    validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]) : T {
         entity.created_at = this.validateDate(entity.created_at)
         entity.updated_at = this.validateDate(entity.updated_at)
         if (dateFields) {
@@ -120,7 +205,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
      * Use to process all arrays of records with time stamps retreived from database.
      * @returns input `entities` array with contained values validated.
      */
-    validateEntities<T extends sdk.EntityWithTime>(entities: T[], dateFields?: string[], booleanFields?: string[]) : T[] {
+    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]) : T[] {
         for (let i = 0; i < entities.length; i++) {
             entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
         }
@@ -128,3 +213,9 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
 }
+
+export type DBType = 'SQLite' | 'MySQL'
+
+type DbEntityTimeStamp<T extends sdk.EntityTimeStamp> = {
+    [K in keyof T]: T[K] extends Date ? Date | string : T[K];
+};

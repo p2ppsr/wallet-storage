@@ -1,6 +1,22 @@
 import { sdk } from "..";
+import { Settings, ProvenTx } from "./schema/tables";
 
 export class WalletStorage implements sdk.WalletStorage {
+    destroy(): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    migrate(storageName: string): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
+        throw new Error("Method not implemented.");
+    }
+    getSettings(trx?: sdk.TrxToken): Promise<Settings> {
+        throw new Error("Method not implemented.");
+    }
+    insertProvenTx(tx: ProvenTx, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
 
     
 

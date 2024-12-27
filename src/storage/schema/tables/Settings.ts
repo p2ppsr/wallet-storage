@@ -1,6 +1,6 @@
 import { sdk } from "../../.."
 
-export interface Settings extends sdk.StorageIdentity, sdk.EntityWithTime {
+export interface Settings extends sdk.StorageIdentity, sdk.EntityTimeStamp {
     created_at: Date
     updated_at: Date
     /**

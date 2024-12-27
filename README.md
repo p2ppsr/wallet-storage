@@ -1,6 +1,6 @@
 # wallet
 
-BRC100 compliant BSV wallet storage component.
+BRC100 conforming wallet, wallet storage and wallet signer components
 
 ## API
 

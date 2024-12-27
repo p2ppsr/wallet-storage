@@ -1,7 +1,7 @@
 {
-  "name": "wallet-storage-brc100",
+  "name": "wallet-storage",
   "version": "0.0.1",
-  "description": "BRC100 conforming wallet storage component",
+  "description": "BRC100 conforming wallet, wallet storage and wallet signer components",
   "main": "./out/src/index.js",
   "types": "./out/src/index.d.ts",
   "repository": {

@@ -71,7 +71,7 @@ function makeChangeLock(
   out: sdk.StorageCreateTransactionSdkOutput,
   dctr: sdk.StorageCreateTransactionSdkResult,
   args: sdk.ValidCreateActionArgs,
-  changeKeys: sdk.KeyPairApi,
+  changeKeys: sdk.KeyPair,
   signer: WalletSigner)
 : Script
 {

@@ -2,6 +2,8 @@ import { sdk } from "..";
 
 export class WalletStorage implements sdk.WalletStorage {
 
+    
+
     listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
         throw new Error("Method not implemented.");
     }

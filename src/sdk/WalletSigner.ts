@@ -1,21 +1,5 @@
 import { sdk } from "..";
 
-export interface KeyPairApi {
-  privateKey: string
-  publicKey: string
-}
-
-export interface StorageIdentityApi {
-   /**
-    * The identity key (public key) assigned to this storage
-    */
-   key: string
-   /**
-    * The human readable name assigned to this storage.
-    */
-   name?: string
-}
-
 /**
  * Subset of `NinjaApi` interface and `NinjaBase` methods and properties that are required to support
  * the `NinjaWallet` implementation of the `Wallet.interface` API
@@ -23,9 +7,9 @@ export interface StorageIdentityApi {
 export interface WalletSigner {
   chain?: sdk.Chain
   isAuthenticated(): boolean;
-  getClientChangeKeyPair(): KeyPairApi;
+  getClientChangeKeyPair(): KeyPair;
   keyDeriver?: sdk.KeyDeriverApi
-  storageIdentity?: StorageIdentityApi
+  storageIdentity?: StorageIdentity
 
   authenticate(identityKey?: string, addIfNew?: boolean): Promise<void>
 
@@ -47,4 +31,25 @@ export interface WalletSigner {
   getHeight(): Promise<number>
   getChain(): Promise<sdk.Chain>
   getHeaderForHeight(height: number): Promise<number[] | undefined>
+}
+
+export interface KeyPair {
+  privateKey: string
+  publicKey: string
+}
+
+export interface StorageIdentity {
+   /**
+    * The identity key (public key) assigned to this storage
+    */
+   key: string
+   /**
+    * The human readable name assigned to this storage.
+    */
+   name: string
+}
+
+export interface EntityWithTime {
+    created_at: Date
+    updated_at: Date
 }

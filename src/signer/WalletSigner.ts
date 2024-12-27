@@ -6,7 +6,7 @@ export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain;
     keyDeriver: sdk.KeyDeriverApi;
     storage: sdk.WalletStorage;
-    storageIdentity?: sdk.StorageIdentityApi;
+    storageIdentity?: sdk.StorageIdentity;
     _isAuthenticated: boolean
     _isStorageAvailable: boolean
     pendingSignActions: Record<string, PendingSignAction>
@@ -21,8 +21,8 @@ export class WalletSigner implements sdk.WalletSigner {
         this.pendingSignActions = {}
     }
 
-    getClientChangeKeyPair(): sdk.KeyPairApi {
-       const kp: sdk.KeyPairApi = {
+    getClientChangeKeyPair(): sdk.KeyPair {
+       const kp: sdk.KeyPair = {
            privateKey: this.keyDeriver.rootKey.toString(),
            publicKey: this.keyDeriver.rootKey.toPublicKey().toString()
        }

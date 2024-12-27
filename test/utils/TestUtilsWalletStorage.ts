@@ -26,17 +26,18 @@ export abstract class TestUtilsWalletStorage {
      * @param filename target filename without path, optionally just extension in which case random name is used
      * @param tryToDelete true to attempt to delete an existing file at the returned file path.
      * @param copyToTmp true to copy file of same filename from './test/data' (or elsewhere if filename has path) to tmp folder
+     * @param reuseExisting true to use existing file if found, otherwise a random string is added to filename.
      * @returns path in './test/data/tmp' folder.
      */
-    static async newTmpFile(filename = '', tryToDelete = false, copyToTmp = false): Promise<string> {
+    static async newTmpFile(filename = '', tryToDelete = false, copyToTmp = false, reuseExisting = false): Promise<string> {
         const tmpFolder = './test/data/tmp/'
         const p = path.parse(filename)
         const dstDir = tmpFolder
-        const dstName = `${p.name}${tryToDelete ? '' : randomBytesHex(6)}`
+        const dstName = `${p.name}${tryToDelete || reuseExisting ? '' : randomBytesHex(6)}`
         const dstExt = p.ext || 'tmp'
         const dstPath = path.resolve(`${dstDir}${dstName}${dstExt}`)
         await fsp.mkdir(tmpFolder, { recursive: true })
-        if (tryToDelete || copyToTmp)
+        if (!reuseExisting && (tryToDelete || copyToTmp))
             try {
                 await fsp.unlink(dstPath)
             } catch (eu: unknown) {

@@ -15,6 +15,8 @@ export interface WalletStorage {
    processActionSdk(params: StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<StorageProcessActionSdkResults>
 
    insertProvenTx(tx: table.ProvenTx, trx?: TrxToken) : Promise<number>
+   insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<number>
+   insertUser(user: table.User, trx?: sdk.TrxToken) : Promise<number>
 }
 
 /**

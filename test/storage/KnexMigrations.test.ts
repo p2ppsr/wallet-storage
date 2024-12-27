@@ -8,7 +8,7 @@ describe('KnexMigrations tests', () => {
     const knexs: Knex[] = []
 
     beforeAll(async () => {
-        const localSQLiteFile = await _tu.newTmpFile('localSQLiteFile.sqlite', false, false, true)
+        const localSQLiteFile = await _tu.newTmpFile('migratetest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         knexs.push(knexSQLite)
 

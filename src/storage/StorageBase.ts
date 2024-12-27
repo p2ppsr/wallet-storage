@@ -30,6 +30,8 @@ export abstract class StorageBase implements sdk.WalletStorage {
     abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> 
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> 
+    abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertUser(user: table.User, trx?: sdk.TrxToken) : Promise<number>
 }
 
 export interface StorageBaseOptions {

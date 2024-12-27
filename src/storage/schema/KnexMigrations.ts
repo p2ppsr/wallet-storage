@@ -84,7 +84,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('batch', 64).nullable()
                     table.text('history', 'longtext').notNullable().defaultTo('{}')
                     table.text('notify', 'longtext').notNullable().defaultTo('{}')
-                    table.binary('rawTx')
+                    table.binary('rawTx').notNullable()
                     table.binary('inputBEEF').notNullable()
                     table.index('status')
                     table.index('batch')
@@ -93,9 +93,6 @@ export class KnexMigrations implements MigrationSource<string> {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('userId')
                     table.string('identityKey', 130).notNullable().unique()
-                    table.integer('bandwidthUsed', 18).defaultTo(0)
-                    table.integer('storageSpaceUsedByHostedData', 15).defaultTo(0)
-                    table.integer('timeSpentProcessingRequests', 12).defaultTo(0)
                 })
                 await knex.schema.createTable('certificates', table => {
                     addTimeStamps(knex, table, dbtype)

@@ -48,6 +48,24 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return tx.provenTxId
     }
 
+    override async insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(tx, trx)
+        if (e.provenTxReqId === 0) delete e.provenTxReqId
+        const [id] = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').insert(e)
+        tx.provenTxReqId = id
+        this.isDirty = true
+        return tx.provenTxReqId
+    }
+
+    override async insertUser(user: table.User, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(user, trx)
+        if (e.userId === 0) delete e.userId
+        const [id] = await this.toDb(trx)<table.User>('users').insert(e)
+        user.userId = id
+        this.isDirty = true
+        return user.userId
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }

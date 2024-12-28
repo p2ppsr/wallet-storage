@@ -1,7 +1,19 @@
 import { sdk } from "..";
-import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output } from "./schema/tables";
+import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap } from "./schema/tables";
 
 export class WalletStorage implements sdk.WalletStorage {
+    insertTxLabel(label: TxLabel, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    insertTxLabelMap(labelMap: TxLabelMap, trx?: sdk.TrxToken): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    insertOutputTagMap(tagMap: OutputTagMap, trx?: sdk.TrxToken): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    insertOutputTag(tag: OutputTag, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
     insertOutput(output: Output, trx?: sdk.TrxToken): Promise<number> {
         throw new Error("Method not implemented.");
     }

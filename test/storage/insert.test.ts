@@ -245,13 +245,13 @@ describe('insert tests', () => {
             rawTx: [1,2,3,]
         }
         await storage.insertTransaction(e)
-        return e
+        return { tx: e, user: u }
     }
 
     test('6 insert Transaction', async () => {
         for (const knex of knexs) {
             const storage = new StorageKnex({ chain: 'test', knex })
-            const e = await insertRandomTransaction(storage)
+            const { tx: e, user } = await insertRandomTransaction(storage)
             const id = e.transactionId
             expect(id).toBeGreaterThan(0)
             e.transactionId = 0
@@ -268,7 +268,7 @@ describe('insert tests', () => {
     test('7 insert Commission', async () => {
         for (const knex of knexs) {
             const storage = new StorageKnex({ chain: 'test', knex })
-            const t = await insertRandomTransaction(storage)
+            const { tx: t, user } = await insertRandomTransaction(storage)
             const now = new Date()
             const e: table.Commission = {
                 created_at: now,
@@ -288,7 +288,7 @@ describe('insert tests', () => {
             // duplicate must throw
             await expect(storage.insertCommission(e)).rejects.toThrow()
             e.commissionId = 0
-            const t2 = await insertRandomTransaction(storage)
+            const { tx: t2 } = await insertRandomTransaction(storage)
             e.transactionId = t2.transactionId
             e.userId = t2.userId
             await storage.insertCommission(e)
@@ -320,7 +320,7 @@ describe('insert tests', () => {
     test('8 insert Output', async () => {
         for (const knex of knexs) {
             const storage = new StorageKnex({ chain: 'test', knex })
-            const t = await insertRandomTransaction(storage)
+            const { tx: t, user } = await insertRandomTransaction(storage)
             const e = await insertOutput(storage, t, 0, 101)
             const id = e.outputId
             expect(id).toBeGreaterThan(0)
@@ -338,4 +338,126 @@ describe('insert tests', () => {
         }
     })
 
+    async function insertRandomOutputTag(storage: StorageKnex, u: table.User) {
+        const now = new Date()
+        const e: table.OutputTag = {
+            created_at: now,
+            updated_at: now,
+            outputTagId: 0,
+            userId: u.userId,
+            tag: randomBytesHex(6),
+            isDeleted: false
+        }
+        await storage.insertOutputTag(e)
+        return e
+    }
+
+    test('9 insert OutputTag', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const u = await insertRandomUser(storage)
+            const e = await insertRandomOutputTag(storage, u)
+            const id = e.outputTagId
+            expect(id).toBeGreaterThan(0)
+            expect(e.userId).toBe(u.userId)
+            expect(e.tag).toBeTruthy()
+            // duplicate must throw
+            e.outputTagId = 0
+            await expect(storage.insertOutputTag(e)).rejects.toThrow()
+            e.tag = randomBytesHex(6)
+            await storage.insertOutputTag(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.outputTagId).toBeGreaterThan(id)
+        }
+    })
+
+    async function insertOutputTagMap(storage: StorageKnex, o: table.Output, tag: table.OutputTag) {
+        const now = new Date()
+        const e: table.OutputTagMap = {
+            created_at: now,
+            updated_at: now,
+            outputTagId: tag.outputTagId,
+            outputId: o.outputId,
+            isDeleted: false
+        }
+        await storage.insertOutputTagMap(e)
+        return e
+    }
+
+    test('10 insert OutputTagMap', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const { tx, user } = await insertRandomTransaction(storage)
+            const o = await insertOutput(storage, tx, 0, 101)
+            const tag = await insertRandomOutputTag(storage, user)
+            const e = await insertOutputTagMap(storage, o, tag)
+            expect(e.outputId).toBe(o.outputId)
+            expect(e.outputTagId).toBe(tag.outputTagId)
+            // duplicate must throw
+            await expect(storage.insertOutputTagMap(e)).rejects.toThrow()
+            const tag2 = await insertRandomOutputTag(storage, user)
+            const e2 = await insertOutputTagMap(storage, o, tag2)
+        }
+    })
+    
+    async function insertRandomTxLabel(storage: StorageKnex, u: table.User) {
+        const now = new Date()
+        const e: table.TxLabel = {
+            created_at: now,
+            updated_at: now,
+            txLabelId: 0,
+            userId: u.userId,
+            label: randomBytesHex(6),
+            isDeleted: false
+        }
+        await storage.insertTxLabel(e)
+        return e
+    }
+
+    test('11 insert TxLabel', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const u = await insertRandomUser(storage)
+            const e = await insertRandomTxLabel(storage, u)
+            const id = e.txLabelId
+            expect(id).toBeGreaterThan(0)
+            expect(e.userId).toBe(u.userId)
+            expect(e.label).toBeTruthy()
+            // duplicate must throw
+            e.txLabelId = 0
+            await expect(storage.insertTxLabel(e)).rejects.toThrow()
+            e.label = randomBytesHex(6)
+            await storage.insertTxLabel(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.txLabelId).toBeGreaterThan(id)
+        }
+    })
+
+    async function insertTxLabelMap(storage: StorageKnex, tx: table.Transaction, label: table.TxLabel) {
+        const now = new Date()
+        const e: table.TxLabelMap = {
+            created_at: now,
+            updated_at: now,
+            txLabelId: label.txLabelId,
+            transactionId: tx.transactionId,
+            isDeleted: false
+        }
+        await storage.insertTxLabelMap(e)
+        return e
+    }
+
+    test('12 insert TxLabelMap', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const { tx, user } = await insertRandomTransaction(storage)
+            const label = await insertRandomTxLabel(storage, user)
+            const e = await insertTxLabelMap(storage, tx, label)
+            expect(e.transactionId).toBe(tx.transactionId)
+            expect(e.txLabelId).toBe(label.txLabelId)
+            // duplicate must throw
+            await expect(storage.insertTxLabelMap(e)).rejects.toThrow()
+            const label2 = await insertRandomTxLabel(storage, user)
+            const e2 = await insertTxLabelMap(storage, tx, label2)
+        }
+    })
 })

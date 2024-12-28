@@ -8,21 +8,25 @@ export interface WalletStorage {
 
    getSettings(trx?: sdk.TrxToken): Promise<table.Settings>
 
-   listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.ListActionsResult>
-   listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.ListOutputsResult>
+   listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
+   listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
 
-   createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<StorageCreateTransactionSdkResult>
-   processActionSdk(params: StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<StorageProcessActionSdkResults>
+   createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<StorageCreateTransactionSdkResult>
+   processActionSdk(params: StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<StorageProcessActionSdkResults>
 
-   insertProvenTx(tx: table.ProvenTx, trx?: TrxToken) : Promise<number>
-   insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<number>
-   insertUser(user: table.User, trx?: sdk.TrxToken) : Promise<number>
-   insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken) : Promise<number>
-   insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken) : Promise<void>
-   insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken) : Promise<number>
-   insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken) : Promise<number>
-   insertCommission(commission: table.Commission, trx?: sdk.TrxToken) : Promise<number>
-   insertOutput(output: table.Output, trx?: sdk.TrxToken) : Promise<number>
+   insertProvenTx(tx: table.ProvenTx, trx?: TrxToken): Promise<number>
+   insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>
+   insertUser(user: table.User, trx?: sdk.TrxToken): Promise<number>
+   insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken): Promise<number>
+   insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken): Promise<void>
+   insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken): Promise<number>
+   insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken): Promise<number>
+   insertCommission(commission: table.Commission, trx?: sdk.TrxToken): Promise<number>
+   insertOutput(output: table.Output, trx?: sdk.TrxToken): Promise<number>
+   insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken): Promise<number>
+   insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken): Promise<void>
+   insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken) : Promise<number>
+   insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken) : Promise<void>
 }
 
 /**

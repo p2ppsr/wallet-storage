@@ -117,6 +117,36 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return output.outputId
     }
 
+    override async insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(tag, trx)
+        if (e.outputTagId === 0) delete e.outputTagId
+        const [id] = await this.toDb(trx)<table.OutputTag>('output_tags').insert(e)
+        tag.outputTagId = id
+        this.isDirty = true
+        return tag.outputTagId
+    }
+
+    override async insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken) : Promise<void> {
+        const e = await this.validateEntityForInsert(tagMap, trx)
+        const [id] = await this.toDb(trx)<table.OutputTagMap>('output_tags_map').insert(e)
+        this.isDirty = true
+    }
+
+    override async insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(label, trx)
+        if (e.txLabelId === 0) delete e.txLabelId
+        const [id] = await this.toDb(trx)<table.TxLabel>('tx_labels').insert(e)
+        label.txLabelId = id
+        this.isDirty = true
+        return label.txLabelId
+    }
+
+    override async insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken) : Promise<void> {
+        const e = await this.validateEntityForInsert(labelMap, trx)
+        const [id] = await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').insert(e)
+        this.isDirty = true
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }

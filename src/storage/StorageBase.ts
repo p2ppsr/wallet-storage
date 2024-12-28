@@ -38,6 +38,10 @@ export abstract class StorageBase implements sdk.WalletStorage {
     abstract insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken) : Promise<number>
     abstract insertCommission(commission: table.Commission, trx?: sdk.TrxToken) : Promise<number>
     abstract insertOutput(output: table.Output, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken) : Promise<void>
+    abstract insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken) : Promise<void>
 }
 
 export interface StorageBaseOptions {

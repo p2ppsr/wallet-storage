@@ -2,6 +2,51 @@ import { sdk } from "..";
 import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, SyncState, WatchmanEvent } from "./schema/tables";
 
 export class WalletStorage implements sdk.WalletStorage {
+    updateCertificateField(certificateId: number, fieldName: string, update: Partial<CertificateField>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateCertificate(id: number, update: Partial<Certificate>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateCommission(id: number, update: Partial<Commission>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateOutputBasket(id: number, update: Partial<OutputBasket>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateOutput(id: number, update: Partial<Output>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateOutputTagMap(outputId: number, tagId: number, update: Partial<OutputTagMap>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateOutputTag(id: number, update: Partial<OutputTag>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateProvenTxReq(id: number, update: Partial<ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateProvenTx(id: number, update: Partial<ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateSyncState(id: number, update: Partial<SyncState>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateTransaction(id: number, update: Partial<Transaction>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateTxLabel(id: number, update: Partial<TxLabel>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateUser(id: number, update: Partial<User>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    updateWatchmanEvent(id: number, update: Partial<WatchmanEvent>, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
     destroy(): Promise<void> {
         throw new Error("Method not implemented.");
     }

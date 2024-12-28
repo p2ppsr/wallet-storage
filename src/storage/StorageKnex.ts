@@ -66,6 +66,39 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return user.userId
     }
 
+    override async insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(certificate, trx)
+        if (e.certificateId === 0) delete e.certificateId
+        const [id] = await this.toDb(trx)<table.Certificate>('certificates').insert(e)
+        certificate.certificateId = id
+        this.isDirty = true
+        return certificate.certificateId
+    }
+
+    override async insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken) : Promise<void> {
+        const e = await this.validateEntityForInsert(certificateField, trx)
+        await this.toDb(trx)<table.Certificate>('certificate_fields').insert(e)
+        this.isDirty = true
+    }
+
+    override async insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(basket, trx)
+        if (e.basketId === 0) delete e.basketId
+        const [id] = await this.toDb(trx)<table.OutputBasket>('output_baskets').insert(e)
+        basket.basketId = id
+        this.isDirty = true
+        return basket.basketId
+    }
+
+    override async insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(tx, trx)
+        if (e.transactionId === 0) delete e.transactionId
+        const [id] = await this.toDb(trx)<table.Transaction>('transactions').insert(e)
+        tx.transactionId = id
+        this.isDirty = true
+        return tx.transactionId
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }

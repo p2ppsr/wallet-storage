@@ -1,6 +1,7 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { KnexMigrations, StorageKnex, table, wait } from "../../src"
+import { KnexMigrations, randomBytesBase64, randomBytesHex, StorageKnex, table, wait } from "../../src"
 import { Knex } from 'knex'
+import { Beef } from '@bsv/sdk'
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)
@@ -47,7 +48,7 @@ describe('insert tests', () => {
             await storage.insertProvenTx(ptx)
             expect(ptx.provenTxId).toBe(1)
             ptx.provenTxId = 0
-            // duplicate txid must throw
+            // duplicate must throw
             await expect(storage.insertProvenTx(ptx)).rejects.toThrow()
             ptx.provenTxId = 0
             ptx.txid = '4'.repeat(64)
@@ -78,7 +79,7 @@ describe('insert tests', () => {
             await storage.insertProvenTxReq(ptxreq)
             expect(ptxreq.provenTxReqId).toBe(1)
             ptxreq.provenTxReqId = 0
-            // duplicate txid must throw
+            // duplicate must throw
             await expect(storage.insertProvenTxReq(ptxreq)).rejects.toThrow()
             ptxreq.provenTxReqId = 0
             ptxreq.txid = '4'.repeat(64)
@@ -90,26 +91,177 @@ describe('insert tests', () => {
         }
     })
 
+    async function insertRandomUser(storage: StorageKnex) {
+        const now = new Date()
+        const e: table.User = {
+            created_at: now,
+            updated_at: now,
+            userId: 0,
+            identityKey: randomBytesHex(33),
+        }
+        await storage.insertUser(e)
+        return e
+    }
+
     test('2 insert User', async () => {
         for (const knex of knexs) {
             const storage = new StorageKnex({ chain: 'test', knex })
-            const now = new Date()
-            const e: table.User = {
-                created_at: now,
-                updated_at: now,
-                userId: 0,
-                identityKey: '1'.repeat(66),
-            }
-            await storage.insertUser(e)
-            expect(e.userId).toBe(1)
+            const e = await insertRandomUser(storage)
+            const id = e.userId
+            expect(id).toBeGreaterThan(0)
             e.userId = 0
-            // duplicate txid must throw
+            // duplicate must throw
             await expect(storage.insertUser(e)).rejects.toThrow()
             e.userId = 0
-            e.identityKey = '4'.repeat(66)
+            e.identityKey = randomBytesHex(33)
             await storage.insertUser(e)
             // MySQL counts the failed insertion as a used id, SQLite does not.
-            expect(e.userId).toBeGreaterThan(1)
+            expect(e.userId).toBeGreaterThan(id)
+        }
+
+    })
+
+    async function insertRandomCertificate(storage: StorageKnex) {
+        const now = new Date()
+        const u = await insertRandomUser(storage)
+        const e: table.Certificate = {
+            created_at: now,
+            updated_at: now,
+            certificateId: 0,
+            userId: u.userId,
+            type: randomBytesBase64(33),
+            serialNumber: randomBytesBase64(33),
+            certifier: randomBytesHex(33),
+            subject: randomBytesHex(33),
+            verifier: undefined,
+            revocationOutpoint: `${randomBytesHex(32)}.999`,
+            signature: randomBytesHex(50),
+            isDeleted: false
+        }
+        await storage.insertCertificate(e)
+        return e
+    }
+
+    test('3 insert Certificate', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const e = await insertRandomCertificate(storage)
+            const id = e.certificateId
+            expect(id).toBeGreaterThan(0)
+            e.certificateId = 0
+            // duplicate must throw
+            await expect(storage.insertCertificate(e)).rejects.toThrow()
+            e.certificateId = 0
+            e.serialNumber = randomBytesBase64(33)
+            await storage.insertCertificate(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.certificateId).toBeGreaterThan(id)
+        }
+    })
+
+    async function insertCertificateField(storage: StorageKnex, c: table.Certificate, name: string, value: string) {
+        const now = new Date()
+        const e: table.CertificateField = {
+            created_at: now,
+            updated_at: now,
+            certificateId: c.certificateId,
+            userId: c.userId,
+            fieldName: name,
+            fieldValue: value,
+            masterKey: randomBytesBase64(40)
+        }
+        await storage.insertCertificateField(e)
+        return e
+    }
+
+    test('4 insert CertificateField', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const c = await insertRandomCertificate(storage)
+            const e = await insertCertificateField(storage, c, 'prize', 'starship')
+            expect(e.certificateId).toBe(c.certificateId)
+            expect(e.userId).toBe(c.userId)
+            expect(e.fieldName).toBe('prize')
+            // duplicate must throw
+            await expect(storage.insertCertificateField(e)).rejects.toThrow()
+            e.fieldName = 'address'
+            await storage.insertCertificateField(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.fieldName).toBe('address')
+        }
+    })
+
+    async function insertRandomOutputBasket(storage: StorageKnex) {
+        const now = new Date()
+        const u = await insertRandomUser(storage)
+        const e: table.OutputBasket = {
+            created_at: now,
+            updated_at: now,
+            basketId: 0,
+            userId: u.userId,
+            name: randomBytesHex(6),
+            numberOfDesiredUTXOs: 42,
+            minimumDesiredUTXOValue: 1642,
+            isDeleted: false
+        }
+        await storage.insertOutputBasket(e)
+        return e
+    }
+
+    test('5 insert OutputBasket', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const e = await insertRandomOutputBasket(storage)
+            const id = e.basketId
+            expect(id).toBeGreaterThan(0)
+            e.basketId = 0
+            // duplicate must throw
+            await expect(storage.insertOutputBasket(e)).rejects.toThrow()
+            e.basketId = 0
+            e.name = randomBytesHex(10)
+            await storage.insertOutputBasket(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.basketId).toBeGreaterThan(id)
+        }
+    })
+
+    async function insertRandomTransaction(storage: StorageKnex) {
+        const now = new Date()
+        const u = await insertRandomUser(storage)
+        const e: table.Transaction = {
+            created_at: now,
+            updated_at: now,
+            transactionId: 0,
+            userId: u.userId,
+            status: 'nosend',
+            reference: randomBytesBase64(10),
+            isOutgoing: true,
+            satoshis: 9999,
+            description: 'buy me a river',
+            version: 0,
+            lockTime: 500000000,
+            txid: randomBytesHex(32),
+            inputBEEF: new Beef().toBinary(),
+            rawTx: [1,2,3,]
+        }
+        await storage.insertTransaction(e)
+        return e
+    }
+
+    test('6 insert Transaction', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const e = await insertRandomTransaction(storage)
+            const id = e.transactionId
+            expect(id).toBeGreaterThan(0)
+            e.transactionId = 0
+            // duplicate must throw
+            await expect(storage.insertTransaction(e)).rejects.toThrow()
+            e.transactionId = 0
+            e.reference = randomBytesBase64(10)
+            await storage.insertTransaction(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.transactionId).toBeGreaterThan(id)
         }
     })
 })

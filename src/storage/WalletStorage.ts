@@ -1,7 +1,19 @@
 import { sdk } from "..";
-import { Settings, ProvenTx, ProvenTxReq, User } from "./schema/tables";
+import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction } from "./schema/tables";
 
 export class WalletStorage implements sdk.WalletStorage {
+    insertTransaction(tx: Transaction, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    insertOutputBasket(basket: OutputBasket, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    insertCertificateField(certificateField: CertificateField, trx?: sdk.TrxToken): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    insertCertificate(certificate: Certificate, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
     insertUser(user: User, trx?: sdk.TrxToken): Promise<number> {
         throw new Error("Method not implemented.");
     }

@@ -32,6 +32,10 @@ export abstract class StorageBase implements sdk.WalletStorage {
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> 
     abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<number>
     abstract insertUser(user: table.User, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken) : Promise<void>
+    abstract insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken) : Promise<number>
+    abstract insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken) : Promise<number>
 }
 
 export interface StorageBaseOptions {

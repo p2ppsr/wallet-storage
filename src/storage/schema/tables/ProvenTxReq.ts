@@ -30,7 +30,7 @@ export interface ProvenTxReq extends sdk.EntityTimeStamp {
       */
    notify: string
    rawTx: number[]
-   inputBEEF: number[]
+   inputBEEF?: number[]
 }
 
 /**

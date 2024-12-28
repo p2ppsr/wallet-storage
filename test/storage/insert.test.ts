@@ -264,4 +264,78 @@ describe('insert tests', () => {
             expect(e.transactionId).toBeGreaterThan(id)
         }
     })
+
+    test('7 insert Commission', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const t = await insertRandomTransaction(storage)
+            const now = new Date()
+            const e: table.Commission = {
+                created_at: now,
+                updated_at: now,
+                commissionId: 0,
+                userId: t.userId,
+                transactionId: t.transactionId,
+                satoshis: 200,
+                keyOffset: randomBytesBase64(32),
+                isRedeemed: false,
+                lockingScript: [1,2,3]
+            }
+            await storage.insertCommission(e)
+            const id = e.commissionId
+            expect(id).toBeGreaterThan(0)
+            e.commissionId = 0
+            // duplicate must throw
+            await expect(storage.insertCommission(e)).rejects.toThrow()
+            e.commissionId = 0
+            const t2 = await insertRandomTransaction(storage)
+            e.transactionId = t2.transactionId
+            e.userId = t2.userId
+            await storage.insertCommission(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.commissionId).toBeGreaterThan(id)
+        }
+    })
+
+    async function insertOutput(storage: StorageKnex, t: table.Transaction, vout: number, satoshis: number) {
+        const now = new Date()
+        const e: table.Output = {
+            created_at: now,
+            updated_at: now,
+            outputId: 0,
+            userId: t.userId,
+            transactionId: t.transactionId,
+            spendable: true,
+            change: true,
+            vout,
+            satoshis,
+            providedBy: 'you',
+            purpose: 'secret',
+            type: 'custom'
+        }
+        await storage.insertOutput(e)
+        return e
+    }
+
+    test('8 insert Output', async () => {
+        for (const knex of knexs) {
+            const storage = new StorageKnex({ chain: 'test', knex })
+            const t = await insertRandomTransaction(storage)
+            const e = await insertOutput(storage, t, 0, 101)
+            const id = e.outputId
+            expect(id).toBeGreaterThan(0)
+            expect(e.userId).toBe(t.userId)
+            expect(e.transactionId).toBe(t.transactionId)
+            expect(e.vout).toBe(0)
+            expect(e.satoshis).toBe(101)
+            // duplicate must throw
+            e.outputId = 0
+            await expect(storage.insertOutput(e)).rejects.toThrow()
+            e.vout = 1
+            await storage.insertOutput(e)
+            // MySQL counts the failed insertion as a used id, SQLite does not.
+            expect(e.outputId).toBeGreaterThan(id)
+        }
+    })
+
 })

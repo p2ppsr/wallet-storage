@@ -21,6 +21,8 @@ export interface WalletStorage {
    insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken) : Promise<void>
    insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken) : Promise<number>
    insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken) : Promise<number>
+   insertCommission(commission: table.Commission, trx?: sdk.TrxToken) : Promise<number>
+   insertOutput(output: table.Output, trx?: sdk.TrxToken) : Promise<number>
 }
 
 /**

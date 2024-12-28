@@ -99,6 +99,24 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return tx.transactionId
     }
 
+    override async insertCommission(commission: table.Commission, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(commission, trx)
+        if (e.commissionId === 0) delete e.commissionId
+        const [id] = await this.toDb(trx)<table.Commission>('commissions').insert(e)
+        commission.commissionId = id
+        this.isDirty = true
+        return commission.commissionId
+    }
+
+    override async insertOutput(output: table.Output, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(output, trx)
+        if (e.outputId === 0) delete e.outputId
+        const [id] = await this.toDb(trx)<table.Output>('outputs').insert(e)
+        output.outputId = id
+        this.isDirty = true
+        return output.outputId
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }

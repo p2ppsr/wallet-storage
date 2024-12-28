@@ -217,6 +217,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('id')
                     table.string('event', 64).notNullable()
+                    table.text('details', 'longtext').nullable()
                 })
                 await knex.schema.createTable('settings', table => {
                     addTimeStamps(knex, table, dbtype)
@@ -226,20 +227,22 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('dbtype', 10).notNullable()
                     table.integer('maxOutputScript', 15).notNullable()
                 })
-                await knex.schema.createTable('sync_state', table => {
+                await knex.schema.createTable('sync_states', table => {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('syncStateId')
                     table.integer('userId').unsigned().notNullable().references('userId').inTable('users')
                     table.string('storageIdentityKey', 130).notNullable().defaultTo('')
                     table.string('storageName').notNullable()
                     table.string('status').notNullable().defaultTo('unknown')
+                    table.boolean('init').notNullable().defaultTo(false)
+                    table.string('refNum', 100).notNullable().unique()
+                    table.text('syncMap', 'longtext').notNullable()
                     table.dateTime('when')
                     table.bigint('satoshis')
-                    table.boolean('init').notNullable().defaultTo(false)
-                    table.string('refNum').notNullable().unique()
                     table.text('errorLocal', 'longtext')
                     table.text('errorOther', 'longtext')
-                    table.text('syncMap', 'longtext').notNullable()
+                    table.index('status')
+                    table.index('refNum')
                 })
 
                 if (dbtype === 'MySQL') {
@@ -271,7 +274,7 @@ export class KnexMigrations implements MigrationSource<string> {
                 })
             },
             async down(knex) {
-                await knex.schema.dropTable('sync_state')
+                await knex.schema.dropTable('sync_states')
                 await knex.schema.dropTable('settings')
                 await knex.schema.dropTable('watchman_events')
                 await knex.schema.dropTable('certificate_fields')

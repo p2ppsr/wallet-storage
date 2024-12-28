@@ -1,7 +1,16 @@
 import { sdk } from "..";
-import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap } from "./schema/tables";
+import { Settings, ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, SyncState, WatchmanEvent } from "./schema/tables";
 
 export class WalletStorage implements sdk.WalletStorage {
+    insertWatchmanEvent(event: WatchmanEvent, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    insertSyncState(syncState: SyncState, trx?: sdk.TrxToken): Promise<number> {
+        throw new Error("Method not implemented.");
+    }
+    dropAllData(): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
     insertTxLabel(label: TxLabel, trx?: sdk.TrxToken): Promise<number> {
         throw new Error("Method not implemented.");
     }

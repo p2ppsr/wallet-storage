@@ -1,37 +1,36 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { KnexMigrations, randomBytesBase64, randomBytesHex, StorageKnex, table, wait } from "../../src"
+import { KnexMigrations, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, wait } from "../../src"
 import { Knex } from 'knex'
 import { Beef } from '@bsv/sdk'
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)
 
-    const knexs: Knex[] = []
+    const storages: StorageBase[] = []
+    const chain: sdk.Chain = 'test'
 
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('migratetest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
-        knexs.push(knexSQLite)
+        storages.push(new StorageKnex({ chain, knex: knexSQLite }))
 
         const knexMySQL = _tu.createLocalMySQL('migratetest')
-        knexs.push(knexMySQL)
+        storages.push(new StorageKnex({ chain, knex: knexMySQL }))
 
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             await storage.dropAllData()
             await storage.migrate('insert tests')
         }
     })
 
     afterAll(async () => {
-        for (const knex of knexs) {
-            await knex.destroy()
+        for (const storage of storages) {
+            await storage.destroy()
         }
     })
 
     test('0 insert ProvenTx', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const now = new Date()
             const ptx: table.ProvenTx = {
                 created_at: now,
@@ -59,8 +58,7 @@ describe('insert tests', () => {
     })
 
     test('1 insert ProvenTxReq', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const now = new Date()
             const ptxreq: table.ProvenTxReq = {
                 created_at: now,
@@ -91,7 +89,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomUser(storage: StorageKnex) {
+    async function insertRandomUser(storage: StorageBase) {
         const now = new Date()
         const e: table.User = {
             created_at: now,
@@ -104,8 +102,7 @@ describe('insert tests', () => {
     }
 
     test('2 insert User', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const e = await insertRandomUser(storage)
             const id = e.userId
             expect(id).toBeGreaterThan(0)
@@ -121,7 +118,7 @@ describe('insert tests', () => {
 
     })
 
-    async function insertRandomCertificate(storage: StorageKnex) {
+    async function insertRandomCertificate(storage: StorageBase) {
         const now = new Date()
         const u = await insertRandomUser(storage)
         const e: table.Certificate = {
@@ -143,8 +140,7 @@ describe('insert tests', () => {
     }
 
     test('3 insert Certificate', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const e = await insertRandomCertificate(storage)
             const id = e.certificateId
             expect(id).toBeGreaterThan(0)
@@ -159,7 +155,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertCertificateField(storage: StorageKnex, c: table.Certificate, name: string, value: string) {
+    async function insertCertificateField(storage: StorageBase, c: table.Certificate, name: string, value: string) {
         const now = new Date()
         const e: table.CertificateField = {
             created_at: now,
@@ -175,8 +171,7 @@ describe('insert tests', () => {
     }
 
     test('4 insert CertificateField', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const c = await insertRandomCertificate(storage)
             const e = await insertCertificateField(storage, c, 'prize', 'starship')
             expect(e.certificateId).toBe(c.certificateId)
@@ -191,7 +186,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomOutputBasket(storage: StorageKnex) {
+    async function insertRandomOutputBasket(storage: StorageBase) {
         const now = new Date()
         const u = await insertRandomUser(storage)
         const e: table.OutputBasket = {
@@ -209,8 +204,7 @@ describe('insert tests', () => {
     }
 
     test('5 insert OutputBasket', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const e = await insertRandomOutputBasket(storage)
             const id = e.basketId
             expect(id).toBeGreaterThan(0)
@@ -225,7 +219,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomTransaction(storage: StorageKnex) {
+    async function insertRandomTransaction(storage: StorageBase) {
         const now = new Date()
         const u = await insertRandomUser(storage)
         const e: table.Transaction = {
@@ -249,8 +243,7 @@ describe('insert tests', () => {
     }
 
     test('6 insert Transaction', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const { tx: e, user } = await insertRandomTransaction(storage)
             const id = e.transactionId
             expect(id).toBeGreaterThan(0)
@@ -266,8 +259,7 @@ describe('insert tests', () => {
     })
 
     test('7 insert Commission', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const { tx: t, user } = await insertRandomTransaction(storage)
             const now = new Date()
             const e: table.Commission = {
@@ -297,7 +289,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertOutput(storage: StorageKnex, t: table.Transaction, vout: number, satoshis: number) {
+    async function insertOutput(storage: StorageBase, t: table.Transaction, vout: number, satoshis: number) {
         const now = new Date()
         const e: table.Output = {
             created_at: now,
@@ -318,8 +310,7 @@ describe('insert tests', () => {
     }
 
     test('8 insert Output', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const { tx: t, user } = await insertRandomTransaction(storage)
             const e = await insertOutput(storage, t, 0, 101)
             const id = e.outputId
@@ -338,7 +329,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomOutputTag(storage: StorageKnex, u: table.User) {
+    async function insertRandomOutputTag(storage: StorageBase, u: table.User) {
         const now = new Date()
         const e: table.OutputTag = {
             created_at: now,
@@ -353,8 +344,7 @@ describe('insert tests', () => {
     }
 
     test('9 insert OutputTag', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const u = await insertRandomUser(storage)
             const e = await insertRandomOutputTag(storage, u)
             const id = e.outputTagId
@@ -371,7 +361,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertOutputTagMap(storage: StorageKnex, o: table.Output, tag: table.OutputTag) {
+    async function insertOutputTagMap(storage: StorageBase, o: table.Output, tag: table.OutputTag) {
         const now = new Date()
         const e: table.OutputTagMap = {
             created_at: now,
@@ -385,8 +375,7 @@ describe('insert tests', () => {
     }
 
     test('10 insert OutputTagMap', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const { tx, user } = await insertRandomTransaction(storage)
             const o = await insertOutput(storage, tx, 0, 101)
             const tag = await insertRandomOutputTag(storage, user)
@@ -400,7 +389,7 @@ describe('insert tests', () => {
         }
     })
     
-    async function insertRandomTxLabel(storage: StorageKnex, u: table.User) {
+    async function insertRandomTxLabel(storage: StorageBase, u: table.User) {
         const now = new Date()
         const e: table.TxLabel = {
             created_at: now,
@@ -415,8 +404,7 @@ describe('insert tests', () => {
     }
 
     test('11 insert TxLabel', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const u = await insertRandomUser(storage)
             const e = await insertRandomTxLabel(storage, u)
             const id = e.txLabelId
@@ -433,7 +421,7 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertTxLabelMap(storage: StorageKnex, tx: table.Transaction, label: table.TxLabel) {
+    async function insertTxLabelMap(storage: StorageBase, tx: table.Transaction, label: table.TxLabel) {
         const now = new Date()
         const e: table.TxLabelMap = {
             created_at: now,
@@ -447,8 +435,7 @@ describe('insert tests', () => {
     }
 
     test('12 insert TxLabelMap', async () => {
-        for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+        for (const storage of storages) {
             const { tx, user } = await insertRandomTransaction(storage)
             const label = await insertRandomTxLabel(storage, user)
             const e = await insertTxLabelMap(storage, tx, label)
@@ -458,6 +445,43 @@ describe('insert tests', () => {
             await expect(storage.insertTxLabelMap(e)).rejects.toThrow()
             const label2 = await insertRandomTxLabel(storage, user)
             const e2 = await insertTxLabelMap(storage, tx, label2)
+        }
+    })
+
+    test('13 insert WatchmanEvent', async () => {
+        for (const storage of storages) {
+            const now = new Date()
+            const e: table.WatchmanEvent = {
+                created_at: now,
+                updated_at: now,
+                id: 0,
+                event: 'nothing much happened'
+            }
+            await storage.insertWatchmanEvent(e)
+            const id = e.id
+            expect(id).toBeGreaterThan(0)
+        }
+    })
+
+    test('14 insert SyncState', async () => {
+        for (const storage of storages) {
+            const now = new Date()
+            const u = await insertRandomUser(storage)
+            const e: table.SyncState = {
+                created_at: now,
+                updated_at: now,
+                syncStateId: 0,
+                userId: u.userId,
+                storageIdentityKey: storage.settings!.storageIdentityKey,
+                storageName: storage.settings!.storageName,
+                status: 'unknown',
+                init: false,
+                refNum: randomBytesBase64(10),
+                syncMap: '{}'
+            }
+            await storage.insertSyncState(e)
+            const id = e.syncStateId
+            expect(id).toBeGreaterThan(0)
         }
     })
 })

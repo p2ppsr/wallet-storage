@@ -13,7 +13,6 @@ export interface StorageKnexOptions extends StorageBaseOptions {
 
 export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     knex: Knex
-    settings?: table.Settings
     get dbtype() : DBType | undefined { return this.settings?.dbtype }
 
     constructor(options: StorageKnexOptions) {
@@ -147,18 +146,36 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         this.isDirty = true
     }
 
+    override async insertWatchmanEvent(event: table.WatchmanEvent, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(event, trx)
+        if (e.id === 0) delete e.id
+        const [id] = await this.toDb(trx)<table.WatchmanEvent>('watchman_events').insert(e)
+        event.id = id
+        this.isDirty = true
+        return event.id
+    }
+
+    override async insertSyncState(syncState: table.SyncState, trx?: sdk.TrxToken) : Promise<number> {
+        const e = await this.validateEntityForInsert(syncState, trx)
+        if (e.syncStateId === 0) delete e.syncStateId
+        const [id] = await this.toDb(trx)<table.SyncState>('sync_states').insert(e)
+        syncState.syncStateId = id
+        this.isDirty = true
+        return syncState.syncStateId
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }
 
-    async migrate(storageName: string): Promise<string> {
+    override async migrate(storageName: string): Promise<string> {
         const config = { migrationSource: new KnexMigrations(this.chain, storageName, 1024) }
         await this.knex.migrate.latest(config)
         const version = await this.knex.migrate.currentVersion(config)
         return version
     }
 
-    async dropAllData(): Promise<void> {
+    override async dropAllData(): Promise<void> {
         const config = { migrationSource: new KnexMigrations(this.chain, '', 1024) }
         const count = Object.keys(config.migrationSource.migrations).length
         for (let i = 0; i < count; i++) {

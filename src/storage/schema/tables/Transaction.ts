@@ -17,6 +17,7 @@ export interface Transaction extends sdk.EntityTimeStamp {
      */
    isOutgoing: boolean
    satoshis: number
+   description: string
    /**
     * If not undefined, must match value in associated rawTransaction.
     */
@@ -28,7 +29,6 @@ export interface Transaction extends sdk.EntityTimeStamp {
     * < 500,000,000 values are interpreted as minimum required block height
     */
    lockTime?: number
-   description: string
    txid?: string
    inputBEEF?: number[]
    rawTx?: number[]

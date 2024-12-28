@@ -1,7 +1,5 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { KnexMigrations, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, wait } from "../../src"
-import { Knex } from 'knex'
-import { Beef } from '@bsv/sdk'
+import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)
@@ -31,20 +29,7 @@ describe('insert tests', () => {
 
     test('0 insert ProvenTx', async () => {
         for (const storage of storages) {
-            const now = new Date()
-            const ptx: table.ProvenTx = {
-                created_at: now,
-                updated_at: now,
-                provenTxId: 0,
-                txid: '1'.repeat(64),
-                height: 1,
-                index: 0,
-                merklePath: [1,2,3],
-                rawTx: [4,5,6],
-                blockHash: '2'.repeat(64),
-                merkleRoot: '3'.repeat(64)
-            }
-            await storage.insertProvenTx(ptx)
+            const ptx = await _tu.insertTestProvenTx(storage)
             expect(ptx.provenTxId).toBe(1)
             ptx.provenTxId = 0
             // duplicate must throw
@@ -59,22 +44,7 @@ describe('insert tests', () => {
 
     test('1 insert ProvenTxReq', async () => {
         for (const storage of storages) {
-            const now = new Date()
-            const ptxreq: table.ProvenTxReq = {
-                created_at: now,
-                updated_at: now,
-                provenTxReqId: 0,
-                provenTxId: undefined,
-                txid: '1'.repeat(64),
-                status: 'nosend',
-                attempts: 0,
-                notified: false,
-                history: '{}',
-                notify: '{}',
-                rawTx: [4, 5, 6],
-                inputBEEF: [1,2,3]
-            }
-            await storage.insertProvenTxReq(ptxreq)
+            const ptxreq = await _tu.insertTestProvenTxReq(storage)
             expect(ptxreq.provenTxReqId).toBe(1)
             ptxreq.provenTxReqId = 0
             // duplicate must throw
@@ -89,21 +59,9 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomUser(storage: StorageBase) {
-        const now = new Date()
-        const e: table.User = {
-            created_at: now,
-            updated_at: now,
-            userId: 0,
-            identityKey: randomBytesHex(33),
-        }
-        await storage.insertUser(e)
-        return e
-    }
-
     test('2 insert User', async () => {
         for (const storage of storages) {
-            const e = await insertRandomUser(storage)
+            const e = await _tu.insertTestUser(storage)
             const id = e.userId
             expect(id).toBeGreaterThan(0)
             e.userId = 0
@@ -118,30 +76,9 @@ describe('insert tests', () => {
 
     })
 
-    async function insertRandomCertificate(storage: StorageBase) {
-        const now = new Date()
-        const u = await insertRandomUser(storage)
-        const e: table.Certificate = {
-            created_at: now,
-            updated_at: now,
-            certificateId: 0,
-            userId: u.userId,
-            type: randomBytesBase64(33),
-            serialNumber: randomBytesBase64(33),
-            certifier: randomBytesHex(33),
-            subject: randomBytesHex(33),
-            verifier: undefined,
-            revocationOutpoint: `${randomBytesHex(32)}.999`,
-            signature: randomBytesHex(50),
-            isDeleted: false
-        }
-        await storage.insertCertificate(e)
-        return e
-    }
-
     test('3 insert Certificate', async () => {
         for (const storage of storages) {
-            const e = await insertRandomCertificate(storage)
+            const e = await _tu.insertTestCertificate(storage)
             const id = e.certificateId
             expect(id).toBeGreaterThan(0)
             e.certificateId = 0
@@ -155,25 +92,10 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertCertificateField(storage: StorageBase, c: table.Certificate, name: string, value: string) {
-        const now = new Date()
-        const e: table.CertificateField = {
-            created_at: now,
-            updated_at: now,
-            certificateId: c.certificateId,
-            userId: c.userId,
-            fieldName: name,
-            fieldValue: value,
-            masterKey: randomBytesBase64(40)
-        }
-        await storage.insertCertificateField(e)
-        return e
-    }
-
     test('4 insert CertificateField', async () => {
         for (const storage of storages) {
-            const c = await insertRandomCertificate(storage)
-            const e = await insertCertificateField(storage, c, 'prize', 'starship')
+            const c = await _tu.insertTestCertificate(storage)
+            const e = await _tu.insertTestCertificateField(storage, c, 'prize', 'starship')
             expect(e.certificateId).toBe(c.certificateId)
             expect(e.userId).toBe(c.userId)
             expect(e.fieldName).toBe('prize')
@@ -186,26 +108,9 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomOutputBasket(storage: StorageBase) {
-        const now = new Date()
-        const u = await insertRandomUser(storage)
-        const e: table.OutputBasket = {
-            created_at: now,
-            updated_at: now,
-            basketId: 0,
-            userId: u.userId,
-            name: randomBytesHex(6),
-            numberOfDesiredUTXOs: 42,
-            minimumDesiredUTXOValue: 1642,
-            isDeleted: false
-        }
-        await storage.insertOutputBasket(e)
-        return e
-    }
-
     test('5 insert OutputBasket', async () => {
         for (const storage of storages) {
-            const e = await insertRandomOutputBasket(storage)
+            const e = await _tu.insertTestOutputBasket(storage)
             const id = e.basketId
             expect(id).toBeGreaterThan(0)
             e.basketId = 0
@@ -219,32 +124,9 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomTransaction(storage: StorageBase) {
-        const now = new Date()
-        const u = await insertRandomUser(storage)
-        const e: table.Transaction = {
-            created_at: now,
-            updated_at: now,
-            transactionId: 0,
-            userId: u.userId,
-            status: 'nosend',
-            reference: randomBytesBase64(10),
-            isOutgoing: true,
-            satoshis: 9999,
-            description: 'buy me a river',
-            version: 0,
-            lockTime: 500000000,
-            txid: randomBytesHex(32),
-            inputBEEF: new Beef().toBinary(),
-            rawTx: [1,2,3,]
-        }
-        await storage.insertTransaction(e)
-        return { tx: e, user: u }
-    }
-
     test('6 insert Transaction', async () => {
         for (const storage of storages) {
-            const { tx: e, user } = await insertRandomTransaction(storage)
+            const { tx: e, user } = await _tu.insertTestTransaction(storage)
             const id = e.transactionId
             expect(id).toBeGreaterThan(0)
             e.transactionId = 0
@@ -260,27 +142,15 @@ describe('insert tests', () => {
 
     test('7 insert Commission', async () => {
         for (const storage of storages) {
-            const { tx: t, user } = await insertRandomTransaction(storage)
-            const now = new Date()
-            const e: table.Commission = {
-                created_at: now,
-                updated_at: now,
-                commissionId: 0,
-                userId: t.userId,
-                transactionId: t.transactionId,
-                satoshis: 200,
-                keyOffset: randomBytesBase64(32),
-                isRedeemed: false,
-                lockingScript: [1,2,3]
-            }
-            await storage.insertCommission(e)
+            const { tx: t, user } = await _tu.insertTestTransaction(storage)
+            const e: table.Commission = await _tu.insertTestCommission(storage, t)
             const id = e.commissionId
             expect(id).toBeGreaterThan(0)
             e.commissionId = 0
             // duplicate must throw
             await expect(storage.insertCommission(e)).rejects.toThrow()
             e.commissionId = 0
-            const { tx: t2 } = await insertRandomTransaction(storage)
+            const { tx: t2 } = await _tu.insertTestTransaction(storage)
             e.transactionId = t2.transactionId
             e.userId = t2.userId
             await storage.insertCommission(e)
@@ -289,30 +159,10 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertOutput(storage: StorageBase, t: table.Transaction, vout: number, satoshis: number) {
-        const now = new Date()
-        const e: table.Output = {
-            created_at: now,
-            updated_at: now,
-            outputId: 0,
-            userId: t.userId,
-            transactionId: t.transactionId,
-            spendable: true,
-            change: true,
-            vout,
-            satoshis,
-            providedBy: 'you',
-            purpose: 'secret',
-            type: 'custom'
-        }
-        await storage.insertOutput(e)
-        return e
-    }
-
     test('8 insert Output', async () => {
         for (const storage of storages) {
-            const { tx: t, user } = await insertRandomTransaction(storage)
-            const e = await insertOutput(storage, t, 0, 101)
+            const { tx: t, user } = await _tu.insertTestTransaction(storage)
+            const e = await _tu.insertTestOutput(storage, t, 0, 101)
             const id = e.outputId
             expect(id).toBeGreaterThan(0)
             expect(e.userId).toBe(t.userId)
@@ -329,24 +179,10 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertRandomOutputTag(storage: StorageBase, u: table.User) {
-        const now = new Date()
-        const e: table.OutputTag = {
-            created_at: now,
-            updated_at: now,
-            outputTagId: 0,
-            userId: u.userId,
-            tag: randomBytesHex(6),
-            isDeleted: false
-        }
-        await storage.insertOutputTag(e)
-        return e
-    }
-
     test('9 insert OutputTag', async () => {
         for (const storage of storages) {
-            const u = await insertRandomUser(storage)
-            const e = await insertRandomOutputTag(storage, u)
+            const u = await _tu.insertTestUser(storage)
+            const e = await _tu.insertTestOutputTag(storage, u)
             const id = e.outputTagId
             expect(id).toBeGreaterThan(0)
             expect(e.userId).toBe(u.userId)
@@ -361,52 +197,25 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertOutputTagMap(storage: StorageBase, o: table.Output, tag: table.OutputTag) {
-        const now = new Date()
-        const e: table.OutputTagMap = {
-            created_at: now,
-            updated_at: now,
-            outputTagId: tag.outputTagId,
-            outputId: o.outputId,
-            isDeleted: false
-        }
-        await storage.insertOutputTagMap(e)
-        return e
-    }
-
     test('10 insert OutputTagMap', async () => {
         for (const storage of storages) {
-            const { tx, user } = await insertRandomTransaction(storage)
-            const o = await insertOutput(storage, tx, 0, 101)
-            const tag = await insertRandomOutputTag(storage, user)
-            const e = await insertOutputTagMap(storage, o, tag)
+            const { tx, user } = await _tu.insertTestTransaction(storage)
+            const o = await _tu.insertTestOutput(storage, tx, 0, 101)
+            const tag = await _tu.insertTestOutputTag(storage, user)
+            const e = await _tu.insertTestOutputTagMap(storage, o, tag)
             expect(e.outputId).toBe(o.outputId)
             expect(e.outputTagId).toBe(tag.outputTagId)
             // duplicate must throw
             await expect(storage.insertOutputTagMap(e)).rejects.toThrow()
-            const tag2 = await insertRandomOutputTag(storage, user)
-            const e2 = await insertOutputTagMap(storage, o, tag2)
+            const tag2 = await _tu.insertTestOutputTag(storage, user)
+            const e2 = await _tu.insertTestOutputTagMap(storage, o, tag2)
         }
     })
     
-    async function insertRandomTxLabel(storage: StorageBase, u: table.User) {
-        const now = new Date()
-        const e: table.TxLabel = {
-            created_at: now,
-            updated_at: now,
-            txLabelId: 0,
-            userId: u.userId,
-            label: randomBytesHex(6),
-            isDeleted: false
-        }
-        await storage.insertTxLabel(e)
-        return e
-    }
-
     test('11 insert TxLabel', async () => {
         for (const storage of storages) {
-            const u = await insertRandomUser(storage)
-            const e = await insertRandomTxLabel(storage, u)
+            const u = await _tu.insertTestUser(storage)
+            const e = await _tu.insertTestTxLabel(storage, u)
             const id = e.txLabelId
             expect(id).toBeGreaterThan(0)
             expect(e.userId).toBe(u.userId)
@@ -421,43 +230,23 @@ describe('insert tests', () => {
         }
     })
 
-    async function insertTxLabelMap(storage: StorageBase, tx: table.Transaction, label: table.TxLabel) {
-        const now = new Date()
-        const e: table.TxLabelMap = {
-            created_at: now,
-            updated_at: now,
-            txLabelId: label.txLabelId,
-            transactionId: tx.transactionId,
-            isDeleted: false
-        }
-        await storage.insertTxLabelMap(e)
-        return e
-    }
-
     test('12 insert TxLabelMap', async () => {
         for (const storage of storages) {
-            const { tx, user } = await insertRandomTransaction(storage)
-            const label = await insertRandomTxLabel(storage, user)
-            const e = await insertTxLabelMap(storage, tx, label)
+            const { tx, user } = await _tu.insertTestTransaction(storage)
+            const label = await _tu.insertTestTxLabel(storage, user)
+            const e = await _tu.insertTestTxLabelMap(storage, tx, label)
             expect(e.transactionId).toBe(tx.transactionId)
             expect(e.txLabelId).toBe(label.txLabelId)
             // duplicate must throw
             await expect(storage.insertTxLabelMap(e)).rejects.toThrow()
-            const label2 = await insertRandomTxLabel(storage, user)
-            const e2 = await insertTxLabelMap(storage, tx, label2)
+            const label2 = await _tu.insertTestTxLabel(storage, user)
+            const e2 = await _tu.insertTestTxLabelMap(storage, tx, label2)
         }
     })
 
     test('13 insert WatchmanEvent', async () => {
         for (const storage of storages) {
-            const now = new Date()
-            const e: table.WatchmanEvent = {
-                created_at: now,
-                updated_at: now,
-                id: 0,
-                event: 'nothing much happened'
-            }
-            await storage.insertWatchmanEvent(e)
+            const e = await _tu.insertTestWatchmanEvent(storage)
             const id = e.id
             expect(id).toBeGreaterThan(0)
         }
@@ -465,23 +254,11 @@ describe('insert tests', () => {
 
     test('14 insert SyncState', async () => {
         for (const storage of storages) {
-            const now = new Date()
-            const u = await insertRandomUser(storage)
-            const e: table.SyncState = {
-                created_at: now,
-                updated_at: now,
-                syncStateId: 0,
-                userId: u.userId,
-                storageIdentityKey: storage.settings!.storageIdentityKey,
-                storageName: storage.settings!.storageName,
-                status: 'unknown',
-                init: false,
-                refNum: randomBytesBase64(10),
-                syncMap: '{}'
-            }
-            await storage.insertSyncState(e)
+            const u = await _tu.insertTestUser(storage)
+            const e = await _tu.insertTestSyncState(storage, u)
             const id = e.syncStateId
             expect(id).toBeGreaterThan(0)
         }
     })
 })
+

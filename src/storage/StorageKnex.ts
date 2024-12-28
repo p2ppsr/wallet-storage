@@ -245,7 +245,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
 
-    setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, columns?: string[])
+    setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean)
     : Knex.QueryBuilder
     {
         let q = this.toDb(trx)<T>(table)
@@ -274,10 +274,10 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     findOutputBasketsQuery(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         return this.setupQuery('output_baskets', partial, since, paged, trx)
     }
-    findOutputsQuery(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder { 
+    findOutputsQuery(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder { 
         if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
-        const q = this.setupQuery('outputs', partial, since, paged, trx)
-        if (noScript) {
+        const q = this.setupQuery('outputs', partial, since, paged, trx, count)
+        if (noScript && !count) {
             const columns = table.outputColumnsWithoutLockingScript.map(c => `outputs.${c}`)
             q.select(columns)
         }
@@ -307,12 +307,12 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     findSyncStatesQuery(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Knex.QueryBuilder {
         return this.setupQuery('sync_states', partial, undefined, undefined, trx)
     }
-    findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+    findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder {
         if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
         if (partial.inputBEEF) throw new sdk.WERR_INVALID_PARAMETER('partial.inputBEEF', `undefined. Transactions may not be found by inputBEEF value.`);
-        const q = this.setupQuery('transactions', partial, since, paged, trx)
+        const q = this.setupQuery('transactions', partial, since, paged, trx, count)
         if (status && status.length > 0) q.whereIn('status', status);
-        if (noRawTx) {
+        if (noRawTx && !count) {
             const columns = table.transactionColumnsWithoutRawTx.map(c => `transactions.${c}`)
             q.select(columns)
         }
@@ -435,7 +435,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return await this.getCount(this.findOutputBasketsQuery(partial, since, undefined, trx))
     }
     override async countOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findOutputsQuery(partial, true, since, undefined, trx))
+        return await this.getCount(this.findOutputsQuery(partial, true, since, undefined, trx, true))
     }
     override async countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findOutputTagMapsQuery(partial, tagIds, trx))
@@ -453,7 +453,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return await this.getCount(this.findSyncStatesQuery(partial, trx))
     }
     override async countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findTransactionsQuery(partial, status, true, since, undefined, trx))
+        return await this.getCount(this.findTransactionsQuery(partial, status, true, since, undefined, trx, true))
     }
     override async countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findTxLabelMapsQuery(partial, labelIds, trx))

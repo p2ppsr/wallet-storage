@@ -217,16 +217,16 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return await this.toDb(trx)<table.OutputTagMap>('output_tags_map').where({ outputId, outputTagId: tagId }).update(this.validatePartialForUpdate(update))
     }
     override async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.toDb(trx)<table.OutputTag>('outputTags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.toDb(trx)<table.ProvenTxReq>('provenTxReqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_teqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>  {
-        return await this.toDb(trx)<table.ProvenTx>('provenTxs').where({ provenTxId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.ProvenTx>('proven_txs').where({ provenTxId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
-        return await this.toDb(trx)<table.SyncState>('syncStates').where({ syncStateId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.SyncState>('sync_states').where({ syncStateId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken) : Promise<number> {
         return await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(this.validatePartialForUpdate(update))
@@ -235,7 +235,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').where({ transactionId, txLabelId }).update(this.validatePartialForUpdate(update))
     }
     override async updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.toDb(trx)<table.TxLabel>('txLabels').where({ txLabelId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.TxLabel>('tx_labels').where({ txLabelId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken) : Promise<number> {
         return await this.toDb(trx)<table.User>('users').where({ userId: id }).update(this.validatePartialForUpdate(update))

@@ -174,3 +174,9 @@ export function asArray(val: Buffer | string | number[], encoding?: BufferEncodi
   else a = Array.from(Buffer.from(val, encoding || 'hex'))
   return a
 }
+
+export function validateSecondsSinceEpoch (time: number): Date {
+  const date = new Date(time * 1000)
+  if (date.getTime() / 1000 !== time || time < 1600000000 || time > 100000000000) { throw new sdk.WERR_INVALID_PARAMETER('time', `valid "since epoch" unix time`) }
+  return date
+}

@@ -1,7 +1,7 @@
-import { sdk, verifyOne, verifyOneOrNone } from "..";
+import { asArray, sdk, validateSecondsSinceEpoch, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { KnexMigrations, table } from "."
 
-import { Knex } from "knex";
+import { Knex, QueryBuilder } from "knex";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 
 export interface StorageKnexOptions extends StorageBaseOptions {
@@ -23,6 +23,54 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
 
     override async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
         return this.validateEntity(verifyOne(await this.toDb(trx)<table.Settings>('settings')))
+    }
+
+    override async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken)
+    : Promise<sdk.ProvenOrRawTx>
+    {
+        const k = this.toDb(trx)
+        const r: sdk.ProvenOrRawTx = { proven: undefined, rawTx: undefined, inputBEEF: undefined }
+
+        r.proven = verifyOneOrNone(await this.findProvenTxs({'txid': txid }))
+        if (!r.proven) {
+            const reqRawTx = verifyOneOrNone(await k('proven_tx_reqs')
+                .where( 'txid', txid )
+                .whereIn('status', ['unsent', 'unmined', 'unconfirmed', 'sending', 'nosend', 'completed'])
+                .select('rawTx', 'inputBEEF'))
+            if (reqRawTx) {
+                r.rawTx = Array.from(reqRawTx.rawTx)
+                r.inputBEEF = Array.from(reqRawTx.inputBEEF)
+            }
+        } 
+        return r
+    }
+
+    override async getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken)
+    : Promise<number[] | undefined>
+    {
+        if (!txid) return undefined
+
+        let rawTx: number[] | undefined = undefined
+        if (Number.isInteger(offset) && Number.isInteger(length)) {
+            const rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select substring(rawTx from ${offset! + 1} for ${length}) as rawTx from proven_txs where txid = '${txid}'`))[0]
+            const r = verifyOneOrNone(rs)
+            if (r && r.rawTx) {
+                rawTx = Array.from(r.rawTx)
+            } else {
+                const rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select substring(rawTx from ${offset! + 1} for ${length}) as rawTx from proven_tx_reqs where txid = '${txid}' and status in ('unsent', 'nosend', 'sending', 'unmined', 'completed')`))[0]
+                const r = verifyOneOrNone(rs)
+                if (r && r.rawTx) {
+                    rawTx = Array.from(r.rawTx)
+                }
+            }
+        } else {
+            const r = await this.getProvenOrRawTx(txid, trx)
+            if (r.proven)
+                rawTx = r.proven.rawTx
+            else
+                rawTx = r.rawTx
+        }
+        return rawTx
     }
 
     async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
@@ -164,6 +212,229 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return syncState.syncStateId
     }
 
+    setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, columns?: string[])
+    : Knex.QueryBuilder
+    {
+        let q = this.toDb(trx)<T>(table)
+        if (partial && Object.keys(partial).length > 0) q.where(partial)
+        if (since) q.where('updated_at', '>=', this.validateDateForWhere(since));
+        if (paged) {
+            q.limit(paged.limit)
+            q.offset(paged.offset || 0)
+        }
+        return q
+    }
+
+    findCertificateFieldsQuery(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('certificate_fields', partial, undefined, undefined, trx)
+    }
+    findCertificatesQuery(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const q = this.setupQuery('certificates', partial, since, paged, trx)
+        if (certifiers && certifiers.length > 0) q.whereIn('certifier', certifiers);
+        if (types && types.length > 0) q.whereIn('type', types);
+        return q
+    }
+    findCommissionsQuery(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Commissions may not be found by lockingScript value.`);
+        return this.setupQuery('commissions', partial, since, paged, trx)
+    }
+    findOutputBasketsQuery(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('output_baskets', partial, since, paged, trx)
+    }
+    findOutputsQuery(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder { 
+        if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
+        const q = this.setupQuery('outputs', partial, since, paged, trx)
+        if (noScript) {
+            const columns = table.outputColumnsWithoutLockingScript.map(c => `outputs.${c}`)
+            q.select(columns)
+        }
+        return q
+    }
+    findOutputTagMapsQuery(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const q = this.setupQuery('output_tags_map', partial, undefined, undefined, trx)
+        if (tagIds && tagIds.length > 0) q.whereIn('outputTagId', tagIds);
+        return q
+    }
+    findOutputTagsQuery(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('output_tags', partial, since, paged, trx)
+    }
+    findProvenTxReqsQuery(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. ProvenTxReqs may not be found by rawTx value.`);
+        if (partial.inputBEEF) throw new sdk.WERR_INVALID_PARAMETER('partial.inputBEEF', `undefined. ProvenTxReqs may not be found by inputBEEF value.`);
+        const q = this.setupQuery('proven_tx_reqs', partial, since, paged, trx)
+        if (status && status.length > 0) q.whereIn('status', status);
+        if (txids && txids.length > 0) q.whereIn('txid', txids);
+        return q
+    }
+    findProvenTxsQuery(partial: Partial<table.ProvenTx>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder  {
+        if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. ProvenTxs may not be found by rawTx value.`);
+        if (partial.merklePath) throw new sdk.WERR_INVALID_PARAMETER('partial.merklePath', `undefined. ProvenTxs may not be found by merklePath value.`);
+        return this.setupQuery('proven_txs', partial, since, paged, trx)
+    }
+    findSyncStatesQuery(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Knex.QueryBuilder {
+        return this.setupQuery('sync_states', partial, undefined, undefined, trx)
+    }
+    findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
+        if (partial.inputBEEF) throw new sdk.WERR_INVALID_PARAMETER('partial.inputBEEF', `undefined. Transactions may not be found by inputBEEF value.`);
+        const q = this.setupQuery('transactions', partial, since, paged, trx)
+        if (status && status.length > 0) q.whereIn('status', status);
+        if (noRawTx) {
+            const columns = table.transactionColumnsWithoutRawTx.map(c => `transactions.${c}`)
+            q.select(columns)
+        }
+        return q
+    }
+    findTxLabelMapsQuery(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const q = this.setupQuery('tx_labels_map', partial, undefined, undefined, trx)
+        if (labelIds && labelIds.length > 0) q.whereIn('txLabelId', labelIds);
+        return q
+    }
+    findTxLabelsQuery(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('tx_labels', partial, since, paged, trx)
+    }
+    findUsersQuery(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('users', partial, since, paged, trx)
+    }
+    findWatchmanEventsQuery(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder  {
+        return this.setupQuery('watchman_events', partial, since, paged, trx)
+    }
+
+
+    override async findCertificateFields(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<table.CertificateField[]> {
+        return this.validateEntities(await this.findCertificateFieldsQuery(partial, trx))
+    }
+    override async findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]> {
+        const q = this.findCertificatesQuery(partial, certifiers, types, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Commission[]> {
+        const q = this.findCommissionsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isRedeemed'])
+    }
+    override async findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputBasket[]> {
+        const q = this.findOutputBasketsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]> {
+        const q = this.findOutputsQuery(partial, noScript, since, paged, trx)
+        const r = await q
+        if (!noScript) {
+            for (const o of r) {
+                await this.validateOutputScript(o, trx)
+            }
+        }
+        return this.validateEntities(r, undefined, ['spendable', 'change'])
+    }
+    override async findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
+        const q = this.findOutputTagMapsQuery(partial, tagIds, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTag[]> {
+        const q = this.findOutputTagsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]> {
+        const q = this.findProvenTxReqsQuery(partial, status, txids, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['notified'])
+    }
+    override async findProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>  {
+        const q = this.findProvenTxsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r)
+    }
+    override async findSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
+        const q = this.findSyncStatesQuery(partial, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['init'])
+    }
+    override async findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]> {
+        const q = this.findTransactionsQuery(partial, status, noRawTx, since, paged, trx)
+        const r = await q
+        if (!noRawTx) {
+            for (const t of r) { await this.validateRawTransaction(t, trx) }
+        }
+        return this.validateEntities(r, undefined, ['isOutgoing'])
+    }
+    override async findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
+        const q = this.findTxLabelMapsQuery(partial, labelIds, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabel[]> {
+        const q = this.findTxLabelsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, undefined, ['isDeleted'])
+    }
+    override async findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.User[]> {
+        const q = this.findUsersQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r)
+    }
+    override async findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]>  {
+        const q = this.findWatchmanEventsQuery(partial, since, paged, trx)
+        const r = await q
+        return this.validateEntities(r, ['when'], undefined)
+    }
+
+    async getCount<T extends object>(q: Knex.QueryBuilder<T, T[]>) : Promise<number> {
+        q.count()
+        const r = await q
+        return r[0]['count(*)']
+    }
+
+    override async countCertificateFields(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findCertificateFieldsQuery(partial, trx))
+    }
+    override async countCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findCertificatesQuery(partial, certifiers, types, since, undefined, trx))
+    }
+    override async countCommissions(partial: Partial<table.Commission>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findCommissionsQuery(partial, since, undefined, trx))
+    }
+    override async countOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findOutputBasketsQuery(partial, since, undefined, trx))
+    }
+    override async countOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findOutputsQuery(partial, true, since, undefined, trx))
+    }
+    override async countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findOutputTagMapsQuery(partial, tagIds, trx))
+    }
+    override async countOutputTags(partial: Partial<table.OutputTag>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findOutputTagsQuery(partial, since, undefined, trx))
+    }
+    override async countProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findProvenTxReqsQuery(partial, status, txids, since, undefined, trx))
+    }
+    override async countProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, trx?: sdk.TrxToken): Promise<number>  {
+        return await this.getCount(this.findProvenTxsQuery(partial, since, undefined, trx))
+    }
+    override async countSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
+        return await this.getCount(this.findSyncStatesQuery(partial, trx))
+    }
+    override async countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findTransactionsQuery(partial, status, true, since, undefined, trx))
+    }
+    override async countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findTxLabelMapsQuery(partial, labelIds, trx))
+    }
+    override async countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findTxLabelsQuery(partial, since, undefined, trx))
+    }
+    override async countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findUsersQuery(partial, since, undefined, trx))
+    }
+    override async countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>  {
+        return await this.getCount(this.findWatchmanEventsQuery(partial, since, undefined, trx))
+    }
+
     override async destroy(): Promise<void> {
         await this.knex?.destroy()
     }
@@ -209,6 +480,47 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return db
     }
 
+    async validateRawTransaction(t: table.Transaction, trx?: sdk.TrxToken) : Promise<void> {
+        // if there is no txid or there is a rawTransaction return what we have.
+        if (t.rawTx || !t.txid) return
+
+        // rawTransaction is missing, see if we moved it ...
+
+        const rawTx = await this.getRawTxOfKnownValidTransaction(t.txid, undefined, undefined, trx)
+        if (!rawTx) return
+        t.rawTx = rawTx
+    }
+
+    async validateOutputScript(o: table.Output, trx?: sdk.TrxToken) : Promise<void> {
+        // without offset and length values return what we have (make no changes)
+        if (!o.scriptLength || !o.scriptOffset || !o.txid) return
+        // if there is an outputScript and its length is the expected length return what we have.
+        if (o.lockingScript && o.lockingScript.length === o.scriptLength) return
+
+        // outputScript is missing or has incorrect length...
+
+        const script = await this.getRawTxOfKnownValidTransaction(o.txid, o.scriptOffset, o.scriptLength, trx)
+        if (!script) return
+        o.lockingScript = script
+    }
+
+    validateDateForWhere(date: Date | string | number) : Date | string | number {
+        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
+        if (typeof date === 'number') date = validateSecondsSinceEpoch(date)
+        const vdate = verifyTruthy(this.validateDate(date))
+        let r: Date | string | number
+        switch (this.dbtype) {
+            case 'MySQL':
+                r = vdate
+                break
+            case 'SQLite':
+                r = vdate.toISOString()
+                break
+            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
+        }
+        return r
+    }
+    
     validateDate(date: Date | string | number) : Date {
         let r: Date
         if (date instanceof Date)
@@ -331,6 +643,12 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
             for (const df of booleanFields) {
                 if (entity[df] !== undefined)
                     entity[df] = !!(entity[df])
+            }
+        }
+        for (const key of Object.keys(entity)) {
+            const val = entity[key]
+            if (Buffer.isBuffer(val)) {
+                entity[key] = Array.from(val)
             }
         }
         return entity

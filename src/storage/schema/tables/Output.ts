@@ -14,6 +14,7 @@ export interface Output extends sdk.EntityTimeStamp {
    providedBy: string
    purpose: string
    type: string
+   txid?: string
    senderIdentityKey?: sdk.PubKeyHex
    derivationPrefix?: sdk.Base64String
    derivationSuffix?: sdk.Base64String
@@ -25,3 +26,31 @@ export interface Output extends sdk.EntityTimeStamp {
    scriptOffset?: number
    lockingScript?: number[]
 }
+
+export const outputColumnsWithoutLockingScript = [
+   'created_at',
+   'updated_at',
+   'outputId',
+   'userId',
+   'transactionId',
+   'basketId',
+   'spendable',
+   'change',
+   'vout',
+   'satoshis',
+   'providedBy',
+   'purpose',
+   'type',
+   'outputDescription',
+   'txid',
+   'senderIdentityKey',
+   'derivationPrefix',
+   'derivationSuffix',
+   'customInstructions',
+   'spentBy',
+   'sequenceNumber',
+   'spendingDescription',
+   'scriptLength',
+   'scriptOffset',
+   //'lockingScript',
+]

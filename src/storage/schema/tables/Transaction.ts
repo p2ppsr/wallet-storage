@@ -6,7 +6,7 @@ export interface Transaction extends sdk.EntityTimeStamp {
    transactionId: number
    userId: number
    provenTxId?: number
-   status: TransactionStatus
+   status: sdk.TransactionStatus
    /**
      * max length of 64, hex encoded
      */
@@ -34,5 +34,20 @@ export interface Transaction extends sdk.EntityTimeStamp {
    rawTx?: number[]
 }
 
-export type TransactionStatus =
-   'completed' | 'failed' | 'unprocessed' | 'sending' | 'unproven' | 'unsigned' | 'nosend'
+export const transactionColumnsWithoutRawTx = [
+   'created_at',
+   'updated_at',
+   'transactionId',
+   'userId',
+   'provenTxId',
+   'status',
+   'reference',
+   'isOutgoing',
+   'satoshis',
+   'version',
+   'lockTime',
+   'description',
+   'txid',
+//   'inputBEEF',
+//   'rawTx',
+]

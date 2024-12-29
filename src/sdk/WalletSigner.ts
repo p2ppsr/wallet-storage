@@ -42,11 +42,11 @@ export interface StorageIdentity {
    /**
     * The identity key (public key) assigned to this storage
     */
-   key: string
+   storageIdentityKey: string
    /**
     * The human readable name assigned to this storage.
     */
-   name: string
+   storageName: string
 }
 
 export interface EntityTimeStamp {

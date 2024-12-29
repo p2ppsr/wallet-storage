@@ -3,9 +3,9 @@ import { promises as fsp } from 'fs'
 import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, table } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
+import { Beef } from '@bsv/sdk';
 
 import * as dotenv from 'dotenv'
-import { Beef } from '@bsv/sdk';
 dotenv.config();
 
 const localMySqlConnection = process.env.LOCAL_MYSQL_CONNECTION || ''
@@ -59,6 +59,17 @@ export abstract class TestUtilsWalletStorage {
             client: 'sqlite3',
             connection: { filename },
             useNullAsDefault: true,
+        }
+        const knex = makeKnex(config)
+        return knex
+    }
+
+    static createMySQLFromConnection(connection: object): Knex {
+        const config: Knex.Config = {
+            client: 'mysql2',
+            connection,
+            useNullAsDefault: true,
+            pool: { min: 0, max: 7, idleTimeoutMillis: 15000 }
         }
         const knex = makeKnex(config)
         return knex

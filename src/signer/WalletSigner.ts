@@ -1,5 +1,5 @@
 import { Transaction } from "@bsv/sdk";
-import { sdk } from "..";
+import { sdk, WalletStorage } from "..";
 import { createActionSdk } from "./methods/createActionSdk";
 
 export class WalletSigner implements sdk.WalletSigner {
@@ -11,7 +11,7 @@ export class WalletSigner implements sdk.WalletSigner {
     _isStorageAvailable: boolean
     pendingSignActions: Record<string, PendingSignAction>
 
-    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: sdk.WalletStorage) {
+    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorage) {
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage

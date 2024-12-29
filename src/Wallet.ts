@@ -19,7 +19,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.signer = signer
         // Give signer access to our keyDeriver
         this.signer.keyDeriver = keyDeriver
-        this.storageParty = signer.storageIdentity!.key
+        this.storageParty = signer.storageIdentity!.storageIdentityKey
         this.userParty = signer.getClientChangeKeyPair().publicKey
         this.beef = new BeefParty([this.storageParty, this.userParty])
         this.trustSelf = 'known'

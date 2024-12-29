@@ -1,7 +1,7 @@
-import { asArray, sdk, validateSecondsSinceEpoch, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { sdk, validateSecondsSinceEpoch, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { KnexMigrations, table } from "."
 
-import { Knex, QueryBuilder } from "knex";
+import { Knex } from "knex";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 
 export interface StorageKnexOptions extends StorageBaseOptions {

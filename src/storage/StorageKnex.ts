@@ -73,6 +73,23 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return rawTx
     }
 
+    override async requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunkResult> {
+        throw new Error("Method not implemented.");
+    }
+    
+    override async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
+        throw new Error("Method not implemented.");
+    }
+    override async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
+        throw new Error("Method not implemented.");
+    }
+    override async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
+        throw new Error("Method not implemented.");
+    }
+    override async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
+        throw new Error("Method not implemented.");
+    }
+
     async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
         throw new Error("Method not implemented.");
     }
@@ -258,8 +275,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return q
     }
 
-    findCertificateFieldsQuery(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        return this.setupQuery('certificate_fields', partial, undefined, undefined, trx)
+    findCertificateFieldsQuery(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        return this.setupQuery('certificate_fields', partial, since, paged, trx)
     }
     findCertificatesQuery(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         const q = this.setupQuery('certificates', partial, since, paged, trx)
@@ -283,8 +300,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return q
     }
-    findOutputTagMapsQuery(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const q = this.setupQuery('output_tags_map', partial, undefined, undefined, trx)
+    findOutputTagMapsQuery(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const q = this.setupQuery('output_tags_map', partial, since, paged, trx)
         if (tagIds && tagIds.length > 0) q.whereIn('outputTagId', tagIds);
         return q
     }
@@ -304,8 +321,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         if (partial.merklePath) throw new sdk.WERR_INVALID_PARAMETER('partial.merklePath', `undefined. ProvenTxs may not be found by merklePath value.`);
         return this.setupQuery('proven_txs', partial, since, paged, trx)
     }
-    findSyncStatesQuery(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Knex.QueryBuilder {
-        return this.setupQuery('sync_states', partial, undefined, undefined, trx)
+    findSyncStatesQuery(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder {
+        return this.setupQuery('sync_states', partial, since, paged, trx)
     }
     findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder {
         if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
@@ -318,8 +335,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return q
     }
-    findTxLabelMapsQuery(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const q = this.setupQuery('tx_labels_map', partial, undefined, undefined, trx)
+    findTxLabelMapsQuery(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const q = this.setupQuery('tx_labels_map', partial, since, paged, trx)
         if (labelIds && labelIds.length > 0) q.whereIn('txLabelId', labelIds);
         return q
     }
@@ -334,8 +351,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
 
-    override async findCertificateFields(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<table.CertificateField[]> {
-        return this.validateEntities(await this.findCertificateFieldsQuery(partial, trx))
+    override async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.CertificateField[]> {
+        return this.validateEntities(await this.findCertificateFieldsQuery(partial, since, paged, trx))
     }
     override async findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]> {
         const q = this.findCertificatesQuery(partial, certifiers, types, since, paged, trx)
@@ -362,8 +379,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return this.validateEntities(r, undefined, ['spendable', 'change'])
     }
-    override async findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
-        const q = this.findOutputTagMapsQuery(partial, tagIds, trx)
+    override async findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
+        const q = this.findOutputTagMapsQuery(partial, tagIds, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
@@ -382,8 +399,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         const r = await q
         return this.validateEntities(r)
     }
-    override async findSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
-        const q = this.findSyncStatesQuery(partial, trx)
+    override async findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
+        const q = this.findSyncStatesQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['init'])
     }
@@ -395,8 +412,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return this.validateEntities(r, undefined, ['isOutgoing'])
     }
-    override async findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
-        const q = this.findTxLabelMapsQuery(partial, labelIds, trx)
+    override async findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
+        const q = this.findTxLabelMapsQuery(partial, labelIds, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
@@ -422,8 +439,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return r[0]['count(*)']
     }
 
-    override async countCertificateFields(partial: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findCertificateFieldsQuery(partial, trx))
+    override async countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findCertificateFieldsQuery(partial, since, undefined, trx))
     }
     override async countCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findCertificatesQuery(partial, certifiers, types, since, undefined, trx))
@@ -434,11 +451,11 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     override async countOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findOutputBasketsQuery(partial, since, undefined, trx))
     }
-    override async countOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+    override async countOutputs(partial: Partial<table.Output>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findOutputsQuery(partial, true, since, undefined, trx, true))
     }
-    override async countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findOutputTagMapsQuery(partial, tagIds, trx))
+    override async countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findOutputTagMapsQuery(partial, tagIds, since, undefined, trx))
     }
     override async countOutputTags(partial: Partial<table.OutputTag>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findOutputTagsQuery(partial, since, undefined, trx))
@@ -449,14 +466,14 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     override async countProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, trx?: sdk.TrxToken): Promise<number>  {
         return await this.getCount(this.findProvenTxsQuery(partial, since, undefined, trx))
     }
-    override async countSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
-        return await this.getCount(this.findSyncStatesQuery(partial, trx))
+    override async countSyncStates(partial: Partial<table.SyncState>, since?: Date, trx?: sdk.TrxToken): Promise<number> {
+        return await this.getCount(this.findSyncStatesQuery(partial, since, undefined, trx))
     }
-    override async countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findTransactionsQuery(partial, status, true, since, undefined, trx, true))
+    override async countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findTransactionsQuery(partial, status, undefined, since, undefined, trx, true))
     }
-    override async countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], trx?: sdk.TrxToken) : Promise<number> {
-        return await this.getCount(this.findTxLabelMapsQuery(partial, labelIds, trx))
+    override async countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, trx?: sdk.TrxToken) : Promise<number> {
+        return await this.getCount(this.findTxLabelMapsQuery(partial, labelIds, since, undefined, trx))
     }
     override async countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken) : Promise<number> {
         return await this.getCount(this.findTxLabelsQuery(partial, since, undefined, trx))

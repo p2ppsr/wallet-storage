@@ -8,11 +8,11 @@ describe('insert tests', () => {
     const chain: sdk.Chain = 'test'
 
     beforeAll(async () => {
-        const localSQLiteFile = await _tu.newTmpFile('migratetest.sqlite', false, false, true)
+        const localSQLiteFile = await _tu.newTmpFile('inserttest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         storages.push(new StorageKnex({ chain, knex: knexSQLite }))
 
-        const knexMySQL = _tu.createLocalMySQL('migratetest')
+        const knexMySQL = _tu.createLocalMySQL('inserttest')
         storages.push(new StorageKnex({ chain, knex: knexMySQL }))
 
         for (const storage of storages) {

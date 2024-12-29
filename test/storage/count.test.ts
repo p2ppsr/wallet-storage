@@ -9,11 +9,11 @@ describe('count tests', () => {
     const setups: { setup: TestSetup1, storage: StorageBase }[] = []
 
     beforeAll(async () => {
-        const localSQLiteFile = await _tu.newTmpFile('migratetest.sqlite', false, false, true)
+        const localSQLiteFile = await _tu.newTmpFile('counttest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         storages.push(new StorageKnex({ chain, knex: knexSQLite }))
 
-        const knexMySQL = _tu.createLocalMySQL('migratetest')
+        const knexMySQL = _tu.createLocalMySQL('counttest')
         storages.push(new StorageKnex({ chain, knex: knexMySQL }))
 
         for (const storage of storages) {

@@ -79,12 +79,23 @@ export function verifyNumber (v: number | null | undefined): number {
 
 /**
  * Helper function.
+ *
+ * Verifies that an optional or null number has a numeric value.
+ */
+export function verifyInteger (v: number | null | undefined): number {
+  if (typeof v !== 'number' || !Number.isInteger(v)) throw new sdk.WERR_INTERNAL('An integer is required.');
+  return v
+}
+
+/**
+ * Helper function.
  * 
- * Verifies that an optional numeric Id has a value.
+ * Verifies that a database record identifier is an integer greater than zero.
  */
 export function verifyId(id : number | undefined | null) : number {
-    if (id === undefined || typeof id !== 'number') throw new sdk.WERR_INTERNAL('id was expected to be defined.')
-    return id
+  id = verifyInteger(id)
+  if (id < 1) throw new sdk.WERR_INTERNAL(`id must be valid integer greater than zero.`)
+  return id
 }
 
 /**

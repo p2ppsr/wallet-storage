@@ -1,5 +1,8 @@
 export * from './schema/KnexMigrations'
 export * from './WalletStorage'
 export * from './StorageBase'
+export * from './StorageSyncReader'
 export * from './StorageKnex'
+export * as sync from './sync'
 export * as table from './schema/tables'
+export * as entity from './schema/entities'

@@ -1,6 +1,6 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
 import { Knex } from 'knex'
-import { sdk } from '../../src';
+import { entity, sdk, StorageKnex, sync } from '../../src';
 import { StorageMySQLDojoReader } from '../../src/storage/sync/StorageMySQLDojoReader';
 
 import * as dotenv from 'dotenv'
@@ -9,32 +9,36 @@ dotenv.config();
 describe('StorageMySQLDojoReader tests', () => {
     jest.setTimeout(99999999)
 
-    const userId = 6
     const chain: sdk.Chain = 'test'
-    let knex: Knex
+    let reader: sdk.StorageSyncReader
+    let writer: sdk.WalletStorage //sdk.StorageSyncWriter
 
     beforeAll(async () => {
         const connection = JSON.parse((chain === 'test' ? process.env.TEST_DOJO_CONNECTION : process.env.MAIN_DOJO_CONNECTION) || '')
-        knex = _tu.createMySQLFromConnection(connection)
+        const readerKnex = _tu.createMySQLFromConnection(connection)
+        reader = new StorageMySQLDojoReader({ chain, knex: readerKnex })
+
+        const writerKnex = _tu.createLocalMySQL('stagingdojocopy')
+        writer = new StorageKnex({ chain, knex: writerKnex })
+        await writer.migrate('stagingdojocopy')
     })
 
     afterAll(async () => {
-        await knex.destroy()
+        await reader.destroy()
     })
 
     test('0', async () => {
-        const storage = new StorageMySQLDojoReader({ chain, knex })
-        const settings = await storage.getSettings()
+        const readerSettings = await reader.getSettings()
+        const writerSettings = await writer.getSettings()
 
-        let offset = 0
+        const identityKey = process.env.MY_TEST_IDENTITY || ''
+        const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
 
-        const outputTagMaps = await storage.getOutputTagMapsForUser(userId, undefined, { limit: 10, offset })
+        const args = ss.makeRequestSyncChunkArgs(identityKey)
+        const r = await reader.requestSyncChunk(args)
+        expect(r.provenTxs?.length).toBeGreaterThan(0)
+        await ss.processRequestSyncChunkResult(writer, args, r)
 
-        const txLabelMaps = await storage.getTxLabelMapsForUser(userId, undefined, { limit: 10, offset })
-
-        const provenTxReqs = await storage.getProvenTxReqsForUser(userId, undefined, { limit: 10, offset })
-
-        const provenTxs = await storage.getProvenTxsForUser(userId, undefined, { limit: 10, offset })
     })
 
 })

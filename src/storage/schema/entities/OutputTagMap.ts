@@ -3,7 +3,7 @@ import { MerklePath } from "@bsv/sdk"
 import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
-export class OutputTagMap extends entity.EntityBase<table.OutputTagMap> {
+export class OutputTagMap extends EntityBase<table.OutputTagMap> {
     constructor(api?: table.OutputTagMap) {
         const now = new Date()
         super(api || {

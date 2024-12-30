@@ -104,7 +104,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('subject', 100).notNullable()
                     table.string('verifier', 100).nullable()
                     table.string('revocationOutpoint', 100).notNullable()
-                    table.string('signature', 100).notNullable()
+                    table.string('signature', 255).notNullable()
                     table.boolean('isDeleted').notNullable().defaultTo(false)
                     table.unique(['userId', 'type', 'certifier', 'serialNumber'])
                 })
@@ -178,7 +178,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('spendingDescription')
                     table.bigint('scriptLength').unsigned().nullable()
                     table.bigint('scriptOffset').unsigned().nullable()
-                    table.binary('lockingScript', maxOutputScriptLength)
+                    table.binary('lockingScript')
                     table.unique(['transactionId', 'vout', 'userId'])
                 })
                 await knex.schema.createTable('output_tags', table => {
@@ -251,10 +251,14 @@ export class KnexMigrations implements MigrationSource<string> {
                     await knex.raw('ALTER TABLE proven_txs MODIFY COLUMN rawTx LONGBLOB');
                     await knex.raw('ALTER TABLE transactions MODIFY COLUMN rawTx LONGBLOB');
                     await knex.raw('ALTER TABLE transactions MODIFY COLUMN inputBEEF LONGBLOB');
+                    await knex.raw('ALTER TABLE outputs MODIFY COLUMN lockingScript LONGBLOB');
                 } else {
                     await knex.schema.alterTable('proven_tx_reqs', table => {
                         table.binary('rawTx', 10000000).alter()
                         table.binary('beef', 10000000).alter()
+                    })
+                    await knex.schema.alterTable('outputs', table => {
+                        table.binary('lockingScript', 10000000).alter()
                     })
                     await knex.schema.alterTable('proven_txs', table => {
                         table.binary('rawTx', 10000000).alter()

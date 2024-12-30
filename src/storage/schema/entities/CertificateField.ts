@@ -3,7 +3,7 @@ import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../.
 import { EntityBase } from ".";
 
 
-export class CertificateField extends entity.EntityBase<table.CertificateField> {
+export class CertificateField extends EntityBase<table.CertificateField> {
     constructor(api?: table.CertificateField) {
         const now = new Date()
         super(api || {

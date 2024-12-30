@@ -3,7 +3,7 @@ import { MerklePath } from "@bsv/sdk"
 import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
-export class TxLabelMap extends entity.EntityBase<table.TxLabelMap> {
+export class TxLabelMap extends EntityBase<table.TxLabelMap> {
     constructor(api?: table.TxLabelMap) {
         const now = new Date()
         super(api || {

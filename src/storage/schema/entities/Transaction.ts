@@ -3,7 +3,7 @@ import * as bsv from "@bsv/sdk"
 import { arraysEqual, entity, optionalArraysEqual, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
-export class Transaction extends entity.EntityBase<table.Transaction> {
+export class Transaction extends EntityBase<table.Transaction> {
 
     /**
      * @returns @bsv/sdk Transaction object from parsed rawTx.

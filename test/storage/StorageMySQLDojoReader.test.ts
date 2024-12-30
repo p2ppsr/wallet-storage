@@ -24,6 +24,7 @@ describe('StorageMySQLDojoReader tests', () => {
 
     afterAll(async () => {
         await reader.destroy()
+        await writer.destroy()
     })
 
     test('0', async () => {
@@ -37,7 +38,7 @@ describe('StorageMySQLDojoReader tests', () => {
             const args = ss.makeRequestSyncChunkArgs(identityKey)
             const chunk = await reader.requestSyncChunk(args)
             const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
-            console.log(`${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}`)
+            //console.log(`${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}`)
             if (r.done)
                 break;
         }

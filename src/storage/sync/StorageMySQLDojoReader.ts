@@ -7,7 +7,6 @@ import { MerklePath } from "@bsv/sdk";
 
 export class StorageMySQLDojoReader extends StorageSyncReader {
     knex: Knex
-    get dbtype() : DBType | undefined { return this.settings?.dbtype }
 
     constructor(options: StorageKnexOptions) {
         super(options)
@@ -53,32 +52,6 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return r
     }
 
-    validateDateForWhere(date: Date | string | number) : Date | string | number {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        if (typeof date === 'number') date = validateSecondsSinceEpoch(date)
-        const vdate = verifyTruthy(this.validateDate(date))
-        let r: Date | string | number
-        switch (this.dbtype) {
-            case 'MySQL':
-                r = vdate
-                break
-            case 'SQLite':
-                r = vdate.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
-    }
-    
-    validateDate(date: Date | string | number) : Date {
-        let r: Date
-        if (date instanceof Date)
-            r = date
-        else
-            r = new Date(date)
-        return r
-    }
-
     setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean)
     : Knex.QueryBuilder
     {
@@ -112,7 +85,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
     findTxLabelsQuery(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         return this.setupQuery('tx_labels', partial, since, paged, trx)
@@ -132,7 +105,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
     findOutputTagsQuery(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         return this.setupQuery('output_tags', partial, since, paged, trx)
@@ -152,7 +125,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
     findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder {
         if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
@@ -179,7 +152,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 reference: verifyTruthy(d.referenceNumber),
                 isOutgoing: !!d.isOutgoing,
                 satoshis: verifyInteger(d.amount),
-                description: verifyTruthy(d.note),
+                description: verifyTruthy(d.note || ''),
                 provenTxId: verifyOptionalInteger(d.provenTxId),
                 version: verifyOptionalInteger(d.version),
                 lockTime: verifyOptionalInteger(d.lockTime),
@@ -189,7 +162,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isOutgoing'])
     }
     findCommissionsQuery(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Commissions may not be found by lockingScript value.`);
@@ -213,7 +186,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isRedeemed'])
     }
     findOutputsQuery(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder { 
         if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
@@ -240,7 +213,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 change: d.providedBy !== 'you' && d.purpose === 'change',
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
-                providedBy: verifyTruthy(d.providedBy),
+                providedBy: verifyTruthy(d.providedBy || ''),
                 purpose: verifyTruthy(d.purpose || ''),
                 type: verifyTruthy(d.type),
                 txid: nullToUndefined(d.txid),
@@ -257,7 +230,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['spendable', 'change'])
     }
     findCertificatesQuery(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         const q = this.setupQuery('certificates', partial, since, paged, trx)
@@ -286,7 +259,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
     findCertificateFieldsQuery(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
         return this.setupQuery('certificate_fields', partial, since, paged, trx)
@@ -307,7 +280,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs)
     }
     override async findSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
         const q = this.setupQuery('sync_state', partial, undefined, undefined, trx)
@@ -332,7 +305,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['init'])
     }
     override async findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.User[]> {
         const q = this.setupQuery('users', partial, undefined, undefined, trx)
@@ -347,7 +320,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs)
     }
 
     getProvenTxsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
@@ -389,7 +362,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
 
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs)
     }
 
     getProvenTxReqsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
@@ -427,7 +400,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
 
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['notified'])
     }
 
     getTxLabelMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
@@ -456,7 +429,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
 
     getOutputTagMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
@@ -485,8 +458,9 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             rs.push(r)
         }
-        return rs
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
+
 
     override async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
         const r: sdk.RequestSyncChunkResult = {}
@@ -499,14 +473,19 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         const user = verifyOne(await this.findUsers({ identityKey: args.identityKey }))
 
         const addItems = async (a: ChunkerArgs) => {
+            if (i >= args.offsets.length) { done = true; return }
             let { offset, name: oname } = args.offsets[i++]
             if (a.name !== oname) throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. '${a.name}' expected, found ${oname}.`);
+            let preAddCalled = false
             for (; !done;) {
                 const limit = Math.min(itemCount, Math.max(10, args.maxItems / a.maxDivider))
                 if (limit <= 0) break;
                 const items = await a.findItems(this, user.userId, args.since, limit, offset)
+                checkEntityValues(items)
+                if (!preAddCalled) { a.preAdd(); preAddCalled = true }
                 if (items.length === 0) break;
                 for (const item of items) {
+                    offset++
                     a.addItem(item)
                     itemCount--
                     roughSize -= JSON.stringify(item).length
@@ -517,62 +496,62 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         
         const chunkers: ChunkerArgs[] = [
             {
-                name: 'provenTx', maxDivider: 100, addItem: (i: table.ProvenTx) => { (r.provenTxs ||= []).push(i) },
+                name: 'provenTx', maxDivider: 100, preAdd: () => {r.provenTxs = []}, addItem: (i: table.ProvenTx) => { r.provenTxs!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.getProvenTxsForUser(userId, since, { limit, offset }) }
             },
             {
-                name: 'outputBasket', maxDivider: 1, addItem: (i: table.OutputBasket) => { (r.outputBaskets ||= []).push(i) },
+                name: 'outputBasket', maxDivider: 1, preAdd: () => {r.outputBaskets = []}, addItem: (i: table.OutputBasket) => { r.outputBaskets!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findOutputBaskets({ userId }, since, { limit, offset }) }
             },
             {
-                name: 'outputTag', maxDivider: 1, addItem: (i: table.OutputTag) => { (r.outputTags ||= []).push(i) },
+                name: 'outputTag', maxDivider: 1, preAdd: () => {r.outputTags = []}, addItem: (i: table.OutputTag) => { r.outputTags!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findOutputTags({ userId }, since, { limit, offset }) }
             },
             {
-                name: 'txLabel', maxDivider: 1, addItem: (i: table.TxLabel) => { (r.txLabels ||= []).push(i) },
+                name: 'txLabel', maxDivider: 1, preAdd: () => {r.txLabels = []}, addItem: (i: table.TxLabel) => { r.txLabels!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findTxLabels({ userId }, since, { limit, offset }) }
             },
             {
-                name: 'transaction', maxDivider: 25, addItem: (i: table.Transaction) => { (r.transactions ||= []).push(i) },
+                name: 'transaction', maxDivider: 25, preAdd: () => {r.transactions = []}, addItem: (i: table.Transaction) => { r.transactions!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findTransactions({ userId }, undefined, false, since, { limit, offset }) }
             },
             {
-                name: 'output', maxDivider: 25, addItem: (i: table.Output) => { (r.outputs ||= []).push(i) },
+                name: 'output', maxDivider: 25, preAdd: () => {r.outputs = []}, addItem: (i: table.Output) => { r.outputs!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findOutputs({ userId }, false, since, { limit, offset }) }
             },
             {
-                name: 'txLabelMap', maxDivider: 1, addItem: (i: table.TxLabelMap) => { (r.txLabelMaps ||= []).push(i) },
+                name: 'txLabelMap', maxDivider: 1, preAdd: () => {r.txLabelMaps = []}, addItem: (i: table.TxLabelMap) => { r.txLabelMaps!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.getTxLabelMapsForUser(userId, since, { limit, offset }) }
             },
             {
-                name: 'outputTagMap', maxDivider: 1, addItem: (i: table.OutputTagMap) => { (r.outputTagMaps ||= []).push(i) },
+                name: 'outputTagMap', maxDivider: 1, preAdd: () => {r.outputTagMaps = []}, addItem: (i: table.OutputTagMap) => { r.outputTagMaps!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.getOutputTagMapsForUser(userId, since, { limit, offset }) }
             },
             {
-                name: 'certificate', maxDivider: 25, addItem: (i: table.Certificate) => { (r.certificates ||= []).push(i) },
+                name: 'certificate', maxDivider: 25, preAdd: () => {r.certificates = []}, addItem: (i: table.Certificate) => { r.certificates!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findCertificates({ userId }, undefined, undefined, since, { limit, offset }) }
             },
             {
-                name: 'certificateField', maxDivider: 25, addItem: (i: table.CertificateField) => { (r.certificateFields ||= []).push(i) },
+                name: 'certificateField', maxDivider: 25, preAdd: () => {r.certificateFields = []}, addItem: (i: table.CertificateField) => { r.certificateFields!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findCertificateFields({ userId }, since, { limit, offset }) }
             },
             {
-                name: 'commission', maxDivider: 25, addItem: (i: table.Commission) => { (r.commissions ||= []).push(i) },
+                name: 'commission', maxDivider: 25, preAdd: () => {r.commissions = []}, addItem: (i: table.Commission) => { r.commissions!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.findCommissions({ userId }, since, { limit, offset }) }
             },
             {
-                name: 'provenTxReq', maxDivider: 100, addItem: (i: table.ProvenTxReq) => { (r.provenTxReqs ||= []).push(i) },
+                name: 'provenTxReq', maxDivider: 100, preAdd: () => {r.provenTxReqs = []}, addItem: (i: table.ProvenTxReq) => { r.provenTxReqs!.push(i) },
                 findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
                      { return await storage.getProvenTxReqsForUser(userId, since, { limit, offset }) }
             },
@@ -691,6 +670,7 @@ function convertSyncStatus(status: DojoSyncStatus) : sdk.SyncStatus {
 type ChunkerArgs = {
         name: string,
         maxDivider: number,
+        preAdd: () => void,
         addItem: (i: any) => void,
         findItems: (
             storage: sdk.StorageSyncReader,
@@ -699,4 +679,18 @@ type ChunkerArgs = {
             limit: number,
             offset: number
         ) => Promise<any[]>,
+}
+
+function checkIsDate(v: any) {
+    if (!(v instanceof Date))
+        throw new sdk.WERR_INVALID_OPERATION('bad date')
+}
+function checkEntityValues(es: object[]) {
+    for (const e of es) {
+        checkIsDate(e['created_at'])
+        checkIsDate(e['updated_at'])
+        for (const key of Object.keys(e))
+            if (e[key] === null)
+                throw new sdk.WERR_INVALID_OPERATION()
+    }
 }

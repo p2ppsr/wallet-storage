@@ -1,11 +1,12 @@
 import { entity } from "../..";
 import { maxDate, sdk, verifyId } from "../../..";
+import { EntityBase } from "./EntityBase";
 
 /**
  * @param API one of the storage table interfaces.
  * @param DE the corresponding entity class
  */
-export class MergeEntity<API extends sdk.EntityTimeStamp, DE extends entity.EntityBase<API>> {
+export class MergeEntity<API extends sdk.EntityTimeStamp, DE extends EntityBase<API>> {
     idMap: Record<number, number>;
 
     constructor(

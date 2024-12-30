@@ -3,7 +3,7 @@ import { MerklePath } from "@bsv/sdk"
 import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
-export class Commission extends entity.EntityBase<table.Commission> {
+export class Commission extends EntityBase<table.Commission> {
     constructor(api?: table.Commission) {
         const now = new Date()
         super(api || {

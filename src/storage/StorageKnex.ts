@@ -1,4 +1,4 @@
-import { sdk, validateSecondsSinceEpoch, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { sdk, verifyOne, verifyOneOrNone } from "..";
 import { KnexMigrations, table } from "."
 
 import { Knex } from "knex";
@@ -13,7 +13,6 @@ export interface StorageKnexOptions extends StorageBaseOptions {
 
 export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     knex: Knex
-    get dbtype() : DBType | undefined { return this.settings?.dbtype }
 
     constructor(options: StorageKnexOptions) {
         super(options)
@@ -216,48 +215,63 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
 
 
     override async updateCertificateField(certificateId: number, fieldName: string, update: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.CertificateField>('certificate_fields').where({ certificateId, fieldName }).update(this.validatePartialForUpdate(update))
     }
     override async updateCertificate(id: number, update: Partial<table.Certificate>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.Certificate>('certificates').where({ certificateId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateCommission(id: number, update: Partial<table.Commission>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.Commission>('commissions').where({ commissionId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateOutputBasket(id: number, update: Partial<table.OutputBasket>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.OutputBasket>('output_baskets').where({ basketId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.Output>('outputs').where({ outputId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.OutputTagMap>('output_tags_map').where({ outputId, outputTagId: tagId }).update(this.validatePartialForUpdate(update))
     }
     override async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_teqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>  {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.ProvenTx>('proven_txs').where({ provenTxId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.SyncState>('sync_states').where({ syncStateId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').where({ transactionId, txLabelId }).update(this.validatePartialForUpdate(update))
     }
     override async updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.TxLabel>('tx_labels').where({ txLabelId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken) : Promise<number> {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.User>('users').where({ userId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateWatchmanEvent(id: number, update: Partial<table.WatchmanEvent>, trx?: sdk.TrxToken): Promise<number>  {
+        await this.verifyReadyForDatabaseAccess(trx)
         return await this.toDb(trx)<table.WatchmanEvent>('watchman_events').where({ id }).update(this.validatePartialForUpdate(update))
     }
 
@@ -554,37 +568,6 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         o.lockingScript = script
     }
 
-    validateDateForWhere(date: Date | string | number) : Date | string | number {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        if (typeof date === 'number') date = validateSecondsSinceEpoch(date)
-        const vdate = verifyTruthy(this.validateDate(date))
-        let r: Date | string | number
-        switch (this.dbtype) {
-            case 'MySQL':
-                r = vdate
-                break
-            case 'SQLite':
-                r = vdate.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
-    }
-    
-    validateDate(date: Date | string | number) : Date {
-        let r: Date
-        if (date instanceof Date)
-            r = date
-        else
-            r = new Date(date)
-        return r
-    }
-
-    validateOptionalDate(date: Date | string | number | null | undefined) : Date | undefined {
-        if (date === null || date === undefined) return undefined
-        return this.validateDate(date)
-    }
-
     /**
      * Make sure database is ready for access:
      * 
@@ -605,49 +588,6 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         
         return this.settings.dbtype
-    }
-
-    /**
-     * Force dates to strings on SQLite and Date objects on MySQL
-     * @param date 
-     * @returns 
-     */
-    validateEntityDate(date: Date | string | number)
-    : Date | string {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        let r: Date | string = this.validateDate(date)
-        switch (this.dbtype) {
-            case 'MySQL':
-                break
-            case 'SQLite':
-                r = r.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
-    }
-
-    /**
-     * 
-     * @param date 
-     * @param useNowAsDefault if true and date is null or undefiend, set to current time.
-     * @returns 
-     */
-    validateOptionalEntityDate(date: Date | string | number | null | undefined, useNowAsDefault?: boolean)
-    : Date | string | undefined {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        let r: Date | string | undefined = this.validateOptionalDate(date)
-        if (!r && useNowAsDefault) r = new Date()
-        switch (this.dbtype) {
-            case 'MySQL':
-                break
-            case 'SQLite':
-                if (r)
-                    r = r.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
     }
 
     /**
@@ -704,47 +644,6 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         this.isDirty = true
         return v
     }
-
-    /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all individual records with time stamps retreived from database.
-     */
-    validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]) : T {
-        entity.created_at = this.validateDate(entity.created_at)
-        entity.updated_at = this.validateDate(entity.updated_at)
-        if (dateFields) {
-            for (const df of dateFields) {
-                if (entity[df])
-                    entity[df] = this.validateDate(entity[df])
-            }
-        }
-        if (booleanFields) {
-            for (const df of booleanFields) {
-                if (entity[df] !== undefined)
-                    entity[df] = !!(entity[df])
-            }
-        }
-        for (const key of Object.keys(entity)) {
-            const val = entity[key]
-            if (Buffer.isBuffer(val)) {
-                entity[key] = Array.from(val)
-            }
-        }
-        return entity
-    }
-
-    /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all arrays of records with time stamps retreived from database.
-     * @returns input `entities` array with contained values validated.
-     */
-    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]) : T[] {
-        for (let i = 0; i < entities.length; i++) {
-            entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
-        }
-        return entities
-    }
-
 }
 
 export type DBType = 'SQLite' | 'MySQL'

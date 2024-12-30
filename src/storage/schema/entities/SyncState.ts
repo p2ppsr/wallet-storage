@@ -186,8 +186,19 @@ export class SyncState extends EntityBase<table.SyncState> {
     async processRequestSyncChunkResult(writer: sdk.WalletStorage, args: sdk.RequestSyncChunkArgs, r: sdk.RequestSyncChunkResult)
     : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
+
         const mes = [
             new MergeEntity(r.provenTxs, entity.ProvenTx.mergeFind, this.syncMap.provenTx),
+            //new MergeEntity(r.outputBaskets, dummyFind, this.syncMap.outputBasket),
+            //new MergeEntity(r.outputTags, dummyFind, this.syncMap.outputTag),
+            //new MergeEntity(r.txLabels, dummyFind, this.syncMap.txLabel),
+            //new MergeEntity(r.transactions, dummyFind, this.syncMap.transaction),
+            //new MergeEntity(r.outputs, dummyFind, this.syncMap.output),
+            //new MergeEntity(r.txLabelMaps, dummyFind, this.syncMap.txLabelMap),
+            //new MergeEntity(r.outputTagMaps, dummyFind, this.syncMap.outputTagMap),
+            //new MergeEntity(r.certificates, dummyFind, this.syncMap.certificate),
+            //new MergeEntity(r.certificateFields, dummyFind, this.syncMap.certificateField),
+            //new MergeEntity(r.commissions, dummyFind, this.syncMap.commission),
             new MergeEntity(r.provenTxReqs, entity.ProvenTxReq.mergeFind, this.syncMap.provenTxReq),
         ]
 

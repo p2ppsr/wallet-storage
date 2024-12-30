@@ -38,12 +38,12 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         this.apiNotify = this.api.notify
         if (this.notify.transactionIds) {
             // Cleanup null values and duplicates.
-            const txIds: number[] = []
+            const transactionIds: number[] = []
             for (const id of this.notify.transactionIds) {
-                if (Number.isInteger(id) && !txIds.some(txid => txid === id))
-                    txIds.push(id)
+                if (Number.isInteger(id) && !transactionIds.some(txid => txid === id))
+                    transactionIds.push(id)
             }
-            this.notify.transactionIds = txIds
+            this.notify.transactionIds = transactionIds
         }
     }
 
@@ -342,7 +342,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         return sdk.ProvenTxReqTerminalStatus.some(s => s === status)
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         if (this.provenTxId) this.provenTxId = syncMap.provenTx.idMap[this.provenTxId]
         this.mapNotifyTransactionIds(syncMap)
         this.provenTxReqId = 0
@@ -361,7 +361,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
      * 
      * On terminal failure: `doubleSpend` trumps `invalid` as it contains more data.
      */
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.ProvenTxReq, syncMap: entity.SyncMap, trx: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.ProvenTxReq, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         if (!this.batch && ei.batch)
             this.batch = ei.batch
         else if (this.batch && ei.batch && this.batch !== ei.batch)

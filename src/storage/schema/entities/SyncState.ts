@@ -149,10 +149,10 @@ export class SyncState extends EntityBase<table.SyncState> {
         return false
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<void> {
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         return false
     }
 
@@ -189,16 +189,16 @@ export class SyncState extends EntityBase<table.SyncState> {
 
         const mes = [
             new MergeEntity(r.provenTxs, entity.ProvenTx.mergeFind, this.syncMap.provenTx),
-            //new MergeEntity(r.outputBaskets, dummyFind, this.syncMap.outputBasket),
-            //new MergeEntity(r.outputTags, dummyFind, this.syncMap.outputTag),
-            //new MergeEntity(r.txLabels, dummyFind, this.syncMap.txLabel),
-            //new MergeEntity(r.transactions, dummyFind, this.syncMap.transaction),
-            //new MergeEntity(r.outputs, dummyFind, this.syncMap.output),
-            //new MergeEntity(r.txLabelMaps, dummyFind, this.syncMap.txLabelMap),
-            //new MergeEntity(r.outputTagMaps, dummyFind, this.syncMap.outputTagMap),
-            //new MergeEntity(r.certificates, dummyFind, this.syncMap.certificate),
-            //new MergeEntity(r.certificateFields, dummyFind, this.syncMap.certificateField),
-            //new MergeEntity(r.commissions, dummyFind, this.syncMap.commission),
+            new MergeEntity(r.outputBaskets, entity.OutputBasket.mergeFind, this.syncMap.outputBasket),
+            new MergeEntity(r.outputTags, entity.OutputTag.mergeFind, this.syncMap.outputTag),
+            new MergeEntity(r.txLabels, entity.TxLabel.mergeFind, this.syncMap.txLabel),
+            new MergeEntity(r.transactions, entity.Transaction.mergeFind, this.syncMap.transaction),
+            new MergeEntity(r.outputs, entity.Output.mergeFind, this.syncMap.output),
+            new MergeEntity(r.txLabelMaps, entity.TxLabelMap.mergeFind, this.syncMap.txLabelMap),
+            new MergeEntity(r.outputTagMaps, entity.OutputTagMap.mergeFind, this.syncMap.outputTagMap),
+            new MergeEntity(r.certificates, entity.Certificate.mergeFind, this.syncMap.certificate),
+            new MergeEntity(r.certificateFields, entity.CertificateField.mergeFind, this.syncMap.certificateField),
+            new MergeEntity(r.commissions, entity.Commission.mergeFind, this.syncMap.commission),
             new MergeEntity(r.provenTxReqs, entity.ProvenTxReq.mergeFind, this.syncMap.provenTxReq),
         ]
 
@@ -232,16 +232,16 @@ export class SyncState extends EntityBase<table.SyncState> {
 }
 
 // proven
-// new MergeEntity( state.baskets, DojoBasket.mergeFind, syncMap.basketIds, oSyncMap.basketIds, updated.baskets, inserted.baskets ),
-// new MergeEntity( state.txs, DojoTransaction.mergeFind, syncMap.txIds, oSyncMap.txIds, updated.txs, inserted.txs ),
+// new MergeEntity( state.baskets, DojoBasket.mergeFind, syncMap.outputBasket.idMap, oSyncMap.outputBasket.idMap, updated.baskets, inserted.baskets ),
+// new MergeEntity( state.txs, entity.Transaction.mergeFind, syncMap.transaction.idMap, oSyncMap.transaction.idMap, updated.txs, inserted.txs ),
 // new MergeEntity( state.provenTxReqs, ProvenTxReq.mergeFind, syncMap.provenTxReqIds, oSyncMap.provenTxReqIds, updated.provenTxReqs, inserted.provenTxReqs ),
-// new MergeEntity( state.txLabels, DojoTxLabel.mergeFind, syncMap.txLabelIds, oSyncMap.txLabelIds, updated.txLabels, inserted.txLabels ),
-// new MergeEntity( state.txLabelMaps, DojoTxLabelMap.mergeFind, {}, {}, updated.txLabelMaps, inserted.txLabelMaps ),
-// new MergeEntity( state.outputs, DojoOutput.mergeFind, syncMap.outputIds, oSyncMap.outputIds, updated.outputs, inserted.outputs ),
-// new MergeEntity( state.outputTags, DojoOutputTag.mergeFind, syncMap.outputTagIds, oSyncMap.outputTagIds, updated.outputTags, inserted.outputTags ),
-// new MergeEntity( state.outputTagMaps, DojoOutputTagMap.mergeFind, {}, {}, updated.outputTagMaps, inserted.outputTagMaps ),
-// new MergeEntity( state.certificates, DojoCertificate.mergeFind, syncMap.certificateIds, oSyncMap.certificateIds, updated.certificates, inserted.certificates ),
-// new MergeEntity( state.certificateFields, DojoCertificateField.mergeFind, {}, {}, updated.certificateFields, inserted.certificateFields ),
-// new MergeEntity( state.commissions, DojoCommission.mergeFind, syncMap.commissionIds, oSyncMap.commissionIds, updated.commissions, inserted.commissions ),
+// new MergeEntity( state.txLabels, entity.TxLabel.mergeFind, syncMap.txLabel.idMap, oSyncMap.txLabel.idMap, updated.txLabels, inserted.txLabels ),
+// new MergeEntity( state.txLabelMaps, entity.TxLabelMap.mergeFind, {}, {}, updated.txLabelMaps, inserted.txLabelMaps ),
+// new MergeEntity( state.outputs, entity.Output.mergeFind, syncMap.output.idMap, oSyncMap.output.idMap, updated.outputs, inserted.outputs ),
+// new MergeEntity( state.outputTags, entity.OutputTag.mergeFind, syncMap.outputTag.idMap, oSyncMap.outputTag.idMap, updated.outputTags, inserted.outputTags ),
+// new MergeEntity( state.outputTagMaps, entity.OutputTagMap.mergeFind, {}, {}, updated.outputTagMaps, inserted.outputTagMaps ),
+// new MergeEntity( state.certificates, entity.Certificate.mergeFind, syncMap.certificate.idMap, oSyncMap.certificate.idMap, updated.certificates, inserted.certificates ),
+// new MergeEntity( state.certificateFields, entity.CertificateField.mergeFind, {}, {}, updated.certificateFields, inserted.certificateFields ),
+// new MergeEntity( state.commissions, entity.Commission.mergeFind, syncMap.commissionIds, oSyncMap.commissionIds, updated.commissions, inserted.commissions ),
 
 

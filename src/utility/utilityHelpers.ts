@@ -206,6 +206,12 @@ export function arraysEqual(arr1: Number[], arr2: Number[]) {
   return true;
 }
 
+export function optionalArraysEqual(arr1?: Number[], arr2?: Number[]) {
+  if (!arr1 && !arr2) return true
+  if (!arr1 || !arr2) return false
+  return arraysEqual(arr1, arr2)
+}
+
 export function maxDate(d1?: Date, d2?: Date) : Date | undefined {
     if (d1 && d2) {
         if (d1 > d2) return d1

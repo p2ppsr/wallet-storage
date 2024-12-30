@@ -51,7 +51,7 @@ export abstract class EntityBase<T> {
      * @param userId local userId 
      * @param syncMap 
      */
-    abstract mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx: sdk.TrxToken) : Promise<void>
+    abstract mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<void>
 
     /**
      * Perform a 'merge' / 'convergent' equality migration of state
@@ -61,7 +61,7 @@ export abstract class EntityBase<T> {
      * @param syncMap
      * @returns true iff entity state changed and was updated to storage
      */
-    abstract mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: T, syncMap: SyncMap, trx: sdk.TrxToken) : Promise<boolean>
+    abstract mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: T, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<boolean>
 
     /**
      * An entity may decode properties of the underlying Api object on construction.
@@ -85,7 +85,7 @@ export interface EntitySyncMap {
      * Maps foreign ids to local ids
      * Some entities don't have idMaps (CertificateField, TxLabelMap and OutputTagMap)
      */
-    idMap?: Record<number, number>
+    idMap: Record<number, number>
 
     /**
      * the maximum updated_at value seen for this entity over chunks received
@@ -104,33 +104,33 @@ export interface EntitySyncMap {
 
 export interface SyncMap {
     provenTx: EntitySyncMap
-    provenTxReq: EntitySyncMap
     outputBasket: EntitySyncMap
-    txLabel: EntitySyncMap
-    outputTag: EntitySyncMap
     transaction: EntitySyncMap
+    provenTxReq: EntitySyncMap
+    txLabel: EntitySyncMap
     txLabelMap: EntitySyncMap
-    commission: EntitySyncMap
     output: EntitySyncMap
+    outputTag: EntitySyncMap
     outputTagMap: EntitySyncMap
     certificate: EntitySyncMap
     certificateField: EntitySyncMap
+    commission: EntitySyncMap
 }
 
 export function createSyncMap(): SyncMap {
     const r: SyncMap = {
         provenTx: { entityName: 'provenTx', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        provenTxReq: { entityName: 'provenTxReq', idMap: {}, maxUpdated_at: undefined, count: 0 },
         outputBasket: { entityName: 'outputBasket', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        txLabel: { entityName: 'txLabel', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        outputTag: { entityName: 'outputTag', idMap: {}, maxUpdated_at: undefined, count: 0 },
         transaction: { entityName: 'transaction', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        txLabelMap: { entityName: 'txLabelMap', idMap: undefined, maxUpdated_at: undefined, count: 0 },
-        commission: { entityName: 'commission', idMap: {}, maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { entityName: 'provenTxReq', idMap: {}, maxUpdated_at: undefined, count: 0 },
+        txLabel: { entityName: 'txLabel', idMap: {}, maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { entityName: 'txLabelMap', idMap: {}, maxUpdated_at: undefined, count: 0 },
         output: { entityName: 'output', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        outputTagMap: { entityName: 'outputTagMap', idMap: undefined, maxUpdated_at: undefined, count: 0 },
+        outputTag: { entityName: 'outputTag', idMap: {}, maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { entityName: 'outputTagMap', idMap: {}, maxUpdated_at: undefined, count: 0 },
         certificate: { entityName: 'certificate', idMap: {}, maxUpdated_at: undefined, count: 0 },
-        certificateField: { entityName: 'certificateField', idMap: undefined, maxUpdated_at: undefined, count: 0 },
+        certificateField: { entityName: 'certificateField', idMap: {}, maxUpdated_at: undefined, count: 0 },
+        commission: { entityName: 'commission', idMap: {}, maxUpdated_at: undefined, count: 0 },
     }
     return r
 }

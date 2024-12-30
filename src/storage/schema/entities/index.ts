@@ -1,2 +1,5 @@
 export * from './EntityBase'
 export * from './SyncState'
+export * from './ProvenTx'
+export * from './ProvenTxReq'
+export * from './MergeEntity'

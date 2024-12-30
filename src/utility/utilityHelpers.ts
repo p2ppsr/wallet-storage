@@ -191,3 +191,27 @@ export function validateSecondsSinceEpoch (time: number): Date {
   if (date.getTime() / 1000 !== time || time < 1600000000 || time > 100000000000) { throw new sdk.WERR_INVALID_PARAMETER('time', `valid "since epoch" unix time`) }
   return date
 }
+
+/**
+ * Compares lengths and direct equality of values.
+ * @param arr1 
+ * @param arr2 
+ * @returns 
+ */
+export function arraysEqual(arr1: Number[], arr2: Number[]) {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+      if (arr1[i] !== arr2[i]) return false;
+  }
+  return true;
+}
+
+export function maxDate(d1?: Date, d2?: Date) : Date | undefined {
+    if (d1 && d2) {
+        if (d1 > d2) return d1
+        return d2
+    }
+    if (d1) return d1
+    if (d2) return d2
+    return undefined
+}

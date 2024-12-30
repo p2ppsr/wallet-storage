@@ -1,6 +1,5 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { Knex } from 'knex'
-import { entity, sdk, StorageKnex, sync } from '../../src';
+import { entity, maxDate, sdk, StorageKnex, sync } from '../../src';
 import { StorageMySQLDojoReader } from '../../src/storage/sync/StorageMySQLDojoReader';
 
 import * as dotenv from 'dotenv'
@@ -34,11 +33,14 @@ describe('StorageMySQLDojoReader tests', () => {
         const identityKey = process.env.MY_TEST_IDENTITY || ''
         const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
 
-        const args = ss.makeRequestSyncChunkArgs(identityKey)
-        const r = await reader.requestSyncChunk(args)
-        expect(r.provenTxs?.length).toBeGreaterThan(0)
-        await ss.processRequestSyncChunkResult(writer, args, r)
-
+        for (;;) {
+            const args = ss.makeRequestSyncChunkArgs(identityKey)
+            const chunk = await reader.requestSyncChunk(args)
+            const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+            console.log(`${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}`)
+            if (r.done)
+                break;
+        }
     })
 
 })

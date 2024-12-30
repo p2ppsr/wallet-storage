@@ -1,7 +1,5 @@
-import { remove } from "fs-extra"
-import { createSyncMap, EntityBase, SyncError, SyncMap } from "."
-import { entity, table } from "../.."
-import { sdk, verifyId, verifyOne, verifyOneOrNone } from "../../.."
+import { createSyncMap, EntityBase, MergeEntity, SyncError, SyncMap } from "."
+import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "../../.."
 
 export class SyncState extends EntityBase<table.SyncState> {
     constructor(api?: table.SyncState) {
@@ -45,7 +43,7 @@ export class SyncState extends EntityBase<table.SyncState> {
             ss.userId = user.userId
             ss.storageIdentityKey = remoteSettings.storageIdentityKey
             ss.storageName = remoteSettings.storageName
-            await ss.update(storage)
+            await ss.updateStorage(storage)
         }
         return ss
     }
@@ -56,7 +54,7 @@ export class SyncState extends EntityBase<table.SyncState> {
      * @param notSyncMap if not new and true, excludes updating syncMap in storage.
      * @param trx 
      */
-    async update(storage: sdk.WalletStorage, notSyncMap?: boolean, trx?: sdk.TrxToken) {
+    async updateStorage(storage: sdk.WalletStorage, notSyncMap?: boolean, trx?: sdk.TrxToken) {
         this.updated_at = new Date()
         this.updateApi(notSyncMap && this.id > 0)
         if (this.id === 0) {
@@ -97,6 +95,15 @@ export class SyncState extends EntityBase<table.SyncState> {
     set satoshis(v: number | undefined) { this.api.satoshis = v }
     get satoshis() { return this.api.satoshis }
 
+    get apiErrorLocal() { return this.errorToString(this.errorLocal) }
+    get apiErrorOther() { return this.errorToString(this.errorOther) }
+    get apiSyncMap() { return JSON.stringify(this.syncMap) }
+
+    override get id(): number { return this.api.syncStateId }
+    set id(id: number) { this.api.syncStateId = id }
+    override get entityName(): string { return 'table.SyncState' }
+    override get entityTable(): string { return 'sync_states' }
+
     static mergeIdMap(fromMap: Record<number, number>, toMap: Record<number, number>) {
         for (const [key, value] of Object.entries(fromMap)) {
             const fromValue = fromMap[key]
@@ -112,15 +119,15 @@ export class SyncState extends EntityBase<table.SyncState> {
      * @param iSyncMap 
      */
     mergeSyncMap(iSyncMap: SyncMap) {
+        SyncState.mergeIdMap(iSyncMap.provenTx.idMap!, this.syncMap.provenTx.idMap!)
+        SyncState.mergeIdMap(iSyncMap.outputBasket.idMap!, this.syncMap.outputBasket.idMap!)
+        SyncState.mergeIdMap(iSyncMap.transaction.idMap!, this.syncMap.transaction.idMap!)
+        SyncState.mergeIdMap(iSyncMap.provenTxReq.idMap!, this.syncMap.provenTxReq.idMap!)
+        SyncState.mergeIdMap(iSyncMap.txLabel.idMap!, this.syncMap.txLabel.idMap!)
+        SyncState.mergeIdMap(iSyncMap.output.idMap!, this.syncMap.output.idMap!)
+        SyncState.mergeIdMap(iSyncMap.outputTag.idMap!, this.syncMap.outputTag.idMap!)
         SyncState.mergeIdMap(iSyncMap.certificate.idMap!, this.syncMap.certificate.idMap!)
         SyncState.mergeIdMap(iSyncMap.commission.idMap!, this.syncMap.commission.idMap!)
-        SyncState.mergeIdMap(iSyncMap.outputBasket.idMap!, this.syncMap.outputBasket.idMap!)
-        SyncState.mergeIdMap(iSyncMap.output.idMap!, this.syncMap.output.idMap!)
-        SyncState.mergeIdMap(iSyncMap.provenTxReq.idMap!, this.syncMap.provenTxReq.idMap!)
-        SyncState.mergeIdMap(iSyncMap.provenTx.idMap!, this.syncMap.provenTx.idMap!)
-        SyncState.mergeIdMap(iSyncMap.transaction.idMap!, this.syncMap.transaction.idMap!)
-        SyncState.mergeIdMap(iSyncMap.txLabel.idMap!, this.syncMap.txLabel.idMap!)
-        SyncState.mergeIdMap(iSyncMap.outputTag.idMap!, this.syncMap.outputTag.idMap!)
     }
 
     // stringified api properties
@@ -138,15 +145,6 @@ export class SyncState extends EntityBase<table.SyncState> {
         return JSON.stringify(es)
     }
 
-    get apiErrorLocal() { return this.errorToString(this.errorLocal) }
-    get apiErrorOther() { return this.errorToString(this.errorOther) }
-    get apiSyncMap() { return JSON.stringify(this.syncMap) }
-
-    override get id(): number { return this.api.syncStateId }
-    set id(id: number) { this.api.syncStateId = id }
-    override get entityName(): string { return 'table.SyncState' }
-    override get entityTable(): string { return 'sync_states' }
-
     override equals(ei: table.SyncState, syncMap?: SyncMap | undefined): boolean {
         return false
     }
@@ -163,21 +161,22 @@ export class SyncState extends EntityBase<table.SyncState> {
             identityKey: forIdentityKey,
             maxRoughSize: maxRoughSize || 100000,
             maxItems: maxItems || 1000,
-            offsets: []
+            offsets: [],
+            since: this.when
         }
         for (const ess of [
             this.syncMap.provenTx,
-            this.syncMap.provenTxReq,
             this.syncMap.outputBasket,
-            this.syncMap.txLabel,
-            this.syncMap.outputTag,
             this.syncMap.transaction,
+            this.syncMap.provenTxReq,
+            this.syncMap.txLabel,
             this.syncMap.txLabelMap,
-            this.syncMap.commission,
             this.syncMap.output,
+            this.syncMap.outputTag,
             this.syncMap.outputTagMap,
             this.syncMap.certificate,
-            this.syncMap.certificateField
+            this.syncMap.certificateField,
+            this.syncMap.commission,
         ]) {
             a.offsets.push({ name: ess.entityName, offset: ess.count })
         }
@@ -185,8 +184,53 @@ export class SyncState extends EntityBase<table.SyncState> {
     }
 
     async processRequestSyncChunkResult(writer: sdk.WalletStorage, args: sdk.RequestSyncChunkArgs, r: sdk.RequestSyncChunkResult)
-    : Promise<void>
+    : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
-        
+        const mes = [
+            new MergeEntity(r.provenTxs, entity.ProvenTx.mergeFind, this.syncMap.provenTx),
+            new MergeEntity(r.provenTxReqs, entity.ProvenTxReq.mergeFind, this.syncMap.provenTxReq),
+        ]
+
+        let updates = 0
+        let inserts = 0
+        let maxUpdated_at: Date | undefined = undefined
+        let done = true
+
+        for (const me of mes) {
+            const r = await me.merge(args.since, writer, this.userId, this.syncMap)
+            // The counts become the offsets for the next chunk.
+            me.esm.count += (me.stateArray?.length || 0)
+            updates += r.updates
+            inserts += r.inserts
+            maxUpdated_at = maxDate(maxUpdated_at, me.esm.maxUpdated_at)
+            // If any entity type either did not report results or if there were at least one, then we aren't done.
+            if (me.stateArray === undefined || me.stateArray.length > 0)
+                done = false;
+        }
+
+        if (done) {
+            // Next batch starts further in the future with offsets of zero.
+            this.when = maxUpdated_at
+            for (const me of mes) me.esm.count = 0
+        }
+
+        await this.updateStorage(writer, false)
+
+        return { done, maxUpdated_at, updates, inserts }
     }
 }
+
+// proven
+// new MergeEntity( state.baskets, DojoBasket.mergeFind, syncMap.basketIds, oSyncMap.basketIds, updated.baskets, inserted.baskets ),
+// new MergeEntity( state.txs, DojoTransaction.mergeFind, syncMap.txIds, oSyncMap.txIds, updated.txs, inserted.txs ),
+// new MergeEntity( state.provenTxReqs, ProvenTxReq.mergeFind, syncMap.provenTxReqIds, oSyncMap.provenTxReqIds, updated.provenTxReqs, inserted.provenTxReqs ),
+// new MergeEntity( state.txLabels, DojoTxLabel.mergeFind, syncMap.txLabelIds, oSyncMap.txLabelIds, updated.txLabels, inserted.txLabels ),
+// new MergeEntity( state.txLabelMaps, DojoTxLabelMap.mergeFind, {}, {}, updated.txLabelMaps, inserted.txLabelMaps ),
+// new MergeEntity( state.outputs, DojoOutput.mergeFind, syncMap.outputIds, oSyncMap.outputIds, updated.outputs, inserted.outputs ),
+// new MergeEntity( state.outputTags, DojoOutputTag.mergeFind, syncMap.outputTagIds, oSyncMap.outputTagIds, updated.outputTags, inserted.outputTags ),
+// new MergeEntity( state.outputTagMaps, DojoOutputTagMap.mergeFind, {}, {}, updated.outputTagMaps, inserted.outputTagMaps ),
+// new MergeEntity( state.certificates, DojoCertificate.mergeFind, syncMap.certificateIds, oSyncMap.certificateIds, updated.certificates, inserted.certificates ),
+// new MergeEntity( state.certificateFields, DojoCertificateField.mergeFind, {}, {}, updated.certificateFields, inserted.certificateFields ),
+// new MergeEntity( state.commissions, DojoCommission.mergeFind, syncMap.commissionIds, oSyncMap.commissionIds, updated.commissions, inserted.commissions ),
+
+

@@ -498,6 +498,10 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
 
         const user = verifyOne(await this.findUsers({ identityKey: args.identityKey }))
 
+        //const chunkers = [
+        //    { name: 'provenTx', setItems: (items) => r.provenTxs = items, findItems: async () : Promise<table.ProvenTx[]>}
+        //]
+
         for (; !done;) {
             {
                 let { offset, name } = args.offsets[i++]
@@ -513,6 +517,40 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                         r.provenTxs.push(item)
                         itemCount--
                         roughSize -= item.merklePath.length + item.rawTx.length + 64 * 3 + 10 * 5
+                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
+                    }
+                }
+            }
+            {
+                let { offset, name } = args.offsets[i++]
+                if (name !== 'outputBasket') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'outputBasket' expected, found ${name}.`);
+                for (; !done;) {
+                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
+                    if (limit <= 0) break;
+                    const items = await this.findOutputBaskets({ userId: user.userId }, args.since, { limit, offset })
+                    if (items.length === 0) break;
+                    if (!r.outputBaskets) r.outputBaskets = []
+                    for (const item of items) {
+                        r.outputBaskets.push(item)
+                        itemCount--
+                        roughSize -= item.name.length + 60
+                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
+                    }
+                }
+            }
+            {
+                let { offset, name } = args.offsets[i++]
+                if (name !== 'transaction') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'transaction' expected, found ${name}.`);
+                for (; !done;) {
+                    const limit = Math.min(itemCount, Math.max(10, args.maxItems / 10))
+                    if (limit <= 0) break;
+                    const items = await this.findTransactions({ userId: user.userId }, undefined, false, args.since, { limit, offset })
+                    if (items.length === 0) break;
+                    if (!r.transactions) r.transactions = []
+                    for (const item of items) {
+                        r.transactions.push(item)
+                        itemCount--
+                        roughSize -= (item.rawTx?.length || 0) + (item.inputBEEF?.length || 0) + item.description.length + item.reference.length + 120
                         if (itemCount <= 0 || roughSize < 0) { done = true; break; }
                     }
                 }
@@ -537,23 +575,6 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             {
                 let { offset, name } = args.offsets[i++]
-                if (name !== 'outputBasket') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'outputBasket' expected, found ${name}.`);
-                for (; !done;) {
-                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
-                    if (limit <= 0) break;
-                    const items = await this.findOutputBaskets({ userId: user.userId }, args.since, { limit, offset })
-                    if (items.length === 0) break;
-                    if (!r.outputBaskets) r.outputBaskets = []
-                    for (const item of items) {
-                        r.outputBaskets.push(item)
-                        itemCount--
-                        roughSize -= item.name.length + 60
-                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-                    }
-                }
-            }
-            {
-                let { offset, name } = args.offsets[i++]
                 if (name !== 'txLabel') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'txLabel' expected, found ${name}.`);
                 for (; !done;) {
                     const limit = Math.min(itemCount, Math.max(10, args.maxItems))
@@ -565,40 +586,6 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                         r.txLabels.push(item)
                         itemCount--
                         roughSize -= item.label.length + 40
-                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-                    }
-                }
-            }
-            {
-                let { offset, name } = args.offsets[i++]
-                if (name !== 'outputTag') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'outputTag' expected, found ${name}.`);
-                for (; !done;) {
-                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
-                    if (limit <= 0) break;
-                    const items = await this.findOutputTags({ userId: user.userId }, args.since, { limit, offset })
-                    if (items.length === 0) break;
-                    if (!r.outputTags) r.outputTags = []
-                    for (const item of items) {
-                        r.outputTags.push(item)
-                        itemCount--
-                        roughSize -= item.tag.length + 40
-                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-                    }
-                }
-            }
-            {
-                let { offset, name } = args.offsets[i++]
-                if (name !== 'transaction') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'transaction' expected, found ${name}.`);
-                for (; !done;) {
-                    const limit = Math.min(itemCount, Math.max(10, args.maxItems / 10))
-                    if (limit <= 0) break;
-                    const items = await this.findTransactions({ userId: user.userId }, undefined, false, args.since, { limit, offset })
-                    if (items.length === 0) break;
-                    if (!r.transactions) r.transactions = []
-                    for (const item of items) {
-                        r.transactions.push(item)
-                        itemCount--
-                        roughSize -= (item.rawTx?.length || 0) + (item.inputBEEF?.length || 0) + item.description.length + item.reference.length + 120
                         if (itemCount <= 0 || roughSize < 0) { done = true; break; }
                     }
                 }
@@ -622,23 +609,6 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             }
             {
                 let { offset, name } = args.offsets[i++]
-                if (name !== 'commission') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'commission' expected, found ${name}.`);
-                for (; !done;) {
-                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
-                    if (limit <= 0) break;
-                    const items = await this.findCommissions({ userId: user.userId }, args.since, { limit, offset })
-                    if (items.length === 0) break;
-                    if (!r.commissions) r.commissions = []
-                    for (const item of items) {
-                        r.commissions.push(item)
-                        itemCount--
-                        roughSize -= item.lockingScript.length + item.keyOffset.length + 70
-                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-                    }
-                }
-            }
-            {
-                let { offset, name } = args.offsets[i++]
                 if (name !== 'output') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'output' expected, found ${name}.`);
                 for (; !done;) {
                     const limit = Math.min(itemCount, Math.max(10, args.maxItems))
@@ -652,6 +622,23 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                         roughSize -= (item.lockingScript?.length || 0) + (item.customInstructions?.length || 0) + (item.derivationPrefix?.length || 0)
                         + (item.derivationSuffix?.length || 0) + item.providedBy.length + item.purpose.length + item.type.length + (item.senderIdentityKey?.length || 0)
                         + (item.spendingDescription?.length || 0) + 150
+                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
+                    }
+                }
+            }
+            {
+                let { offset, name } = args.offsets[i++]
+                if (name !== 'outputTag') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'outputTag' expected, found ${name}.`);
+                for (; !done;) {
+                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
+                    if (limit <= 0) break;
+                    const items = await this.findOutputTags({ userId: user.userId }, args.since, { limit, offset })
+                    if (items.length === 0) break;
+                    if (!r.outputTags) r.outputTags = []
+                    for (const item of items) {
+                        r.outputTags.push(item)
+                        itemCount--
+                        roughSize -= item.tag.length + 40
                         if (itemCount <= 0 || roughSize < 0) { done = true; break; }
                     }
                 }
@@ -704,6 +691,23 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                         r.certificateFields.push(item)
                         itemCount--
                         roughSize -= item.fieldName.length + item.fieldValue.length + item.masterKey.length + 40
+                        if (itemCount <= 0 || roughSize < 0) { done = true; break; }
+                    }
+                }
+            }
+            {
+                let { offset, name } = args.offsets[i++]
+                if (name !== 'commission') throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. 'commission' expected, found ${name}.`);
+                for (; !done;) {
+                    const limit = Math.min(itemCount, Math.max(10, args.maxItems))
+                    if (limit <= 0) break;
+                    const items = await this.findCommissions({ userId: user.userId }, args.since, { limit, offset })
+                    if (items.length === 0) break;
+                    if (!r.commissions) r.commissions = []
+                    for (const item of items) {
+                        r.commissions.push(item)
+                        itemCount--
+                        roughSize -= item.lockingScript.length + item.keyOffset.length + 70
                         if (itemCount <= 0 || roughSize < 0) { done = true; break; }
                     }
                 }

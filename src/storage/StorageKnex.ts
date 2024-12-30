@@ -244,7 +244,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
     override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken) : Promise<number> {
         await this.verifyReadyForDatabaseAccess(trx)
-        return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_teqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
     }
     override async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>  {
         await this.verifyReadyForDatabaseAccess(trx)

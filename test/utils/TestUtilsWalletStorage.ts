@@ -89,7 +89,7 @@ export abstract class TestUtilsWalletStorage {
     }
 
 
-    static async insertTestProvenTx(storage: StorageBase, txid?: string) {
+    static async insertTestProvenTx(storage: sdk.WalletStorage, txid?: string) {
         const now = new Date()
         const ptx: table.ProvenTx = {
             created_at: now,
@@ -107,7 +107,7 @@ export abstract class TestUtilsWalletStorage {
         return ptx
     }
 
-    static async insertTestProvenTxReq(storage: StorageBase, txid?: string, provenTxId?: number, onlyRequired?: boolean) {
+    static async insertTestProvenTxReq(storage: sdk.WalletStorage, txid?: string, provenTxId?: number, onlyRequired?: boolean) {
         const now = new Date()
         const ptxreq: table.ProvenTxReq = {
             // Required:
@@ -130,7 +130,7 @@ export abstract class TestUtilsWalletStorage {
         return ptxreq
     }
 
-    static async insertTestUser(storage: StorageBase) {
+    static async insertTestUser(storage: sdk.WalletStorage) {
         const now = new Date()
         const e: table.User = {
             created_at: now,
@@ -142,7 +142,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCertificate(storage: StorageBase, u?: table.User) {
+    static async insertTestCertificate(storage: sdk.WalletStorage, u?: table.User) {
         const now = new Date()
         u ||= await _tu.insertTestUser(storage)
         const e: table.Certificate = {
@@ -163,7 +163,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCertificateField(storage: StorageBase, c: table.Certificate, name: string, value: string) {
+    static async insertTestCertificateField(storage: sdk.WalletStorage, c: table.Certificate, name: string, value: string) {
         const now = new Date()
         const e: table.CertificateField = {
             created_at: now,
@@ -178,7 +178,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputBasket(storage: StorageBase, u?: table.User) {
+    static async insertTestOutputBasket(storage: sdk.WalletStorage, u?: table.User) {
         const now = new Date()
         u ||= await _tu.insertTestUser(storage)
         const e: table.OutputBasket = {
@@ -195,7 +195,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTransaction(storage: StorageBase, u?: table.User, onlyRequired?: boolean) {
+    static async insertTestTransaction(storage: sdk.WalletStorage, u?: table.User, onlyRequired?: boolean) {
         const now = new Date()
         u ||= await _tu.insertTestUser(storage)
         const e: table.Transaction = {
@@ -220,7 +220,7 @@ export abstract class TestUtilsWalletStorage {
         return { tx: e, user: u }
     }
 
-    static async insertTestOutput(storage: StorageBase, t: table.Transaction, vout: number, satoshis: number, basket?: table.OutputBasket, requiredOnly?: boolean) {
+    static async insertTestOutput(storage: sdk.WalletStorage, t: table.Transaction, vout: number, satoshis: number, basket?: table.OutputBasket, requiredOnly?: boolean) {
         const now = new Date()
         const e: table.Output = {
             created_at: now,
@@ -251,7 +251,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputTag(storage: StorageBase, u: table.User) {
+    static async insertTestOutputTag(storage: sdk.WalletStorage, u: table.User) {
         const now = new Date()
         const e: table.OutputTag = {
             created_at: now,
@@ -265,7 +265,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputTagMap(storage: StorageBase, o: table.Output, tag: table.OutputTag) {
+    static async insertTestOutputTagMap(storage: sdk.WalletStorage, o: table.Output, tag: table.OutputTag) {
         const now = new Date()
         const e: table.OutputTagMap = {
             created_at: now,
@@ -278,7 +278,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTxLabel(storage: StorageBase, u: table.User) {
+    static async insertTestTxLabel(storage: sdk.WalletStorage, u: table.User) {
         const now = new Date()
         const e: table.TxLabel = {
             created_at: now,
@@ -292,7 +292,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTxLabelMap(storage: StorageBase, tx: table.Transaction, label: table.TxLabel) {
+    static async insertTestTxLabelMap(storage: sdk.WalletStorage, tx: table.Transaction, label: table.TxLabel) {
         const now = new Date()
         const e: table.TxLabelMap = {
             created_at: now,
@@ -305,15 +305,16 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestSyncState(storage: StorageBase, u: table.User) {
+    static async insertTestSyncState(storage: sdk.WalletStorage, u: table.User) {
         const now = new Date()
+        const settings = await storage.getSettings()
         const e: table.SyncState = {
             created_at: now,
             updated_at: now,
             syncStateId: 0,
             userId: u.userId,
-            storageIdentityKey: storage.settings!.storageIdentityKey,
-            storageName: storage.settings!.storageName,
+            storageIdentityKey: settings.storageIdentityKey,
+            storageName: settings.storageName,
             status: 'unknown',
             init: false,
             refNum: randomBytesBase64(10),
@@ -323,7 +324,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestWatchmanEvent(storage: StorageBase) {
+    static async insertTestWatchmanEvent(storage: sdk.WalletStorage) {
         const now = new Date()
         const e: table.WatchmanEvent = {
             created_at: now,
@@ -335,7 +336,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCommission(storage: StorageBase, t: table.Transaction) {
+    static async insertTestCommission(storage: sdk.WalletStorage, t: table.Transaction) {
         const now = new Date()
         const e: table.Commission = {
             created_at: now,
@@ -352,7 +353,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async createTestSetup1(storage: StorageBase) : Promise<TestSetup1> {
+    static async createTestSetup1(storage: sdk.WalletStorage) : Promise<TestSetup1> {
         const u1 = await _tu.insertTestUser(storage)
         const u1label1 = await _tu.insertTestTxLabel(storage, u1)
         const u1label2 = await _tu.insertTestTxLabel(storage, u1)

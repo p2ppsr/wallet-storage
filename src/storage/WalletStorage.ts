@@ -1,4 +1,4 @@
-import { sdk, StorageBase, table } from "..";
+import { sdk, StorageBase, StorageSyncReader, table } from "..";
 
 /**
  * The `WalletStorage` class delivers storage access to the wallet while managing multiple `StorageBase` derived storage services.
@@ -15,13 +15,17 @@ import { sdk, StorageBase, table } from "..";
  */
 export class WalletStorage implements sdk.WalletStorage {
 
-    services: StorageBase[] = []
+    services: sdk.WalletStorage[] = []
 
-    constructor() {
-
+    constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[], importFrom?: StorageSyncReader) {
+        this.services = [ active ]
+        if (backups) this.services.concat(backups)
+        if (importFrom) {
+            throw new sdk.WERR_NOT_IMPLEMENTED('coming soon!')
+        }
     }
 
-    getActive(): StorageBase { return this.services[0] }
+    getActive(): sdk.WalletStorage { return this.services[0] }
 
     async destroy(): Promise<void> {
         return await this.getActive().destroy()

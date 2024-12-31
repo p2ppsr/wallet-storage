@@ -130,13 +130,13 @@ export abstract class TestUtilsWalletStorage {
         return ptxreq
     }
 
-    static async insertTestUser(storage: sdk.WalletStorage) {
+    static async insertTestUser(storage: sdk.WalletStorage, identityKey?: string) {
         const now = new Date()
         const e: table.User = {
             created_at: now,
             updated_at: now,
             userId: 0,
-            identityKey: randomBytesHex(33),
+            identityKey: identityKey || randomBytesHex(33),
         }
         await storage.insertUser(e)
         return e
@@ -354,8 +354,8 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async createTestSetup1(storage: sdk.WalletStorage) : Promise<TestSetup1> {
-        const u1 = await _tu.insertTestUser(storage)
+    static async createTestSetup1(storage: sdk.WalletStorage, u1IdentityKey?: string) : Promise<TestSetup1> {
+        const u1 = await _tu.insertTestUser(storage, u1IdentityKey)
         const u1label1 = await _tu.insertTestTxLabel(storage, u1)
         const u1label2 = await _tu.insertTestTxLabel(storage, u1)
         const u1tag1 = await _tu.insertTestOutputTag(storage, u1)

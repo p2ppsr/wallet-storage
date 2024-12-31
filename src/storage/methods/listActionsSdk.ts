@@ -39,7 +39,7 @@ export async function listActionsSdk(
         // No actions will match if a required label doesn't exist yet...
         return r
 
-    const columns: string[] = ['transactionId', 'txid', 'amount', 'status', 'isOutgoing', 'note', 'version', 'lockTime']
+    const columns: string[] = ['transactionId', 'txid', 'satoshis', 'status', 'isOutgoing', 'description', 'version', 'lockTime']
     const stati: string[] = ['completed', 'unprocessed', 'sending', 'unproven', 'unsigned', 'nosend', 'nonfinal']
 
     const noLabels = labelIds.length === 0

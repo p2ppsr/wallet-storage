@@ -211,6 +211,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 basketId: verifyOptionalInteger(d.basketId),
                 spendable: !!d.spendable,
                 change: d.providedBy !== 'you' && d.purpose === 'change',
+                outputDescription: d.description || '',
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
                 providedBy: verifyTruthy(d.providedBy || ''),

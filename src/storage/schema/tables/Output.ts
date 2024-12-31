@@ -1,3 +1,4 @@
+import { OutputBasket, OutputTag } from "."
 import { sdk } from "../../.."
 
 export interface Output extends sdk.EntityTimeStamp {
@@ -9,6 +10,7 @@ export interface Output extends sdk.EntityTimeStamp {
    basketId?: number
    spendable: boolean
    change: boolean
+   outputDescription: sdk.DescriptionString5to50Bytes
    vout: number
    satoshis: number
    providedBy: string
@@ -25,6 +27,11 @@ export interface Output extends sdk.EntityTimeStamp {
    scriptLength?: number
    scriptOffset?: number
    lockingScript?: number[]
+}
+
+export interface OutputX extends Output {
+   basket?: OutputBasket
+   tags?: OutputTag[]
 }
 
 export const outputColumnsWithoutLockingScript = [

@@ -1,4 +1,4 @@
-import { sdk, table } from "..";
+import { sdk, table, verifyOneOrNone } from "..";
 import { StorageSyncReader } from './StorageSyncReader'
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
@@ -68,6 +68,9 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
     abstract getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken): Promise<number[] | undefined>
 
+    abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
+    abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
+
     abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
     abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
 
@@ -92,6 +95,47 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+
+    async findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
+        return verifyOneOrNone(await this.findUsers({ identityKey: key }, undefined, undefined, trx))
+    }
+
+    async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
+        return verifyOneOrNone(await this.findCertificates({ certificateId: id }, undefined, undefined, undefined, undefined, trx))
+    }
+    async findCommissionById(id: number, trx?: sdk.TrxToken) : Promise<table.Commission| undefined> {
+        return verifyOneOrNone(await this.findCommissions({ commissionId: id }, undefined, undefined, trx))
+    }
+    async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean) : Promise<table.Output| undefined> {
+        return verifyOneOrNone(await this.findOutputs({ outputId: id }, noScript, undefined, undefined, trx))
+    }
+    async findOutputBasketById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputBasket| undefined> {
+        return verifyOneOrNone(await this.findOutputBaskets({ basketId: id }, undefined, undefined, trx))
+    }
+    async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx| undefined> {
+        return verifyOneOrNone(await this.findProvenTxs({ provenTxId: id }, undefined, undefined, trx))
+    }
+    async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq| undefined> {
+        return verifyOneOrNone(await this.findProvenTxReqs({ provenTxReqId: id }, undefined, undefined, undefined, undefined, trx))
+    }
+    async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState| undefined> {
+        return verifyOneOrNone(await this.findSyncStates({ syncStateId: id }, undefined, undefined, trx))
+    }
+    async findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean) : Promise<table.Transaction| undefined> {
+        return verifyOneOrNone(await this.findTransactions({ transactionId: id }, undefined, noRawTx, undefined, undefined, trx))
+    }
+    async findTxLabelById(id: number, trx?: sdk.TrxToken) : Promise<table.TxLabel| undefined> {
+        return verifyOneOrNone(await this.findTxLabels({ txLabelId: id }, undefined, undefined, trx))
+    }
+    async findOutputTagById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputTag| undefined> {
+        return verifyOneOrNone(await this.findOutputTags({ outputTagId: id }, undefined, undefined, trx))
+    }
+    async findUserById(id: number, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
+        return verifyOneOrNone(await this.findUsers({ userId: id }, undefined, undefined, trx))
+    }
+    async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined> {
+        return verifyOneOrNone(await this.findWatchmanEvents({ id }, undefined, undefined, trx))
+    }
 }
 
 export interface StorageBaseOptions {

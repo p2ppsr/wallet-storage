@@ -1,23 +1,30 @@
 import { Transaction } from "@bsv/sdk";
-import { sdk, WalletStorage } from "..";
+import { sdk, table, verifyOne, verifyOneOrNone, WalletStorage } from "..";
 import { createActionSdk } from "./methods/createActionSdk";
+import { getDecorators } from "typescript";
 
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain;
     keyDeriver: sdk.KeyDeriverApi;
     storage: sdk.WalletStorage;
-    storageIdentity?: sdk.StorageIdentity;
+    storageIdentity: sdk.StorageIdentity;
     _isAuthenticated: boolean
     _isStorageAvailable: boolean
+    _user?: table.User
+
     pendingSignActions: Record<string, PendingSignAction>
 
     constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorage) {
+        if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`)
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage
+        const s = storage.settings!
+        this.storageIdentity = { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
         // TODO: Sort out authentication
         this._isAuthenticated = true
-        this._isStorageAvailable = true
+        this._isStorageAvailable = storage.isAvailable()
+
         this.pendingSignActions = {}
     }
 
@@ -33,10 +40,16 @@ export class WalletSigner implements sdk.WalletSigner {
     }
 
     async authenticate(identityKey?: string, addIfNew?: boolean): Promise<void> {
-        if (addIfNew)
-            throw new sdk.WERR_INVALID_PARAMETER('addIfNew', 'undefined. Adding new identities is not supported.');
         if (identityKey && identityKey !== this.keyDeriver.identityKey)
             throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'same as already authenticated identity.');
+        this._user = verifyOneOrNone(await this.storage.findUsers({ identityKey: this.keyDeriver.identityKey }))
+        if (!this._user) {
+            if (!addIfNew)
+                throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'found in storage.');
+            const now = new Date()
+            await this.storage.insertUser({ created_at: now, updated_at: now, userId: 0, identityKey: this.keyDeriver.identityKey })
+            this._user = verifyOne(await this.storage.findUsers({ identityKey: this.keyDeriver.identityKey }))
+        }
         this._isAuthenticated = true
     }
 
@@ -54,6 +67,7 @@ export class WalletSigner implements sdk.WalletSigner {
 
     async listActions(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
         await this.verifyStorageAvailable()
+        vargs.userId = this._user!.userId
         const r = await this.storage.listActionsSdk(vargs, originator)
         return r
     }

@@ -782,6 +782,7 @@ export interface ValidListActionsArgs {
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
+  userId?: number
   log?: string
 }
 
@@ -818,7 +819,9 @@ export function validateListActionsArgs(args: sdk.ListActionsArgs) : ValidListAc
       includeOutputLockingScripts: defaultFalse(args.includeOutputLockingScripts),
       limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
-      seekPermission: defaultTrue(args.seekPermission)
+      seekPermission: defaultTrue(args.seekPermission),
+      userId: undefined,
+      log: ''
     }
 
     if (vargs.labels.length < 1)

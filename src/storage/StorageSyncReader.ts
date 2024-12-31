@@ -10,6 +10,13 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
         this.chain = options.chain
     }
 
+    isAvailable(): boolean {
+        return !!this.settings
+    }
+    async makeAvailable(): Promise<void> {
+        this.settings = await this.getSettings()
+    }
+
     abstract destroy(): Promise<void>
 
     abstract transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T>

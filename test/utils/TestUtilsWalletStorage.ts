@@ -231,6 +231,7 @@ export abstract class TestUtilsWalletStorage {
             basketId: basket ? basket.basketId :  undefined,
             spendable: true,
             change: true,
+            outputDescription: 'not mutch to say',
             vout,
             satoshis,
             providedBy: 'you',

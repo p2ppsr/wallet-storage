@@ -3,6 +3,7 @@ import { KnexMigrations, table } from "."
 
 import { Knex } from "knex";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
+import { listActionsSdk } from './methods/listActionsSdk'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
     /**
@@ -90,7 +91,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
     async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
-        throw new Error("Method not implemented.");
+        return await listActionsSdk(this, vargs, originator)
     }
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         throw new Error("Method not implemented.");
@@ -644,6 +645,36 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         this.isDirty = true
         return v
     }
+
+    override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+        if (transactionId === undefined) return []
+        const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+            .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+            .where('tx_labels_map.transactionId', transactionId)
+            .whereNot('tx_labels_map.isDeleted', true)
+            .whereNot('tx_labels.isDeleted', true)
+        return this.validateEntities(labels, undefined, ['isDeleted'])
+    }
+
+    async extendOutput(o: table.Output, includeBasket = false, includeTags = false, trx?: sdk.TrxToken): Promise<table.OutputX> {
+        const ox = o as table.OutputX
+        if (includeBasket && ox.basketId)
+            ox.basket = await this.findOutputBasketById(o.basketId!, trx)
+        if (includeTags) {
+            ox.tags = await this.getTagsForOutputId(o.outputId)
+        }
+        return o
+    }
+
+    override async getTagsForOutputId(outputId: number, trx?: sdk.TrxToken) : Promise<table.OutputTag[]> {
+        const tags = await this.toDb(trx)<table.OutputTag>('output_tags')
+            .join('output_tags_map', 'output_tags_map.outputTagId', 'output_tags.outputTagId')
+            .where('output_tags_map.outputId', outputId)
+            .whereNot('output_tags_map.isDeleted', true)
+            .whereNot('output_tags.isDeleted', true)
+        return this.validateEntities(tags, undefined, ['isDeleted'])
+    }
+
 }
 
 export type DBType = 'SQLite' | 'MySQL'

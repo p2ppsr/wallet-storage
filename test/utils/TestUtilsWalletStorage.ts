@@ -1,6 +1,7 @@
+import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, table } from '../../src'
+import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, Wallet, WalletSigner, WalletStorage } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
 import { Beef } from '@bsv/sdk';
@@ -88,6 +89,63 @@ export abstract class TestUtilsWalletStorage {
         return knex
     }
 
+    static async createMySqlTestSetup1Wallet(args: {
+        databaseName: string,
+        chain?: sdk.Chain,
+        rootKeyHex?: string,
+    }) : Promise<TestSetup1Wallet> { 
+        return await this.createKnexTestSetup1Wallet({
+            ...args,
+            knex: _tu.createLocalMySQL(args.databaseName)
+        })
+    }
+
+    static async createSQLiteTestSetup1Wallet(args: {
+        databaseName: string,
+        chain?: sdk.Chain,
+        rootKeyHex?: string,
+    }) : Promise<TestSetup1Wallet> { 
+        const localSQLiteFile = await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
+        return await this.createKnexTestSetup1Wallet({
+            ...args,
+            knex: _tu.createLocalSQLite(localSQLiteFile)
+        })
+    }
+
+    static async createKnexTestSetup1Wallet(args: {
+        knex: Knex<any, any[]>,
+        databaseName: string,
+        chain?: sdk.Chain,
+        rootKeyHex?: string,
+    }) : Promise<TestSetup1Wallet> { 
+        args.chain ||= 'test'
+        args.rootKeyHex ||= '1'.repeat(64)
+        const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
+        const identityKey = rootKey.toPublicKey().toString()
+        const keyDeriver = new sdk.KeyDeriver(rootKey)
+        const chain = args.chain
+        const activeStorage = new StorageKnex({ chain, knex: args.knex })
+        await activeStorage.dropAllData()
+        await activeStorage.migrate('insert tests')
+        await activeStorage.makeAvailable()
+        const setup = await _tu.createTestSetup1(activeStorage, identityKey)
+        const storage = new WalletStorage(activeStorage)
+        const signer = new WalletSigner(chain, keyDeriver, storage)
+        await signer.authenticate(undefined, true)
+        const wallet = new Wallet(signer, keyDeriver)
+        const userId = signer._user!.userId
+        return {
+            rootKey,
+            identityKey,
+            keyDeriver,
+            chain,
+            setup,
+            storage,
+            signer,
+            wallet,
+            userId
+        }
+    }
 
     static async insertTestProvenTx(storage: sdk.WalletStorage, txid?: string) {
         const now = new Date()
@@ -356,6 +414,8 @@ export abstract class TestUtilsWalletStorage {
 
     static async createTestSetup1(storage: sdk.WalletStorage, u1IdentityKey?: string) : Promise<TestSetup1> {
         const u1 = await _tu.insertTestUser(storage, u1IdentityKey)
+        const u1basket1 = await _tu.insertTestOutputBasket(storage, u1)
+        const u1basket2 = await _tu.insertTestOutputBasket(storage, u1)
         const u1label1 = await _tu.insertTestTxLabel(storage, u1)
         const u1label2 = await _tu.insertTestTxLabel(storage, u1)
         const u1tag1 = await _tu.insertTestOutputTag(storage, u1)
@@ -364,10 +424,10 @@ export abstract class TestUtilsWalletStorage {
         const u1comm1 = await _tu.insertTestCommission(storage, u1tx1)
         const u1tx1label1 = await _tu.insertTestTxLabelMap(storage, u1tx1, u1label1)
         const u1tx1label2 = await _tu.insertTestTxLabelMap(storage, u1tx1, u1label2)
-        const u1tx1o0 = await _tu.insertTestOutput(storage, u1tx1, 0, 101)
+        const u1tx1o0 = await _tu.insertTestOutput(storage, u1tx1, 0, 101, u1basket1)
         const u1o0tag1 = await _tu.insertTestOutputTagMap(storage, u1tx1o0, u1tag1)
         const u1o0tag2 = await _tu.insertTestOutputTagMap(storage, u1tx1o0, u1tag2)
-        const u1tx1o1 = await _tu.insertTestOutput(storage, u1tx1, 1, 111)
+        const u1tx1o1 = await _tu.insertTestOutput(storage, u1tx1, 1, 111, u1basket2)
         const u1o1tag1 = await _tu.insertTestOutputTagMap(storage, u1tx1o1, u1tag1)
         const u1cert1 = await _tu.insertTestCertificate(storage, u1)
         const u1cert1field1 = await _tu.insertTestCertificateField(storage, u1cert1, "bob", "your uncle")
@@ -394,6 +454,8 @@ export abstract class TestUtilsWalletStorage {
         const we1 = await _tu.insertTestWatchmanEvent(storage)
         return {
             u1,
+            u1basket1,
+            u1basket2,
             u1label1,
             u1label2,
             u1tag1,
@@ -439,6 +501,8 @@ export abstract class _tu extends TestUtilsWalletStorage {
 
 export interface TestSetup1 {
     u1: table.User,
+    u1basket1: table.OutputBasket,
+    u1basket2: table.OutputBasket,
     u1label1: table.TxLabel,
     u1label2: table.TxLabel,
     u1tag1: table.OutputTag,
@@ -475,4 +539,16 @@ export interface TestSetup1 {
     req2: table.ProvenTxReq,
 
     we1: table.WatchmanEvent
+}
+
+export interface TestSetup1Wallet {
+    rootKey: bsv.PrivateKey,
+    identityKey: string,
+    keyDeriver: sdk.KeyDeriver,
+    chain: sdk.Chain,
+    setup: TestSetup1,
+    storage: WalletStorage,
+    signer: WalletSigner,
+    wallet: Wallet,
+    userId: number
 } 

@@ -73,6 +73,7 @@ export class WalletSigner implements sdk.WalletSigner {
     }
     async listOutputs(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         await this.verifyStorageAvailable()
+        vargs.userId = this._user!.userId
         const r = await this.storage.listOutputsSdk(vargs, originator)
         return r
     }

@@ -4,6 +4,7 @@ import { KnexMigrations, table } from "."
 import { Knex } from "knex";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { listActionsSdk } from './methods/listActionsSdk'
+import { listOutputsSdk } from "./methods/listOutputsSdk";
 
 export interface StorageKnexOptions extends StorageBaseOptions {
     /**
@@ -94,7 +95,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return await listActionsSdk(this, vargs, originator)
     }
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
-        throw new Error("Method not implemented.");
+        return await listOutputsSdk(this, vargs, originator)
     }
     async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
         throw new Error("Method not implemented.");

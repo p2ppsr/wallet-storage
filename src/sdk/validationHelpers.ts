@@ -727,6 +727,7 @@ export interface ValidListOutputsArgs {
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
   knownTxids: string[]
+  userId?: number
   log?: string
 }
 
@@ -765,6 +766,8 @@ export function validateListOutputsArgs(args: sdk.ListOutputsArgs) : ValidListOu
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
       knownTxids: [],
+      userId: undefined,
+      log: ''
     }
 
     return vargs

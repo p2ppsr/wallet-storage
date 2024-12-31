@@ -31,6 +31,7 @@
   "dependencies": {
     "@babbage/sdk-ts": "^0.2.75",
     "@bsv/sdk": "^1.2.19",
+    "axios": "^1.7.9",
     "mysql2": "^3.12.0",
     "prettyjson": "^1.2.5",
     "ts2md": "^0.2.4"

@@ -1,4 +1,4 @@
-import { Beef, PrivateKey, PublicKey, Random, Script, Transaction, Utils } from "@bsv/sdk";
+import { Beef, Hash, PrivateKey, PublicKey, Random, Script, Transaction, Utils } from "@bsv/sdk";
 import { sdk } from "..";
 import { Chain } from "../sdk/types";
 
@@ -220,4 +220,36 @@ export function maxDate(d1?: Date, d2?: Date) : Date | undefined {
     if (d1) return d1
     if (d2) return d2
     return undefined
+}
+
+/**
+ * Calculate the SHA256 hash of an array of bytes
+ * @returns sha256 hash of buffer contents.
+ * @publicbody
+ */
+export function sha256Hash(data: number[]): number[] {
+    const first = new Hash.SHA256().update(data).digest()
+    return first
+}
+
+/**
+ * Calculate the SHA256 hash of the SHA256 hash of an array of bytes.
+ * @param data an array of bytes
+ * @returns double sha256 hash of data, byte 0 of hash first.
+ * @publicbody
+ */
+export function doubleSha256HashLE (data: number[]): number[] {
+    const first = new Hash.SHA256().update(data).digest()
+    const second = new Hash.SHA256().update(first).digest()
+    return second
+}
+
+/**
+ * Calculate the SHA256 hash of the SHA256 hash of an array of bytes.
+ * @param data is an array of bytes.
+ * @returns reversed (big-endian) double sha256 hash of data, byte 31 of hash first.
+ * @publicbody
+ */
+export function doubleSha256BE (data: number[]): number[] {
+    return doubleSha256HashLE(data).reverse()
 }

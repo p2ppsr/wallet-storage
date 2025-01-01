@@ -45,6 +45,25 @@ export class KnexMigrations implements MigrationSource<string> {
     setupMigrations(chain: string, storageName: string, maxOutputScriptLength: number): Record<string, Migration> {
 
         const migrations: Record<string, Migration> = {}
+/*
+
+        This is sample code for when next migration must be added...
+
+        this.migrations['2024-12-15-001 add batch column to proven-tx-reqs'] = {
+            async up(knex) {
+                await knex.schema.alterTable('proven_tx_reqs', table => {
+                    table.string('batch', 64).nullable()
+                    table.index('batch')
+                })
+            },
+            async down(knex) {
+                await knex.schema.alterTable('proven_tx_reqs', table => {
+                    table.dropIndex('batch')
+                    table.dropColumn('batch')
+                })
+            }
+        }
+*/
 
         const addTimeStamps = (knex: Knex<any, any[]>, table: Knex.CreateTableBuilder, dbtype: DBType) => {
             if (dbtype === 'MySQL') {

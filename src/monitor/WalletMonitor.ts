@@ -440,7 +440,7 @@ export class WalletMonitor {
 
             const since = new Date()
 
-            let r: sdk.GetMerklePathResultApi
+            let r: sdk.GetMerklePathResult
             let ptx: entity.ProvenTx | undefined
 
             // External services will try multiple providers until one returns a proof,
@@ -840,7 +840,7 @@ export interface PostReqsToNetworkDetails {
     txid: string
     req: entity.ProvenTxReq
     status: PostReqsToNetworkDetailsStatus
-    pbrft: sdk.PostBeefResultForTxidApi
+    pbrft: sdk.PostBeefResultForTxid
     data?: string
     error?: string
 }
@@ -849,7 +849,7 @@ export interface PostReqsToNetworkResult {
     status: "success" | "error"
     beef: bsv.Beef
     details: PostReqsToNetworkDetails[]
-    pbr?: sdk.PostBeefResultApi
+    pbr?: sdk.PostBeefResult
     log: string
 }
 

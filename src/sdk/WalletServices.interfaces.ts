@@ -45,7 +45,7 @@ export interface WalletServices {
      * @param txid transaction hash for which raw transaction bytes are requested
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getRawTx(txid: string, useNext?: boolean): Promise<GetRawTxResultApi>
+    getRawTx(txid: string, useNext?: boolean): Promise<GetRawTxResult>
 
     /**
      * Attempts to obtain the merkle proof associated with a 32 byte transaction hash (txid).
@@ -67,7 +67,7 @@ export interface WalletServices {
      * @param txid transaction hash for which proof is requested
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getMerklePath(txid: string, useNext?: boolean): Promise<GetMerklePathResultApi>
+    getMerklePath(txid: string, useNext?: boolean): Promise<GetMerklePathResult>
 
     /**
      * 
@@ -76,7 +76,7 @@ export interface WalletServices {
      * @param chain 
      * @returns
      */
-    postBeef(beef: number[], txids: string[]): Promise<PostBeefResultApi[]>
+    postBeef(beef: number[], txids: string[]): Promise<PostBeefResult[]>
 
     /**
      * Attempts to determine the UTXO status of a transaction output.
@@ -92,19 +92,19 @@ export interface WalletServices {
      *      undefined if asBuffer length of `output` is 32 then 'hashBE`, otherwise 'script'.
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<GetUtxoStatusResultApi>
+    getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormat, useNext?: boolean): Promise<GetUtxoStatusResult>
 
 }
 
-export type GetUtxoStatusOutputFormatApi = 'hashLE' | 'hashBE' | 'script'
+export type GetUtxoStatusOutputFormat = 'hashLE' | 'hashBE' | 'script'
 
-export interface BsvExchangeRateApi {
+export interface BsvExchangeRate {
     timestamp: Date,
     base: "USD",
     rate: number
 }
 
-export interface FiatExchangeRatesApi {
+export interface FiatExchangeRates {
     timestamp: Date,
     base: "USD",
     rates: Record<string, number>
@@ -113,9 +113,9 @@ export interface FiatExchangeRatesApi {
 export interface WalletServicesOptions {
     chain: sdk.Chain
     taalApiKey?: string
-    bsvExchangeRate: BsvExchangeRateApi
+    bsvExchangeRate: BsvExchangeRate
     bsvUpdateMsecs: number
-    fiatExchangeRates: FiatExchangeRatesApi
+    fiatExchangeRates: FiatExchangeRates
     fiatUpdateMsecs: number
     disableMapiCallback?: boolean,
     exchangeratesapiKey?: string
@@ -124,9 +124,9 @@ export interface WalletServicesOptions {
 }
 
 /**
- * Properties on result returned from `CwiExternalServicesApi` function `getRawTx`.
+ * Properties on result returned from `WalletServices` function `getRawTx`.
  */
-export interface GetRawTxResultApi {
+export interface GetRawTxResult {
     /**
      * Transaction hash or rawTx (and of initial request)
      */
@@ -147,9 +147,9 @@ export interface GetRawTxResultApi {
 }
 
 /**
- * Properties on result returned from `CwiExternalServicesApi` function `getMerkleProof`.
+ * Properties on result returned from `WalletServices` function `getMerkleProof`.
  */
-export interface GetMerklePathResultApi {
+export interface GetMerklePathResult {
     /**
      * The name of the service returning the proof, or undefined if no proof
      */
@@ -168,7 +168,7 @@ export interface GetMerklePathResultApi {
     error?: sdk.WalletError
 }
 
-export interface PostBeefResultForTxidApi {
+export interface PostBeefResultForTxid {
     txid: string
 
     /**
@@ -189,9 +189,9 @@ export interface PostBeefResultForTxidApi {
 }
 
 /**
- * Properties on array items of result returned from `CwiExternalServicesApi` function `postBeef`.
+ * Properties on array items of result returned from `WalletServices` function `postBeef`.
  */
-export interface PostBeefResultApi {
+export interface PostBeefResult {
     /**
      * The name of the service to which the transaction was submitted for processing
      */
@@ -212,7 +212,7 @@ export interface PostBeefResultApi {
      */
     error?: sdk.WalletError
 
-    txids: PostBeefResultForTxidApi[]
+    txids: PostBeefResultForTxid[]
 
     /**
      * Service response object. Use service name and status to infer type of object.
@@ -220,7 +220,7 @@ export interface PostBeefResultApi {
     data?: object
 }
 
-export interface GetUtxoStatusDetailsApi {
+export interface GetUtxoStatusDetails {
     /**
      * if isUtxo, the block height containing the matching unspent transaction output
      * 
@@ -247,7 +247,7 @@ export interface GetUtxoStatusDetailsApi {
     satoshis?: number
 }
 
-export interface GetUtxoStatusResultApi {
+export interface GetUtxoStatusResult {
     /**
      * The name of the service to which the transaction was submitted for processing
      */
@@ -271,7 +271,7 @@ export interface GetUtxoStatusResultApi {
      * Normally there will be one item in the array but due to the possibility of orphan races
      * there could be more than one block in which it is a valid utxo.
      */
-    details: GetUtxoStatusDetailsApi[]
+    details: GetUtxoStatusDetails[]
 }
 
 /**
@@ -294,14 +294,14 @@ export interface BlockHeaderHex extends BaseBlockHeaderHex {
   hash: string
 }
 
-export type GetUtxoStatusServiceApi = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormatApi) => Promise<GetUtxoStatusResultApi>
+export type GetUtxoStatusService = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormat) => Promise<GetUtxoStatusResult>
 
-export type GetMerklePathServiceApi = (txid: string, chain: sdk.Chain, hashToHeader?: HashToHeader) => Promise<GetMerklePathResultApi>
+export type GetMerklePathService = (txid: string, chain: sdk.Chain, hashToHeader?: HashToHeader) => Promise<GetMerklePathResult>
 
-export type GetRawTxServiceApi = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResultApi>
+export type GetRawTxService = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResult>
 
-export type PostBeefServiceApi = (beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain) => Promise<PostBeefResultApi>
+export type PostBeefService = (beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain) => Promise<PostBeefResult>
 
-export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRatesApi>
+export type UpdateFiatExchangeRateService = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRates>
 
 export type HashToHeader = (hash: string) => Promise<BlockHeaderHex | undefined>

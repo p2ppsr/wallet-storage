@@ -22,10 +22,12 @@ describe('Wallet services tests', () => {
     test('0', async () => {
         for (const { chain, wallet, services, monitor } of ctxs) {
 
-            if (!wallet.monitor) throw new sdk.WERR_INTERNAL('test requires setup with monitor')
-
+            if (!monitor) throw new sdk.WERR_INTERNAL('test requires setup with monitor');
 
             {
+                expect(monitor._tasks.length).toBe(0)
+                
+
             }
 
         }

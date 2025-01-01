@@ -15,11 +15,11 @@ export class WalletServices implements sdk.WalletServices {
 
     options: sdk.WalletServicesOptions
 
-    getMerklePathServices: ServiceCollection<sdk.GetMerklePathServiceApi>
-    getRawTxServices: ServiceCollection<sdk.GetRawTxServiceApi>
-    postBeefServices: ServiceCollection<sdk.PostBeefServiceApi>
-    getUtxoStatusServices: ServiceCollection<sdk.GetUtxoStatusServiceApi>
-    updateFiatExchangeRateServices: ServiceCollection<sdk.UpdateFiatExchangeRateServiceApi>
+    getMerklePathServices: ServiceCollection<sdk.GetMerklePathService>
+    getRawTxServices: ServiceCollection<sdk.GetRawTxService>
+    postBeefServices: ServiceCollection<sdk.PostBeefService>
+    getUtxoStatusServices: ServiceCollection<sdk.GetUtxoStatusService>
+    updateFiatExchangeRateServices: ServiceCollection<sdk.UpdateFiatExchangeRateService>
 
     chain: sdk.Chain
 
@@ -28,20 +28,20 @@ export class WalletServices implements sdk.WalletServices {
 
         this.options = (typeof optionsOrChain === 'string') ? WalletServices.createDefaultOptions(this.chain) : optionsOrChain
         
-        this.getMerklePathServices = new ServiceCollection<sdk.GetMerklePathServiceApi>()
+        this.getMerklePathServices = new ServiceCollection<sdk.GetMerklePathService>()
         .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc})
        // .add({ name: 'Taal', service: this.makeGetProofFromTaal() })
         
-        this.getRawTxServices = new ServiceCollection<sdk.GetRawTxServiceApi>()
+        this.getRawTxServices = new ServiceCollection<sdk.GetRawTxService>()
         .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain})
 
-        this.postBeefServices = new ServiceCollection<sdk.PostBeefServiceApi>()
+        this.postBeefServices = new ServiceCollection<sdk.PostBeefService>()
         .add({ name: 'TaalArc', service: this.makePostBeefToTaal() })
 
-        this.getUtxoStatusServices = new ServiceCollection<sdk.GetUtxoStatusServiceApi>()
+        this.getUtxoStatusServices = new ServiceCollection<sdk.GetUtxoStatusService>()
         .add({ name: 'WhatsOnChain', service: getUtxoStatusFromWhatsOnChain})
         
-        this.updateFiatExchangeRateServices = new ServiceCollection<sdk.UpdateFiatExchangeRateServiceApi>()
+        this.updateFiatExchangeRateServices = new ServiceCollection<sdk.UpdateFiatExchangeRateService>()
         .add({ name: 'ChaintracksService', service: updateChaintracksFiatExchangeRates })
         .add({ name: 'exchangeratesapi', service: updateExchangeratesapi })
     }
@@ -70,7 +70,7 @@ export class WalletServices implements sdk.WalletServices {
 
     targetCurrencies = ['USD', 'GBP', 'EUR']
 
-    async updateFiatExchangeRates(rates?: sdk.FiatExchangeRatesApi, updateMsecs?: number): Promise<sdk.FiatExchangeRatesApi> {
+    async updateFiatExchangeRates(rates?: sdk.FiatExchangeRates, updateMsecs?: number): Promise<sdk.FiatExchangeRates> {
 
         updateMsecs ||= 1000 * 60 * 15
         const freshnessDate = new Date(Date.now() - updateMsecs)
@@ -84,7 +84,7 @@ export class WalletServices implements sdk.WalletServices {
         // Make sure we always start with the first service listed (chaintracks aggregator)
         const services = this.updateFiatExchangeRateServices.clone()
 
-        let r0: sdk.FiatExchangeRatesApi | undefined
+        let r0: sdk.FiatExchangeRates | undefined
 
         for (let tries = 0; tries < services.count; tries++) {
             const service = services.service
@@ -118,7 +118,7 @@ export class WalletServices implements sdk.WalletServices {
         return miner
     }
 
-    private makePostBeefToTaal() : sdk.PostBeefServiceApi {
+    private makePostBeefToTaal() : sdk.PostBeefService {
         return (beef: bsv.Beef | number[], txids: string[]) => {
             return postBeefToTaalArcMiner(beef, txids, this.options.chain, this.getTaalMiner())
         }
@@ -135,12 +135,12 @@ export class WalletServices implements sdk.WalletServices {
     get postBeefServicesCount() { return this.postBeefServices.count }
     get getUtxoStatsCount() { return this.getUtxoStatusServices.count }
 
-    async getUtxoStatus(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<sdk.GetUtxoStatusResultApi> {
+    async getUtxoStatus(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat, useNext?: boolean): Promise<sdk.GetUtxoStatusResult> {
         const services = this.getUtxoStatusServices
         if (useNext)
             services.next()
 
-        let r0: sdk.GetUtxoStatusResultApi = { name: "<noservices>", status: "error", error: new sdk.WERR_INTERNAL('No services available.'), details: [] }
+        let r0: sdk.GetUtxoStatusResult = { name: "<noservices>", status: "error", error: new sdk.WERR_INTERNAL('No services available.'), details: [] }
 
         for (let tries = 0; tries < services.count; tries++) {
             const service = services.service
@@ -160,7 +160,7 @@ export class WalletServices implements sdk.WalletServices {
      * @param chain 
      * @returns
      */
-    async postBeef(beef: number[] | bsv.Beef, txids: string[]): Promise<sdk.PostBeefResultApi[]> {
+    async postBeef(beef: number[] | bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> {
         
         const rs = await Promise.all(this.postBeefServices.allServices.map(async service => {
             const r = await service(beef, txids, this.chain)
@@ -170,12 +170,12 @@ export class WalletServices implements sdk.WalletServices {
         return rs
     }
 
-    async getRawTx(txid: string, useNext?: boolean): Promise<sdk.GetRawTxResultApi> {
+    async getRawTx(txid: string, useNext?: boolean): Promise<sdk.GetRawTxResult> {
         
         if (useNext)
             this.getRawTxServices.next()
 
-        const r0: sdk.GetRawTxResultApi = { txid }
+        const r0: sdk.GetRawTxResult = { txid }
 
         for (let tries = 0; tries < this.getRawTxServices.count; tries++) {
             const service = this.getRawTxServices.service
@@ -202,7 +202,7 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResultApi> {
+    async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> {
         const hashToHeader: sdk.HashToHeader | undefined = !this.options.chaintracks ? undefined
             : async (hash) => {
                 for (let retry = 0; retry < 3; retry++) {
@@ -222,7 +222,7 @@ export class WalletServices implements sdk.WalletServices {
         if (useNext)
             this.getMerklePathServices.next()
 
-        const r0: sdk.GetMerklePathResultApi = {}
+        const r0: sdk.GetMerklePathResult = {}
 
         for (let tries = 0; tries < this.getMerklePathServices.count; tries++) {
             const service = this.getMerklePathServices.service
@@ -254,10 +254,10 @@ export class WalletServices implements sdk.WalletServices {
  * @param chain 
  * @returns 
  */
-export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResultApi> {
+export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResult> {
     if (!hashToHeader) throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for getMerklePath to work.')
 
-    const r: sdk.GetMerklePathResultApi = { name: 'WoCTsc' }
+    const r: sdk.GetMerklePathResult = { name: 'WoCTsc' }
 
     try {
         let { data } = await axios.get(`https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`)
@@ -300,9 +300,9 @@ interface WhatsOnChainProofTsc {
  * @param apiKey 
  * @returns 
  */
-export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResultApi> {
+export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResult> {
 
-    const r: sdk.GetMerklePathResultApi = { name: 'Taal' }
+    const r: sdk.GetMerklePathResult = { name: 'Taal' }
 
     try {
         const headers = { headers: { Authorization: apiKey } }
@@ -323,9 +323,9 @@ export async function getMerklePathFromTaal(txid: string, apiKey: string, hashTo
     return r
 }
 
-export async function getRawTxFromWhatsOnChain(txid: string, chain: sdk.Chain): Promise<sdk.GetRawTxResultApi> {
+export async function getRawTxFromWhatsOnChain(txid: string, chain: sdk.Chain): Promise<sdk.GetRawTxResult> {
 
-    const r: sdk.GetRawTxResultApi = { name: 'WoC', txid: asString(txid) }
+    const r: sdk.GetRawTxResult = { name: 'WoC', txid: asString(txid) }
 
     try {
         const url = `https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/hex`
@@ -384,7 +384,7 @@ export async function postBeefToTaalArcMiner(
     chain: sdk.Chain,
     miner?: ArcMinerApi
 )
-: Promise<sdk.PostBeefResultApi>
+: Promise<sdk.PostBeefResult>
 {
     const m = miner || chain === 'main' ? arcMinerTaalMainDefault : arcMinerTaalTestDefault
 
@@ -411,7 +411,7 @@ export async function postBeefToTaalArcMiner(
         }
     }
 
-    const r3: sdk.PostBeefResultApi = {
+    const r3: sdk.PostBeefResult = {
         name: m.name,
         status: 'success',
         data: {},
@@ -442,13 +442,13 @@ export async function postBeefToArcMiner(
     txids: string[],
     miner: ArcMinerApi
 )
-: Promise<sdk.PostBeefResultApi>
+: Promise<sdk.PostBeefResult>
 {
     const m = {...miner}
 
     let url = ''
 
-    let r: sdk.PostBeefResultApi | undefined = undefined
+    let r: sdk.PostBeefResult | undefined = undefined
     let beefBinary = Array.isArray(beef) ? beef : beef.toBinary()
     beef = Array.isArray(beef) ? bsv.Beef.fromBinary(beef) : beef
 
@@ -515,8 +515,8 @@ export async function postBeefToArcMiner(
     return r
 }
 
-export function makePostBeefResult(dd: ArcMinerPostBeefDataApi, miner: ArcMinerApi, beef: number[], txids: string[]) : sdk.PostBeefResultApi {
-    let r: sdk.PostBeefResultApi
+export function makePostBeefResult(dd: ArcMinerPostBeefDataApi, miner: ArcMinerApi, beef: number[], txids: string[]) : sdk.PostBeefResult {
+    let r: sdk.PostBeefResult
     switch (dd.status) {
         case 200: // Success
             r = makeSuccessResult(dd, miner, beef, txids)
@@ -566,15 +566,15 @@ function makeSuccessResult(
     beef: number[],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     txids: string[]
-): sdk.PostBeefResultApi {
-    const r: sdk.PostBeefResultApi = {
+): sdk.PostBeefResult {
+    const r: sdk.PostBeefResult = {
         status: 'success',
         name: miner.name,
         data: dd,
         txids: []
     }
     for (let i = 0; i < txids.length; i++) {
-        const rt: sdk.PostBeefResultForTxidApi = {
+        const rt: sdk.PostBeefResultForTxid = {
             txid: txids[i],
             status: 'success'
         }
@@ -597,8 +597,8 @@ export function makeErrorResult(
     beef: number[],
     txids: string[],
     dd?: ArcMinerPostBeefDataApi
-): sdk.PostBeefResultApi {
-    const r: sdk.PostBeefResultApi = {
+): sdk.PostBeefResult {
+    const r: sdk.PostBeefResult = {
         status: 'error',
         name: miner.name,
         error,
@@ -606,7 +606,7 @@ export function makeErrorResult(
         txids: []
     }
     for (let i = 0; i < txids.length; i++) {
-        const rt: sdk.PostBeefResultForTxidApi = {
+        const rt: sdk.PostBeefResultForTxid = {
             txid: txids[i],
             status: 'error'
         }
@@ -629,10 +629,10 @@ interface WhatsOnChainUtxoStatus {
     tx_hash: string
 }
 
-export async function getUtxoStatusFromWhatsOnChain(output: string, chain: sdk.Chain, outputFormat?: sdk.GetUtxoStatusOutputFormatApi)
-: Promise<sdk.GetUtxoStatusResultApi>
+export async function getUtxoStatusFromWhatsOnChain(output: string, chain: sdk.Chain, outputFormat?: sdk.GetUtxoStatusOutputFormat)
+: Promise<sdk.GetUtxoStatusResult>
 {
-    const r: sdk.GetUtxoStatusResultApi = { name: 'WoC', status: 'error', error: new sdk.WERR_INTERNAL(), details: [] }
+    const r: sdk.GetUtxoStatusResult = { name: 'WoC', status: 'error', error: new sdk.WERR_INTERNAL(), details: [] }
 
     for (let retry = 0; ; retry++) {
 
@@ -687,7 +687,7 @@ interface WhatsOnChainScriptHistory {
     tx_hash: string
 }
 
-export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormatApi) : string {
+export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat) : string {
     let b = asArray(output)
     if (!outputFormat) {
         if (b.length === 32)
@@ -710,7 +710,7 @@ export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoSta
     return asString(b)
 }
 
-export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRateApi, updateMsecs?: number): Promise<sdk.BsvExchangeRateApi> {
+export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRate, updateMsecs?: number): Promise<sdk.BsvExchangeRate> {
 
     if (rate) {
         // Check if the rate we know is stale enough to update.
@@ -726,7 +726,7 @@ export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRateApi, updat
     if (wocrate.currency !== 'USD')
         wocrate.rate = NaN
 
-    const newRate: sdk.BsvExchangeRateApi = {
+    const newRate: sdk.BsvExchangeRate = {
         timestamp: new Date(),
         base: 'USD',
         rate: wocrate.rate
@@ -737,7 +737,7 @@ export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRateApi, updat
     return newRate
 }
 
-export async function updateChaintracksFiatExchangeRates(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRatesApi> {
+export async function updateChaintracksFiatExchangeRates(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRates> {
     const url = options.chaintracksFiatExchangeRatesUrl
 
     if (!url)
@@ -749,13 +749,13 @@ export async function updateChaintracksFiatExchangeRates(targetCurrencies: strin
         throw new sdk.WERR_BAD_REQUEST(`${url} returned status ${r.status}`)
     }
 
-    const rates = <sdk.FiatExchangeRatesApi>r.data.value
+    const rates = <sdk.FiatExchangeRates>r.data.value
     rates.timestamp = new Date(rates.timestamp)
 
     return rates
 }
 
-export async function updateExchangeratesapi(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRatesApi> {
+export async function updateExchangeratesapi(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRates> {
 
     if (!options.exchangeratesapiKey)
         throw new sdk.WERR_MISSING_PARAMETER('options.exchangeratesapiKey')
@@ -768,7 +768,7 @@ export async function updateExchangeratesapi(targetCurrencies: string[], options
     if (!iorates.rates["USD"] || !iorates.rates[iorates.base])
         throw new sdk.WERR_BAD_REQUEST(`getExchangeRatesIo missing rates for 'USD' or base`)
 
-    const r: sdk.FiatExchangeRatesApi = {
+    const r: sdk.FiatExchangeRates = {
         timestamp: new Date(iorates.timestamp * 1000),
         base: 'USD',
         rates: {}

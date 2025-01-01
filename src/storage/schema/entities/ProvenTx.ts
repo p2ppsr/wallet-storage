@@ -127,7 +127,7 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
      */
     static async fromReq(
         req: entity.ProvenTxReq,
-        gmpResult: sdk.GetMerklePathResultApi,
+        gmpResult: sdk.GetMerklePathResult,
         chaintracks: ChaintracksClientApi,
         countsAsAttempt: boolean
     )

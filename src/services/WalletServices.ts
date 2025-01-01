@@ -96,7 +96,7 @@ export class WalletServices implements sdk.WalletServices {
                 }
             } catch (eu: unknown) {
                 const e = sdk.WalletError.fromUnknown(eu)
-                console.log(`updateFiatExchangeRates servcice name ${service.name} error ${e.message}`)
+                console.error(`updateFiatExchangeRates servcice name ${service.name} error ${e.message}`)
             }
             services.next()
         }
@@ -197,9 +197,18 @@ export class WalletServices implements sdk.WalletServices {
     async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResultApi> {
         const hashToHeight: sdk.HashToHeight | undefined = !this.options.chaintracks ? undefined
             : async (hash) => {
-                const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
-                if (!header) return undefined;
-                return header.height
+                for (let retry = 0; retry < 3; retry++) {
+                    try {
+                        const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
+                        if (!header) return undefined;
+                        return header.height
+                    } catch (eu: unknown) {
+                        const e = sdk.WalletError.fromUnknown(eu)
+                        if (e.code != 'ECONNRESET')
+                            throw eu
+                    }
+                }
+                throw new sdk.WERR_INVALID_OPERATION('hashToHeight service unavailable')
         }
         
         if (useNext)
@@ -482,7 +491,7 @@ export async function postBeefToArcMiner(
         r = makePostBeefResult(dd, miner, beefBinary, txids)
 
     } catch (err: unknown) {
-        console.log(err)
+        console.error(err)
         const error = new sdk.WERR_INTERNAL(`service: ${url}, error: ${JSON.stringify(sdk.WalletError.fromUnknown(err))}`)
         r = makeErrorResult(error, miner, beefBinary, txids)
     }
@@ -607,45 +616,52 @@ interface WhatsOnChainUtxoStatus {
 export async function getUtxoStatusFromWhatsOnChain(output: string, chain: sdk.Chain, outputFormat?: sdk.GetUtxoStatusOutputFormatApi)
 : Promise<sdk.GetUtxoStatusResultApi>
 {
-    
     const r: sdk.GetUtxoStatusResultApi = { name: 'WoC', status: 'error', error: new sdk.WERR_INTERNAL(), details: [] }
 
-    let url: string = ''
+    for (let retry = 0; ; retry++) {
 
-    try {
-        
-        const scriptHash = validateScriptHash(output, outputFormat)
-        
-        url = `https://api.whatsonchain.com/v1/bsv/${chain}/script/${scriptHash}/unspent`
+        let url: string = ''
 
-        const { data } = await axios.get(url)
-        
-        if (Array.isArray(data)) {
-            if (data.length === 0) {
-                r.status = 'success'
-                r.error = undefined
-                r.isUtxo = false
-            } else {
-                r.status = 'success'
-                r.error = undefined
-                r.isUtxo = true
-                for (const s of <WhatsOnChainUtxoStatus[]>data) {
-                    r.details.push({
-                        txid: s.tx_hash,
-                        satoshis: s.value,
-                        height: s.height,
-                        index: s.tx_pos
-                    })
+        try {
+
+            const scriptHash = validateScriptHash(output, outputFormat)
+
+            url = `https://api.whatsonchain.com/v1/bsv/${chain}/script/${scriptHash}/unspent`
+
+            const { data } = await axios.get(url)
+
+            if (Array.isArray(data)) {
+                if (data.length === 0) {
+                    r.status = 'success'
+                    r.error = undefined
+                    r.isUtxo = false
+                } else {
+                    r.status = 'success'
+                    r.error = undefined
+                    r.isUtxo = true
+                    for (const s of <WhatsOnChainUtxoStatus[]>data) {
+                        r.details.push({
+                            txid: s.tx_hash,
+                            satoshis: s.value,
+                            height: s.height,
+                            index: s.tx_pos
+                        })
+                    }
                 }
+            } else {
+                throw new sdk.WERR_INTERNAL("data is not an array")
             }
-        } else {
-            throw new sdk.WERR_INTERNAL("data is not an array")
+
+            return r
+
+        } catch (eu: unknown) {
+            const e = sdk.WalletError.fromUnknown(eu)
+            if (e.code !== 'ECONNRESET' || retry > 2) {
+                r.error = new sdk.WERR_INTERNAL(`service failure: ${url}, error: ${JSON.stringify(sdk.WalletError.fromUnknown(eu))}`)
+                return r
+            }
         }
-
-    } catch (eu: unknown) {
-        r.error = new sdk.WERR_INTERNAL(`service failure: ${url}, error: ${JSON.stringify(sdk.WalletError.fromUnknown(eu))}`)
     }
-
     return r
 }
 
@@ -700,7 +716,7 @@ export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRateApi, updat
         rate: wocrate.rate
     }
 
-    console.log(`new bsv rate=${JSON.stringify(newRate)}`)
+    //console.log(`new bsv rate=${JSON.stringify(newRate)}`)
 
     return newRate
 }
@@ -755,7 +771,7 @@ export async function updateExchangeratesapi(targetCurrencies: string[], options
     if (updates !== targetCurrencies.length)
         throw new sdk.WERR_BAD_REQUEST(`getExchangeRatesIo failed to update all target currencies`)
 
-    console.log(`new fiat rates=${JSON.stringify(r)}`)
+    //console.log(`new fiat rates=${JSON.stringify(r)}`)
 
     return r
 }

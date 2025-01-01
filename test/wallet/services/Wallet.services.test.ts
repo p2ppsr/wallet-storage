@@ -20,9 +20,20 @@ describe('Wallet services tests', () => {
     })
 
     test('0', async () => {
-        for (const { wallet, services } of ctxs) {
+        for (const { chain, wallet, services } of ctxs) {
 
             if (!wallet.services || !services) throw new sdk.WERR_INTERNAL('test requires setup with services')
+
+            {
+                const us = await wallet.services.getUtxoStatus('4104e70a02f5af48a1989bf630d92523c9d14c45c75f7d1b998e962bff6ff9995fc5bdb44f1793b37495d80324acba7c8f537caaf8432b8d47987313060cc82d8a93ac', 'script')
+                if (chain === 'main') {
+                    expect(us.status).toBe('success')
+                    expect(us.isUtxo).toBe(true)
+                } else {
+                    expect(us.status).toBe('success')
+                    expect(us.isUtxo).toBe(false)
+                }
+            }
 
             {
                 const usdPerBsv = await wallet.services.getBsvExchangeRate()
@@ -42,7 +53,18 @@ describe('Wallet services tests', () => {
 
             {
                 const mp = await wallet.services.getMerklePath('9cce99686bc8621db439b7150dd5b3b269e4b0628fd75160222c417d6f2b95e4')
-                expect(mp.merklePath?.blockHeight).toBe(877599)
+                if (chain === 'main')
+                    expect(mp.merklePath?.blockHeight).toBe(877599)
+                else
+                    expect(mp.merklePath).not.toBeTruthy()
+            }
+
+            {
+                const rawTx = await wallet.services.getRawTx('9cce99686bc8621db439b7150dd5b3b269e4b0628fd75160222c417d6f2b95e4')
+                if (chain === 'main')
+                    expect(rawTx.rawTx!.length).toBe(176)
+                else
+                    expect(rawTx.rawTx).not.toBeTruthy()
             }
         }
     })

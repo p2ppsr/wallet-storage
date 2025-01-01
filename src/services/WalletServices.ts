@@ -243,11 +243,13 @@ export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.
     const r: sdk.GetMerklePathResultApi = { name: 'WoCTsc' }
 
     try {
-        const { data } = await axios.get(`https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`)
+        let { data } = await axios.get(`https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`)
         if (!data || data.length < 1)
            return r 
 
-        const p = data[0]
+        if (!data['target'])
+            data = data[0]
+        const p = data
         const height = await hashToHeight(p.target)
         if (!height) throw new sdk.WERR_INVALID_PARAMETER('blockhash', 'a valid on-chain block hash')
         const proof = { index: p.index, nodes: p.nodes, height }

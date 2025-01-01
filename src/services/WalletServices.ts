@@ -6,6 +6,7 @@ import { Readable } from 'stream'
 import Whatsonchain from 'whatsonchain'
 
 import { createDefaultWalletServicesOptions } from './createDefaultWalletServicesOptions'
+import { ChaintracksChainTracker, ChaintracksChainTrackerOptions } from './chaintracker'
 
 export class WalletServices implements sdk.WalletServices {
     static createDefaultOptions(chain: sdk.Chain) : sdk.WalletServicesOptions {
@@ -43,6 +44,12 @@ export class WalletServices implements sdk.WalletServices {
         this.updateFiatExchangeRateServices = new ServiceCollection<sdk.UpdateFiatExchangeRateServiceApi>()
         .add({ name: 'ChaintracksService', service: updateChaintracksFiatExchangeRates })
         .add({ name: 'exchangeratesapi', service: updateExchangeratesapi })
+    }
+
+    async getChainTracker() : Promise<bsv.ChainTracker> {
+        if (!this.options.chaintracks)
+            throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', `valid to enable 'getChainTracker' service.`)
+        return new ChaintracksChainTracker(this.chain, this.options.chaintracks)
     }
 
     async getBsvExchangeRate(): Promise<number> {

@@ -7,6 +7,11 @@ import { ChaintracksClientApi } from '../services/chaintracker'
 export interface WalletServices {
 
     /**
+     * @returns standard `ChainTracker` service which requires `options.chaintracks` be valid.
+     */
+    getChainTracker() : Promise<bsv.ChainTracker>
+
+    /**
      * Approximate exchange rate US Dollar / BSV, USD / BSV
      * 
      * This is the US Dollar price of one BSV

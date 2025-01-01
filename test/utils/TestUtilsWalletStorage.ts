@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, Wallet, WalletSigner, WalletStorage } from '../../src'
+import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, Wallet, WalletServices, WalletSigner, WalletStorage } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
 import { Beef } from '@bsv/sdk';
@@ -132,7 +132,8 @@ export abstract class TestUtilsWalletStorage {
         const storage = new WalletStorage(activeStorage)
         const signer = new WalletSigner(chain, keyDeriver, storage)
         await signer.authenticate(undefined, true)
-        const wallet = new Wallet(signer, keyDeriver)
+        const services = new WalletServices(args.chain)
+        const wallet = new Wallet(signer, keyDeriver, services)
         const userId = signer._user!.userId
         return {
             rootKey,
@@ -142,6 +143,7 @@ export abstract class TestUtilsWalletStorage {
             setup,
             storage,
             signer,
+            services,
             wallet,
             userId
         }
@@ -549,6 +551,7 @@ export interface TestSetup1Wallet {
     setup: TestSetup1,
     storage: WalletStorage,
     signer: WalletSigner,
+    services: WalletServices,
     wallet: Wallet,
     userId: number
 } 

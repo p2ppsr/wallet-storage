@@ -31,8 +31,12 @@ export interface WalletMonitorOptions {
  * and potentially that reorgs update proofs that were already received.
  */
 export class WalletMonitor {
-    static createDefaultWalletMonitorOptions(chain: sdk.Chain, storage: WalletStorage): WalletMonitorOptions {
-        const services = new WalletServices(chain)
+    static createDefaultWalletMonitorOptions(
+        chain: sdk.Chain,
+        storage: WalletStorage,
+        services?: WalletServices
+    ): WalletMonitorOptions {
+        services ||= new WalletServices(chain)
         if (!services.options.chaintracks)
             throw new sdk.WERR_INVALID_PARAMETER('services.options.chaintracks', 'valid')
         const o: WalletMonitorOptions = {

@@ -36,7 +36,7 @@ export class WalletServices implements sdk.WalletServices {
         .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain})
 
         this.postBeefServices = new ServiceCollection<sdk.PostBeefServiceApi>()
-        .add({ name: 'TaalArc', service: postBeefToTaalArcMiner })
+        .add({ name: 'TaalArc', service: this.makePostBeefToTaal() })
 
         this.getUtxoStatusServices = new ServiceCollection<sdk.GetUtxoStatusServiceApi>()
         .add({ name: 'WhatsOnChain', service: getUtxoStatusFromWhatsOnChain})
@@ -110,16 +110,24 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    private taalApiKey() {
-         const key = this.options.taalApiKey
-         if (!key) throw new sdk.WERR_MISSING_PARAMETER(`options.taalApiKey`)
-         return key
+    private getTaalMiner(): ArcMinerApi {
+        const key = this.options.taalApiKey
+        if (!key) throw new sdk.WERR_MISSING_PARAMETER(`options.taalApiKey`)
+        const miner = this.options.chain === 'main' ? arcMinerTaalMainDefault : arcMinerTaalTestDefault
+        miner.apiKey = key
+        return miner
+    }
+
+    private makePostBeefToTaal() : sdk.PostBeefServiceApi {
+        return (beef: bsv.Beef | number[], txids: string[]) => {
+            return postBeefToTaalArcMiner(beef, txids, this.options.chain, this.getTaalMiner())
+        }
     }
 
     private makeGetProofFromTaal() {
-        return (txid: string, hashToHeader?: sdk.HashToHeader) => {
-            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeader)
-        }
+//        return (txid: string, hashToHeader?: sdk.HashToHeader) => {
+//            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeader)
+//        }
     }
 
     get getProofsCount() { return this.getMerklePathServices.count }
@@ -342,11 +350,13 @@ export async function getRawTxFromWhatsOnChain(txid: string, chain: sdk.Chain): 
 export const arcMinerTaalMainDefault: ArcMinerApi = {
     name: 'TaalArc',
     url: 'https://tapi.taal.com/arc',
+    apiKey: ''
 }
 
 export const arcMinerTaalTestDefault: ArcMinerApi = {
     name: 'TaalArc',
     url: 'https://arc-test.taal.com',
+    apiKey: ''
 }
 
 export interface ArcMinerPostBeefDataApi {
@@ -378,6 +388,7 @@ export async function postBeefToTaalArcMiner(
 {
     const m = miner || chain === 'main' ? arcMinerTaalMainDefault : arcMinerTaalTestDefault
 
+    // HACK MAGIC? if (beef[0] === 2) beef[0] = 1
     const r1 = await postBeefToArcMiner(beef, txids, m)
     if (r1.status === 'success') return r1
     const datas: object = { r1: r1.data }
@@ -443,7 +454,7 @@ export async function postBeefToArcMiner(
 
 
     // HACK to resolve ARC error when row has zero leaves.
-    beef.addComputedLeaves()
+    // beef.addComputedLeaves()
     beefBinary = beef.toBinary()
 
     try {
@@ -484,7 +495,11 @@ export async function postBeefToArcMiner(
             }
         )
         
-        if (!data || !data.data || typeof data.data !== 'object')
+        if (!data || !data.data)
+            throw new sdk.WERR_BAD_REQUEST('no response data')
+        if (data.data === 'No Authorization' || data.status === 403 || data.statusText === 'Forbiden')
+            throw new sdk.WERR_BAD_REQUEST('No Authorization')
+        if (typeof data.data !== 'object')
             throw new sdk.WERR_BAD_REQUEST('no response data object')
 
         const dd = data.data as ArcMinerPostBeefDataApi

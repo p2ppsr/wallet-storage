@@ -34,18 +34,6 @@ export interface BaseBlockHeader {
 }
 
 /**
- * Like BlockHeader but 32 byte fields are hex encoded strings.
- */
-export interface BaseBlockHeaderHex {
-  version: number
-  previousHash: string
-  merkleRoot: string
-  time: number
-  bits: number
-  nonce: number
-}
-
-/**
  * A `BaseBlockHeader` extended with its computed hash and height in its chain.
  */
 export interface BlockHeader extends BaseBlockHeader {
@@ -62,10 +50,23 @@ export interface BlockHeader extends BaseBlockHeader {
 /**
  * Like BlockHeader but 32 byte fields are hex encoded strings.
  */
+export interface BaseBlockHeaderHex {
+  version: number
+  previousHash: string
+  merkleRoot: string
+  time: number
+  bits: number
+  nonce: number
+}
+
+/**
+ * Like BlockHeader but 32 byte fields are hex encoded strings.
+ */
 export interface BlockHeaderHex extends BaseBlockHeaderHex {
   height: number
   hash: string
 }
+
 
 /**
  * The "live" portion of the block chain is recent history that can conceivably be subject to reorganizations.

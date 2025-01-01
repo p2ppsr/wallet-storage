@@ -117,8 +117,8 @@ export class WalletServices implements sdk.WalletServices {
     }
 
     private makeGetProofFromTaal() {
-        return (txid: string, hashToHeight?: sdk.HashToHeight) => {
-            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeight)
+        return (txid: string, hashToHeader?: sdk.HashToHeader) => {
+            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeader)
         }
     }
 
@@ -195,20 +195,20 @@ export class WalletServices implements sdk.WalletServices {
     }
 
     async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResultApi> {
-        const hashToHeight: sdk.HashToHeight | undefined = !this.options.chaintracks ? undefined
+        const hashToHeader: sdk.HashToHeader | undefined = !this.options.chaintracks ? undefined
             : async (hash) => {
                 for (let retry = 0; retry < 3; retry++) {
                     try {
                         const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
                         if (!header) return undefined;
-                        return header.height
+                        return header
                     } catch (eu: unknown) {
                         const e = sdk.WalletError.fromUnknown(eu)
                         if (e.code != 'ECONNRESET')
                             throw eu
                     }
                 }
-                throw new sdk.WERR_INVALID_OPERATION('hashToHeight service unavailable')
+                throw new sdk.WERR_INVALID_OPERATION('hashToHeader service unavailable')
         }
         
         if (useNext)
@@ -218,7 +218,7 @@ export class WalletServices implements sdk.WalletServices {
 
         for (let tries = 0; tries < this.getMerklePathServices.count; tries++) {
             const service = this.getMerklePathServices.service
-            const r = await service(txid, this.chain, hashToHeight)
+            const r = await service(txid, this.chain, hashToHeader)
             if (r.merklePath) {
                 // If we have a proof, call it done.
                 r0.merklePath = r.merklePath
@@ -246,8 +246,8 @@ export class WalletServices implements sdk.WalletServices {
  * @param chain 
  * @returns 
  */
-export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeight?: sdk.HashToHeight): Promise<sdk.GetMerklePathResultApi> {
-    if (!hashToHeight) throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for getMerklePath to work.')
+export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResultApi> {
+    if (!hashToHeader) throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for getMerklePath to work.')
 
     const r: sdk.GetMerklePathResultApi = { name: 'WoCTsc' }
 
@@ -259,10 +259,11 @@ export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.
         if (!data['target'])
             data = data[0]
         const p = data
-        const height = await hashToHeight(p.target)
-        if (!height) throw new sdk.WERR_INVALID_PARAMETER('blockhash', 'a valid on-chain block hash')
-        const proof = { index: p.index, nodes: p.nodes, height }
+        const header = await hashToHeader(p.target)
+        if (!header) throw new sdk.WERR_INVALID_PARAMETER('blockhash', 'a valid on-chain block hash')
+        const proof = { index: p.index, nodes: p.nodes, height: header.height }
         r.merklePath = convertProofToMerklePath(txid, proof)
+        r.header = header
 
     } catch (err: unknown) {
         r.error = sdk.WalletError.fromUnknown(err)
@@ -291,7 +292,7 @@ interface WhatsOnChainProofTsc {
  * @param apiKey 
  * @returns 
  */
-export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeight?: sdk.HashToHeight): Promise<sdk.GetMerklePathResultApi> {
+export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResultApi> {
 
     const r: sdk.GetMerklePathResultApi = { name: 'Taal' }
 

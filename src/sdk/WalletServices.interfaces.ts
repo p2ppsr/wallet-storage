@@ -6,6 +6,8 @@ import { ChaintracksClientApi } from '../services/chaintracker'
  */
 export interface WalletServices {
 
+    chain: sdk.Chain
+
     /**
      * @returns standard `ChainTracker` service which requires `options.chaintracks` be valid.
      */
@@ -157,6 +159,9 @@ export interface GetMerklePathResultApi {
      * one or more orphaned blocks
      */
     merklePath?: bsv.MerklePath
+
+    header?: BlockHeaderHex
+
     /**
      * The first exception error that occurred during processing, if any.
      */
@@ -269,9 +274,29 @@ export interface GetUtxoStatusResultApi {
     details: GetUtxoStatusDetailsApi[]
 }
 
+/**
+ * Like BlockHeader but 32 byte fields are hex encoded strings.
+ */
+export interface BaseBlockHeaderHex {
+  version: number
+  previousHash: string
+  merkleRoot: string
+  time: number
+  bits: number
+  nonce: number
+}
+
+/**
+ * Like BlockHeader but 32 byte fields are hex encoded strings.
+ */
+export interface BlockHeaderHex extends BaseBlockHeaderHex {
+  height: number
+  hash: string
+}
+
 export type GetUtxoStatusServiceApi = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormatApi) => Promise<GetUtxoStatusResultApi>
 
-export type GetMerklePathServiceApi = (txid: string, chain: sdk.Chain, hashToHeight?: HashToHeight) => Promise<GetMerklePathResultApi>
+export type GetMerklePathServiceApi = (txid: string, chain: sdk.Chain, hashToHeader?: HashToHeader) => Promise<GetMerklePathResultApi>
 
 export type GetRawTxServiceApi = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResultApi>
 
@@ -279,4 +304,4 @@ export type PostBeefServiceApi = (beef: number[] | bsv.Beef, txids: string[], ch
 
 export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRatesApi>
 
-export type HashToHeight = (hash: string) => Promise<number | undefined>
+export type HashToHeader = (hash: string) => Promise<BlockHeaderHex | undefined>

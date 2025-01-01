@@ -278,6 +278,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
 
+
+
     setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean)
     : Knex.QueryBuilder
     {

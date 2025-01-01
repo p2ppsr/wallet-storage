@@ -1,4 +1,5 @@
-import { sdk, StorageBase, StorageSyncReader, table } from "..";
+import * as bsv from '@bsv/sdk'
+import { entity, sdk, StorageBase, StorageSyncReader, table, verifyId, verifyOne } from "..";
 
 /**
  * The `WalletStorage` class delivers storage access to the wallet while managing multiple `StorageBase` derived storage services.
@@ -25,46 +26,6 @@ export class WalletStorage implements sdk.WalletStorage {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     getActive(): sdk.WalletStorage { return this.services[0] }
 
     isAvailable(): boolean {
@@ -80,6 +41,72 @@ export class WalletStorage implements sdk.WalletStorage {
     async destroy(): Promise<void> {
         return await this.getActive().destroy()
     }
+
+    /**
+     * For all `status` values besides 'failed', just updates the transaction records status property.
+     * 
+     * For 'status' of 'failed', attempts to make outputs previously allocated as inputs to this transaction usable again.
+     * 
+     * @throws ERR_DOJO_COMPLETED_TX if current status is 'completed' and new status is not 'completed.
+     * @throws ERR_DOJO_PROVEN_TX if transaction has proof or provenTxId and new status is not 'completed'. 
+     * 
+     * @param status 
+     * @param transactionId 
+     * @param userId 
+     * @param reference 
+     * @param trx 
+     */
+    async updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
+    : Promise<void>
+    {
+        if (!transactionId && !(userId && reference)) throw new sdk.WERR_MISSING_PARAMETER('either transactionId or userId and reference')
+
+        await this.transaction(async trx => {
+
+            const where: Partial<table.Transaction> = {}
+            if (transactionId) where.transactionId = transactionId
+            if (userId) where.userId = userId
+            if (reference) where.reference = reference
+
+            const tx = verifyOne(await this.findTransactions(where, undefined, true, undefined, undefined, trx))
+
+            //if (tx.status === status)
+                // no change required. Assume inputs and outputs spendable and spentBy are valid for status.
+                //return
+
+            // Once completed, this method cannot be used to "uncomplete" transaction.
+            if (status !== 'completed' && tx.status === 'completed' || tx.provenTxId) throw new sdk.WERR_INVALID_OPERATION('The status of a "completed" transaction cannot be changed.')
+            // It is not possible to un-fail a transaction. Information is lost and not recoverable. 
+            if (status !== 'failed' && tx.status === 'failed') throw new sdk.WERR_INVALID_OPERATION(`A "failed" transaction may not be un-failed by this method.`)
+
+            switch (status) {
+                case 'failed': {
+                    // Attempt to make outputs previously allocated as inputs to this transaction usable again.
+                    // Only clear input's spentBy and reset spendable = true if it references this transaction
+                    const t = new entity.Transaction(tx)
+                    const inputs = await t.getInputs(this, trx)
+                    for (const input of inputs) {
+                        // input is a prior output belonging to userId that reference this transaction either by `spentBy`
+                        // or by txid and vout.
+                        await this.updateOutput(verifyId(input.outputId), { spendable: true, spentBy: undefined }, trx)
+                    }
+                } break;
+                case 'nosend':
+                case 'unsigned':
+                case 'unprocessed':
+                case 'sending':
+                case 'unproven': 
+                case 'completed':
+                    break;
+                default:
+                    throw new sdk.WERR_INVALID_PARAMETER('status', `not be ${status}`)
+            }
+
+            await this.updateTransaction(tx.transactionId, { status }, trx)
+
+        }, trx)
+    }
+
 
     /////////////////
     //

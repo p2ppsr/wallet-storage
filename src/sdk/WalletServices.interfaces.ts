@@ -103,7 +103,7 @@ export interface FiatExchangeRatesApi {
     rates: Record<string, number>
 }
 
-export interface WalletServiceOptions {
+export interface WalletServicesOptions {
     chain: sdk.Chain
     taalApiKey?: string
     bsvExchangeRate: BsvExchangeRateApi
@@ -272,6 +272,6 @@ export type GetRawTxServiceApi = (txid: string, chain: sdk.Chain) => Promise<Get
 
 export type PostBeefServiceApi = (beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain) => Promise<PostBeefResultApi>
 
-export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: WalletServiceOptions) => Promise<FiatExchangeRatesApi>
+export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRatesApi>
 
 export type HashToHeight = (hash: string) => Promise<number | undefined>

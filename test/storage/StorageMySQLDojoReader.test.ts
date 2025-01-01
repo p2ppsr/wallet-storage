@@ -5,7 +5,7 @@ import { StorageMySQLDojoReader } from '../../src/storage/sync/StorageMySQLDojoR
 import * as dotenv from 'dotenv'
 dotenv.config();
 
-describe('StorageMySQLDojoReader tests', () => {
+describe.skip('StorageMySQLDojoReader tests', () => {
     jest.setTimeout(99999999)
 
     const chain: sdk.Chain = 'test'

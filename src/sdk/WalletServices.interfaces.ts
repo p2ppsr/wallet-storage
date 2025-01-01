@@ -1,5 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { sdk } from '..'
+import { ChaintracksClientApi } from '../services/chaintracker'
 /**
  * Defines standard interfaces to access functionality implemented by external transaction processing services.
  */
@@ -35,10 +36,9 @@ export interface WalletServices {
      * Increments to next configured service and tries again until all services have been tried.
      *
      * @param txid transaction hash for which raw transaction bytes are requested
-     * @param chain which chain to look on
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getRawTx(txid: string | Buffer, chain: sdk.Chain, useNext?: boolean): Promise<GetRawTxResultApi>
+    getRawTx(txid: string, useNext?: boolean): Promise<GetRawTxResultApi>
 
     /**
      * Attempts to obtain the merkle proof associated with a 32 byte transaction hash (txid).
@@ -58,10 +58,9 @@ export interface WalletServices {
      * Increments to next configured service and tries again until all services have been tried.
      *
      * @param txid transaction hash for which proof is requested
-     * @param chain which chain to look on
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getMerkleProof(txid: string | Buffer, chain: sdk.Chain, useNext?: boolean): Promise<GetMerkleProofResultApi>
+    getMerklePath(txid: string, useNext?: boolean): Promise<GetMerklePathResultApi>
 
     /**
      * 
@@ -70,7 +69,7 @@ export interface WalletServices {
      * @param chain 
      * @returns
      */
-    postBeef(beef: number[], txids: string[], chain: sdk.Chain): Promise<PostBeefResultApi[]>
+    postBeef(beef: number[], txids: string[]): Promise<PostBeefResultApi[]>
 
     /**
      * Attempts to determine the UTXO status of a transaction output.
@@ -86,23 +85,11 @@ export interface WalletServices {
      *      undefined if asBuffer length of `output` is 32 then 'hashBE`, otherwise 'script'.
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
-    getUtxoStatus(output: string | Buffer, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<GetUtxoStatusResultApi>
+    getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<GetUtxoStatusResultApi>
 
 }
 
 export type GetUtxoStatusOutputFormatApi = 'hashLE' | 'hashBE' | 'script'
-
-export interface CwiExternalServicesOptions {
-    mainTaalApiKey?: string
-    testTaalApiKey?: string
-    bsvExchangeRate: BsvExchangeRateApi
-    bsvUpdateMsecs: number
-    fiatExchangeRates: FiatExchangeRatesApi
-    fiatUpdateMsecs: number
-    disableMapiCallback?: boolean,
-    exchangeratesapiKey?: string
-    chaintracksFiatExchangeRatesUrl?: string
-}
 
 export interface BsvExchangeRateApi {
     timestamp: Date,
@@ -116,9 +103,9 @@ export interface FiatExchangeRatesApi {
     rates: Record<string, number>
 }
 
-export interface CwiExternalServicesOptions {
-    mainTaalApiKey?: string
-    testTaalApiKey?: string
+export interface WalletServiceOptions {
+    chain: sdk.Chain
+    taalApiKey?: string
     bsvExchangeRate: BsvExchangeRateApi
     bsvUpdateMsecs: number
     fiatExchangeRates: FiatExchangeRatesApi
@@ -126,6 +113,7 @@ export interface CwiExternalServicesOptions {
     disableMapiCallback?: boolean,
     exchangeratesapiKey?: string
     chaintracksFiatExchangeRatesUrl?: string
+    chaintracks?: ChaintracksClientApi
 }
 
 /**
@@ -154,7 +142,7 @@ export interface GetRawTxResultApi {
 /**
  * Properties on result returned from `CwiExternalServicesApi` function `getMerkleProof`.
  */
-export interface GetMerkleProofResultApi {
+export interface GetMerklePathResultApi {
     /**
      * The name of the service returning the proof, or undefined if no proof
      */
@@ -278,10 +266,12 @@ export interface GetUtxoStatusResultApi {
 
 export type GetUtxoStatusServiceApi = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormatApi) => Promise<GetUtxoStatusResultApi>
 
-export type GetMerkleProofServiceApi = (txid: string, chain: sdk.Chain) => Promise<GetMerkleProofResultApi>
+export type GetMerklePathServiceApi = (txid: string, chain: sdk.Chain, hashToHeight?: HashToHeight) => Promise<GetMerklePathResultApi>
 
 export type GetRawTxServiceApi = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResultApi>
 
 export type PostBeefServiceApi = (beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain) => Promise<PostBeefResultApi>
 
-export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: CwiExternalServicesOptions) => Promise<FiatExchangeRatesApi>
+export type UpdateFiatExchangeRateServiceApi = (targetCurrencies: string[], options: WalletServiceOptions) => Promise<FiatExchangeRatesApi>
+
+export type HashToHeight = (hash: string) => Promise<number | undefined>

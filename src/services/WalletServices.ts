@@ -1,15 +1,17 @@
 import * as bsv from '@bsv/sdk'
 import { asArray, asString, convertProofToMerklePath, doubleSha256BE, randomBytesHex, sdk, sha256Hash } from '..'
-import { CwiExternalServicesOptions as WalletServicesOptions, FiatExchangeRatesApi, GetMerkleProofResultApi, GetMerkleProofServiceApi, GetRawTxResultApi, GetRawTxServiceApi, GetUtxoStatusOutputFormatApi, GetUtxoStatusResultApi, GetUtxoStatusServiceApi, PostBeefResultApi, PostBeefResultForTxidApi, PostBeefServiceApi, UpdateFiatExchangeRateServiceApi } from '../sdk/WalletServices.interfaces'
+import { WalletServiceOptions as WalletServicesOptions, FiatExchangeRatesApi, GetMerklePathResultApi, GetMerklePathServiceApi, GetRawTxResultApi, GetRawTxServiceApi, GetUtxoStatusOutputFormatApi, GetUtxoStatusResultApi, GetUtxoStatusServiceApi, PostBeefResultApi, PostBeefResultForTxidApi, PostBeefServiceApi, UpdateFiatExchangeRateServiceApi, HashToHeight } from '../sdk/WalletServices.interfaces'
 import { ServiceCollection } from './ServiceCollection'
 import axios from 'axios'
 import { Readable } from 'stream'
+import { ChaintracksServiceClient } from './chaintracker'
 
 export class WalletServices implements sdk.WalletServices {
-    static createDefaultOptions() : WalletServicesOptions {
+    static createDefaultOptions(chain: sdk.Chain) : WalletServicesOptions {
         const o: WalletServicesOptions = {
-            mainTaalApiKey: "mainnet_9596de07e92300c6287e4393594ae39c", // Tone's key, no plan
-            testTaalApiKey: "testnet_0e6cf72133b43ea2d7861da2a38684e3", // Tone's personal "starter" key
+            chain,
+            taalApiKey: chain === 'main' ? "mainnet_9596de07e92300c6287e4393594ae39c" // Tone's key, no plan
+                : "testnet_0e6cf72133b43ea2d7861da2a38684e3", // Tone's personal "starter" key
             bsvExchangeRate: {
                 timestamp: new Date('2023-12-13'),
                 base: "USD",
@@ -28,27 +30,30 @@ export class WalletServices implements sdk.WalletServices {
             fiatUpdateMsecs: 1000 * 60 * 60 * 24, // 24 hours
             disableMapiCallback: true, // Rely on DojoWatchman by default.
             exchangeratesapiKey: 'bd539d2ff492bcb5619d5f27726a766f',
-            chaintracksFiatExchangeRatesUrl: `https://npm-registry.babbage.systems:8084/getFiatExchangeRates`
+            chaintracksFiatExchangeRatesUrl: `https://npm-registry.babbage.systems:${chain === 'main' ? 8084 : 8083 }/getFiatExchangeRates`,
+            chaintracks: new ChaintracksServiceClient(chain, `https://npm-registry.babbage.systems:${chain === 'main' ? 8084 : 8083}`)
         }
         return o
     }
 
     options: WalletServicesOptions
 
-    getMerkleProofServices: ServiceCollection<GetMerkleProofServiceApi>
+    getMerklePathServices: ServiceCollection<GetMerklePathServiceApi>
     getRawTxServices: ServiceCollection<GetRawTxServiceApi>
     postBeefServices: ServiceCollection<PostBeefServiceApi>
     getUtxoStatusServices: ServiceCollection<GetUtxoStatusServiceApi>
     updateFiatExchangeRateServices: ServiceCollection<UpdateFiatExchangeRateServiceApi>
 
-    constructor(options?: WalletServicesOptions) {
-        this.options = options || WalletServices.createDefaultOptions()
+    chain: sdk.Chain
+
+    constructor(optionsOrChain: sdk.Chain | WalletServicesOptions) {
+        this.chain = (typeof optionsOrChain === 'string') ? optionsOrChain :  optionsOrChain.chain
+
+        this.options = (typeof optionsOrChain === 'string') ? WalletServices.createDefaultOptions(this.chain) : optionsOrChain
         
-        this.getMerkleProofServices = new ServiceCollection<GetMerkleProofServiceApi>()
-        .add({ name: 'WhatsOnChainTsc', service: getProofFromWhatsOnChainTsc})
-        //.add({ name: 'MetaStreme', service: getProofFromMetastreme})
-        //.add({ name: 'GorillaPool', service: getProofFromGorillaPool})
-        .add({ name: 'Taal', service: this.makeGetProofFromTaal() })
+        this.getMerklePathServices = new ServiceCollection<GetMerklePathServiceApi>()
+        .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc})
+       // .add({ name: 'Taal', service: this.makeGetProofFromTaal() })
         
         this.getRawTxServices = new ServiceCollection<GetRawTxServiceApi>()
         .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain})
@@ -123,32 +128,24 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    private taalApiKey(chain: sdk.Chain) {
-         const key = chain === 'main' ? this.options.mainTaalApiKey : this.options.testTaalApiKey
-         if (!key) throw new sdk.WERR_MISSING_PARAMETER(`options.${chain}TallApiKey`)
+    private taalApiKey() {
+         const key = this.options.taalApiKey
+         if (!key) throw new sdk.WERR_MISSING_PARAMETER(`options.taalApiKey`)
          return key
     }
 
-/*
-    private makePostRawTxsToTaal() {
-        return (txs: RawTxForPost[], chain: Chain) => {
-            return postRawTxsToTaalArc(txs, chain, this.taalApiKey(chain))
-        }
-    }
-*/
-
     private makeGetProofFromTaal() {
-        return (txid: string, chain: sdk.Chain) => {
-            return getProofFromTaal(txid, this.taalApiKey(chain))
+        return (txid: string, hashToHeight?: HashToHeight) => {
+            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeight)
         }
     }
 
-    get getProofsCount() { return this.getMerkleProofServices.count }
+    get getProofsCount() { return this.getMerklePathServices.count }
     get getRawTxsCount() { return this.getRawTxServices.count }
     get postBeefServicesCount() { return this.postBeefServices.count }
     get getUtxoStatsCount() { return this.getUtxoStatusServices.count }
 
-    async getUtxoStatus(output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<GetUtxoStatusResultApi> {
+    async getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormatApi, useNext?: boolean): Promise<GetUtxoStatusResultApi> {
         const services = this.getUtxoStatusServices
         if (useNext)
             services.next()
@@ -157,7 +154,7 @@ export class WalletServices implements sdk.WalletServices {
 
         for (let tries = 0; tries < services.count; tries++) {
             const service = services.service
-            const r = await service(output, chain, outputFormat)
+            const r = await service(output, this.chain, outputFormat)
             if (r.status === 'success') {
                 r0 = r
                 break
@@ -173,17 +170,17 @@ export class WalletServices implements sdk.WalletServices {
      * @param chain 
      * @returns
      */
-    async postBeef(beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain): Promise<PostBeefResultApi[]> {
+    async postBeef(beef: number[] | bsv.Beef, txids: string[]): Promise<PostBeefResultApi[]> {
         
         const rs = await Promise.all(this.postBeefServices.allServices.map(async service => {
-            const r = await service(beef, txids, chain)
+            const r = await service(beef, txids, this.chain)
             return r
         }))
 
         return rs
     }
 
-    async getRawTx(txid: string, chain: sdk.Chain, useNext?: boolean): Promise<GetRawTxResultApi> {
+    async getRawTx(txid: string, useNext?: boolean): Promise<GetRawTxResultApi> {
         
         if (useNext)
             this.getRawTxServices.next()
@@ -192,7 +189,7 @@ export class WalletServices implements sdk.WalletServices {
 
         for (let tries = 0; tries < this.getRawTxServices.count; tries++) {
             const service = this.getRawTxServices.service
-            const r = await service(txid, chain)
+            const r = await service(txid, this.chain)
             if (r.rawTx) {
                 const hash = asString(doubleSha256BE(r.rawTx!))
                 // Confirm transaction hash matches txid
@@ -215,16 +212,22 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    async getMerkleProof(txid: string, chain: sdk.Chain, useNext?: boolean): Promise<GetMerkleProofResultApi> {
+    async getMerklePath(txid: string, useNext?: boolean): Promise<GetMerklePathResultApi> {
+        const hashToHeight: HashToHeight | undefined = !this.options.chaintracks ? undefined
+            : async (hash) => {
+                const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
+                if (!header) return undefined;
+                return header.height
+        }
         
         if (useNext)
-            this.getMerkleProofServices.next()
+            this.getMerklePathServices.next()
 
-        const r0: GetMerkleProofResultApi = {}
+        const r0: GetMerklePathResultApi = {}
 
-        for (let tries = 0; tries < this.getMerkleProofServices.count; tries++) {
-            const service = this.getMerkleProofServices.service
-            const r = await service(txid, chain)
+        for (let tries = 0; tries < this.getMerklePathServices.count; tries++) {
+            const service = this.getMerklePathServices.service
+            const r = await service(txid, this.chain, hashToHeight)
             if (r.merklePath) {
                 // If we have a proof, call it done.
                 r0.merklePath = r.merklePath
@@ -235,7 +238,7 @@ export class WalletServices implements sdk.WalletServices {
                 // If we have an error and didn't before...
                 r0.error = r.error
 
-            this.getMerkleProofServices.next()
+            this.getMerklePathServices.next()
         }
         return r0
     }
@@ -252,25 +255,20 @@ export class WalletServices implements sdk.WalletServices {
  * @param chain 
  * @returns 
  */
-export async function getProofFromWhatsOnChainTsc(txid: string, chain: sdk.Chain): Promise<GetMerkleProofResultApi> {
+export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeight?: HashToHeight): Promise<GetMerklePathResultApi> {
+    if (!hashToHeight) throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for getMerklePath to work.')
 
-    const r: GetMerkleProofResultApi = { name: 'WoCTsc' }
+    const r: GetMerklePathResultApi = { name: 'WoCTsc' }
 
     try {
         const { data } = await axios.get(`https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`)
         if (!data || data.length < 1)
            return r 
 
-        const proof = data.map(d => {
-            const wocProof = d as WhatsOnChainProofTsc
-            return {
-                index: wocProof.index,
-                txOrId: wocProof.txOrId, // txid
-                target: wocProof.target, // blockhash
-                targetType: 'hash',
-                nodes: wocProof.nodes // array of strings.
-            }
-        })
+        const p = data[0]
+        const height = await hashToHeight(p.target)
+        if (!height) throw new sdk.WERR_INVALID_PARAMETER('blockhash', 'a valid on-chain block hash')
+        const proof = { index: p.index, nodes: p.nodes, height }
         r.merklePath = convertProofToMerklePath(txid, proof)
 
     } catch (err: unknown) {
@@ -300,9 +298,9 @@ interface WhatsOnChainProofTsc {
  * @param apiKey 
  * @returns 
  */
-export async function getProofFromTaal(txid: string, apiKey: string): Promise<GetMerkleProofResultApi> {
+export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeight?: HashToHeight): Promise<GetMerklePathResultApi> {
 
-    const r: GetMerkleProofResultApi = { name: 'Taal' }
+    const r: GetMerklePathResultApi = { name: 'Taal' }
 
     try {
         const headers = { headers: { Authorization: apiKey } }

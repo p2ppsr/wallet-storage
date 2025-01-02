@@ -76,7 +76,16 @@ export interface WalletServices {
      * @param chain 
      * @returns
      */
-    postBeef(beef: number[], txids: string[]): Promise<PostBeefResult[]>
+    postTxs(beef: bsv.Beef, txids: string[]): Promise<PostTxsResult[]>
+
+    /**
+     * 
+     * @param beef 
+     * @param txids
+     * @param chain 
+     * @returns
+     */
+    postBeef(beef: bsv.Beef, txids: string[]): Promise<PostBeefResult[]>
 
     /**
      * Attempts to determine the UTXO status of a transaction output.
@@ -168,7 +177,7 @@ export interface GetMerklePathResult {
     error?: sdk.WalletError
 }
 
-export interface PostBeefResultForTxid {
+export interface PostTxResultForTxid {
     txid: string
 
     /**
@@ -186,33 +195,30 @@ export interface PostBeefResultForTxid {
     blockHash?: string
     blockHeight?: number
     merklePath?: bsv.MerklePath
+
+    data?: object
+}
+
+export interface PostBeefResult extends PostTxsResult {
 }
 
 /**
  * Properties on array items of result returned from `WalletServices` function `postBeef`.
  */
-export interface PostBeefResult {
+export interface PostTxsResult {
     /**
      * The name of the service to which the transaction was submitted for processing
      */
     name: string
     /**
-     * 'success' - The beef was accepted for processing
+     * 'success' all txids returned status of 'success'
+     * 'error' one or more txids returned status of 'error'. See txidResults for details.
      */
     status: 'success' | 'error'
-    /**
-     * When status is 'error', provides code and description
-     * 
-     * Specific potential errors:
-     * ERR_BAD_REQUEST
-     * ERR_EXTSVS_DOUBLE_SPEND
-     * ERR_EXTSVS_ALREADY_MINED (description has error details)
-     * ERR_EXTSVS_INVALID_TRANSACTION (description has error details)
-     * ERR_EXTSVS_TXID_INVALID (service response txid doesn't match rawTx)
-     */
+
     error?: sdk.WalletError
 
-    txids: PostBeefResultForTxid[]
+    txidResults: PostTxResultForTxid[]
 
     /**
      * Service response object. Use service name and status to infer type of object.
@@ -300,7 +306,9 @@ export type GetMerklePathService = (txid: string, chain: sdk.Chain, hashToHeader
 
 export type GetRawTxService = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResult>
 
-export type PostBeefService = (beef: number[] | bsv.Beef, txids: string[], chain: sdk.Chain) => Promise<PostBeefResult>
+export type PostTxsService = (beef: bsv.Beef, txids: string[], services: WalletServices) => Promise<PostTxsResult>
+
+export type PostBeefService = (beef: bsv.Beef, txids: string[], services: WalletServices) => Promise<PostBeefResult>
 
 export type UpdateFiatExchangeRateService = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRates>
 

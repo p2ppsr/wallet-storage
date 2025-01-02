@@ -108,11 +108,11 @@ describe('Wallet services tests', () => {
                     beef.mergeBump(mp.merklePath!)
                     beef.mergeRawTx(rawTx.rawTx!)
                     console.log(beef.toLogString())
-                    const r = await wallet.services.postBeef(beef.toBinary(), [txid])
+                    const r = await wallet.services.postBeef(beef, [txid])
                     if (r[0].status === 'error') {
                         console.log(beef.toHex())
                     }
-                    expect(r[0].txids[0]).toBe(txid)
+                    expect(r[0].txidResults[0].txid).toBe(txid)
                     expect(r[0].status).toBe('error')
                 }
             }

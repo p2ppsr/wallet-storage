@@ -770,7 +770,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             r.status = 'error'
         } else {
             for (const d of r.details) {
-                const pbrft = r.pbr.txids.find(t => t.txid === d.txid)
+                const pbrft = r.pbr.txidResults.find(t => t.txid === d.txid)
                 if (!pbrft) throw new sdk.WERR_INTERNAL(`postBeef service failed to return result for txid ${d.txid}`);
                 d.pbrft = pbrft
                 if (r.pbr.data)
@@ -840,7 +840,7 @@ export interface PostReqsToNetworkDetails {
     txid: string
     req: entity.ProvenTxReq
     status: PostReqsToNetworkDetailsStatus
-    pbrft: sdk.PostBeefResultForTxid
+    pbrft: sdk.PostTxResultForTxid
     data?: string
     error?: string
 }

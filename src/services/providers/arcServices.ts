@@ -22,6 +22,7 @@ export function getTaalArcServiceConfig(chain: sdk.Chain, apiKey: string): ArcSe
         url: chain === 'main' ? 'https://api.taal.com/arc' : 'https://arc-test.taal.com',
         arcConfig: {
             apiKey,
+            deploymentId: `WalletServices-${randomBytesHex(16)}`
         },
     }
 }
@@ -33,15 +34,90 @@ export function makePostTxsToTaalARC(config: ArcServiceConfig): sdk.PostTxsServi
 }
 
 export function makePostBeefToTaalARC(config: ArcServiceConfig) : sdk.PostBeefService {
-    return (beef: bsv.Beef | number[], txids: string[], services: sdk.WalletServices) => {
+    return (beef: bsv.Beef, txids: string[], services: sdk.WalletServices) => {
         return postBeefToTaalArcMiner(beef, txids, config, services)
     }
 }
 
-export function makeGetProofFromTaal() {
-//        return (txid: string, hashToHeader?: sdk.HashToHeader) => {
-//            return getMerklePathFromTaal(txid, this.taalApiKey(), hashToHeader)
-//        }
+export function makeGetMerklePathFromTaalARC(config: ArcServiceConfig) : sdk.GetMerklePathService {
+    return (txid: string, chain: sdk.Chain, services: sdk.WalletServices) => {
+        return getMerklePathFromTaalARC(txid, config, services)
+    }
+}
+
+class ArcServices {
+    readonly URL: string
+    readonly apiKey: string | undefined
+    readonly deploymentId: string
+    readonly callbackUrl: string | undefined
+    readonly callbackToken: string | undefined
+    readonly headers: Record<string, string> | undefined
+    private readonly httpClient: bsv.HttpClient
+
+    /**
+     * Constructs an instance of the ARC broadcaster.
+     *
+     * @param {string} URL - The URL endpoint for the ARC API.
+     * @param {ArcConfig} config - Configuration options for the ARC broadcaster.
+     */
+    constructor(URL: string, config: bsv.ArcConfig) {
+        this.URL = URL
+        const { apiKey, deploymentId, httpClient, callbackToken, callbackUrl, headers } = config
+        this.apiKey = apiKey
+        this.httpClient = httpClient ?? bsv.defaultHttpClient()
+        this.deploymentId = deploymentId || `WalletServices-${randomBytesHex(16)}`
+        this.callbackToken = callbackToken
+        this.callbackUrl = callbackUrl
+        this.headers = headers
+    }
+
+    /**
+     * Unfortunately this seems to only work for recently submitted txids...
+     * @param txid 
+     * @returns 
+     */
+    async getTxStatus(txid: string): Promise<ArcMinerGetTxData> {
+
+        const requestOptions: bsv.HttpClientRequestOptions = {
+            method: 'GET',
+            headers: this.requestHeaders(),
+        }
+
+        const response = await this.httpClient.request<ArcMinerGetTxData>(`${this.URL}/v1/tx/${txid}`, requestOptions)
+
+        return response.data
+    }
+
+    requestHeaders() {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json', 'XDeployment-ID': this.deploymentId }
+        if (this.apiKey) { headers.Authorization = `Bearer ${this.apiKey}` }
+        if (this.callbackUrl) { headers['X-CallbackUrl'] = this.callbackUrl }
+        if (this.callbackToken) { headers['X-CallbackToken'] = this.callbackToken }
+        if (this.headers) { for (const key in this.headers) { headers[key] = this.headers[key] } }
+        return headers
+    }
+
+}
+
+export async function getMerklePathFromTaalARC(txid: string, config: ArcServiceConfig, services: sdk.WalletServices): Promise<sdk.GetMerklePathResult>
+{
+    const r: sdk.GetMerklePathResult = { name: config.name }
+
+    try {
+        const arc = new ArcServices(config.url, config.arcConfig)
+
+        const rr = await arc.getTxStatus(txid)
+
+        if (rr.status === 200 && rr.merklePath) {
+            const mp = bsv.MerklePath.fromHex(rr.merklePath)
+            r.merklePath = mp
+            r.header = await services.hashToHeader(rr.blockHash)
+        }
+
+    } catch (eu: unknown) {
+        r.error = sdk.WalletError.fromUnknown(eu)
+    }
+    return r
 }
 
 /**
@@ -56,7 +132,9 @@ export async function postTxsToTaalArcMiner(beef: bsv.Beef, txids: string[], con
         const arc = new bsv.ARC(config.url, config.arcConfig)
 
         /**
-         * This service requires an array of EF serialized transactions
+         * This service requires an array of EF serialized transactions:
+         * Pull the transactions matching txids array out of the Beef and fill in input sourceTransations,
+         * either from Beef or by external service lookup.
          */
         const txs: bsv.Transaction[] = []
         for (const txid of txids) {
@@ -68,13 +146,16 @@ export async function postTxsToTaalArcMiner(beef: bsv.Beef, txids: string[], con
                     let itx = beef.findTxid(input.sourceTXID!)
                     if (!itx) {
                         const rawTx = await services.getRawTx(input.sourceTXID!)
+                        if (!rawTx || !rawTx.rawTx)
+                            throw new sdk.WERR_INVALID_PARAMETER('sourceTXID', `contained in beef or found on chain. ${input.sourceTXID}`);
                         beef.mergeRawTx(rawTx.rawTx!)
                         itx = beef.findTxid(input.sourceTXID!)
                     }
                     input.sourceTransaction = itx!.tx
                 }
                 txs.push(tx)
-            }
+            } else
+                throw new sdk.WERR_INVALID_PARAMETER('beef', `merged with rawTxs matching txids. Missing ${txid}`)
         }
 
         const rrs = await arc.broadcastMany(txs) as ArcMinerPostTxsData[]
@@ -103,6 +184,19 @@ export async function postTxsToTaalArcMiner(beef: bsv.Beef, txids: string[], con
         r.error = sdk.WalletError.fromUnknown(eu)
     }
     return r
+}
+
+export interface ArcMinerGetTxData {
+    status: number // 200
+    title: string // OK
+    blockHash: string
+    blockHeight: number
+    competingTxs: null | string[]
+    extraInfo: string
+    merklePath: string
+    timestamp: string // ISO Z
+    txid: string
+    txStatus: string // 'SEEN_IN_ORPHAN_MEMPOOL'
 }
 
 export interface ArcMinerPostTxsData {
@@ -137,14 +231,13 @@ export interface ArcMinerPostBeefDataApi {
 }
 
 export async function postBeefToTaalArcMiner(
-    beef: number[] | bsv.Beef,
+    beef: bsv.Beef,
     txids: string[],
     config: ArcServiceConfig,
     services: sdk.WalletServices
 )
 : Promise<sdk.PostBeefResult>
 {
-    // HACK MAGIC? if (beef[0] === 2) beef[0] = 1
     const r1 = await postBeefToArcMiner(beef, txids, config)
     if (r1.status === 'success') return r1
     const datas: object = { r1: r1.data }

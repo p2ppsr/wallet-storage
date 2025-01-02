@@ -103,6 +103,11 @@ export interface WalletServices {
      */
     getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormat, useNext?: boolean): Promise<GetUtxoStatusResult>
 
+    /**
+     * @returns a block header
+     * @param hash block hash
+     */
+    hashToHeader(hash: string): Promise<sdk.BlockHeaderHex>
 }
 
 export type GetUtxoStatusOutputFormat = 'hashLE' | 'hashBE' | 'script'
@@ -302,7 +307,7 @@ export interface BlockHeaderHex extends BaseBlockHeaderHex {
 
 export type GetUtxoStatusService = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormat) => Promise<GetUtxoStatusResult>
 
-export type GetMerklePathService = (txid: string, chain: sdk.Chain, hashToHeader?: HashToHeader) => Promise<GetMerklePathResult>
+export type GetMerklePathService = (txid: string, chain: sdk.Chain, services: WalletServices) => Promise<GetMerklePathResult>
 
 export type GetRawTxService = (txid: string, chain: sdk.Chain) => Promise<GetRawTxResult>
 
@@ -311,5 +316,3 @@ export type PostTxsService = (beef: bsv.Beef, txids: string[], services: WalletS
 export type PostBeefService = (beef: bsv.Beef, txids: string[], services: WalletServices) => Promise<PostBeefResult>
 
 export type UpdateFiatExchangeRateService = (targetCurrencies: string[], options: WalletServicesOptions) => Promise<FiatExchangeRates>
-
-export type HashToHeader = (hash: string) => Promise<BlockHeaderHex | undefined>

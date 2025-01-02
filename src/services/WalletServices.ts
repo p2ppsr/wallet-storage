@@ -6,7 +6,7 @@ import Whatsonchain from 'whatsonchain'
 
 import { createDefaultWalletServicesOptions } from './createDefaultWalletServicesOptions'
 import { ChaintracksChainTracker } from './chaintracker'
-import { getTaalArcServiceConfig, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
+import { getTaalArcServiceConfig, makeGetMerklePathFromTaalARC, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
 
 export class WalletServices implements sdk.WalletServices {
     static createDefaultOptions(chain: sdk.Chain) : sdk.WalletServicesOptions {
@@ -31,7 +31,7 @@ export class WalletServices implements sdk.WalletServices {
         
         this.getMerklePathServices = new ServiceCollection<sdk.GetMerklePathService>()
         .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc})
-       // .add({ name: 'Taal', service: this.makeGetProofFromTaal() })
+        //.add({ name: 'Taal', service: makeGetMerklePathFromTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
         
         this.getRawTxServices = new ServiceCollection<sdk.GetRawTxService>()
         .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain})
@@ -205,22 +205,27 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> {
-        const hashToHeader: sdk.HashToHeader | undefined = !this.options.chaintracks ? undefined
-            : async (hash) => {
-                for (let retry = 0; retry < 3; retry++) {
-                    try {
-                        const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
-                        if (!header) return undefined;
-                        return header
-                    } catch (eu: unknown) {
-                        const e = sdk.WalletError.fromUnknown(eu)
-                        if (e.code != 'ECONNRESET')
-                            throw eu
-                    }
-                }
-                throw new sdk.WERR_INVALID_OPERATION('hashToHeader service unavailable')
+    async hashToHeader(hash: string): Promise<sdk.BlockHeaderHex> {
+        if (!this.options.chaintracks)
+            throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for this service operation.');
+
+        for (let retry = 0; retry < 3; retry++) {
+            try {
+                const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
+                if (!header)
+                    throw new sdk.WERR_INVALID_PARAMETER('hash', `valid blockhash '${hash}' on mined chain ${this.chain}`);
+                return header
+            } catch (eu: unknown) {
+                const e = sdk.WalletError.fromUnknown(eu)
+                if (e.code != 'ECONNRESET')
+                    throw eu
+            }
         }
+
+        throw new sdk.WERR_INVALID_OPERATION('hashToHeader service unavailable')
+    }
+
+    async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> {
         
         if (useNext)
             this.getMerklePathServices.next()
@@ -229,10 +234,11 @@ export class WalletServices implements sdk.WalletServices {
 
         for (let tries = 0; tries < this.getMerklePathServices.count; tries++) {
             const service = this.getMerklePathServices.service
-            const r = await service(txid, this.chain, hashToHeader)
+            const r = await service(txid, this.chain, this)
             if (r.merklePath) {
                 // If we have a proof, call it done.
                 r0.merklePath = r.merklePath
+                r0.header = r.header
                 r0.name = r.name
                 r0.error = undefined
                 break
@@ -257,8 +263,7 @@ export class WalletServices implements sdk.WalletServices {
  * @param chain 
  * @returns 
  */
-export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResult> {
-    if (!hashToHeader) throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for getMerklePath to work.')
+export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.Chain, services: sdk.WalletServices): Promise<sdk.GetMerklePathResult> {
 
     const r: sdk.GetMerklePathResult = { name: 'WoCTsc' }
 
@@ -270,7 +275,7 @@ export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.
         if (!data['target'])
             data = data[0]
         const p = data
-        const header = await hashToHeader(p.target)
+        const header = await services.hashToHeader(p.target)
         if (!header) throw new sdk.WERR_INVALID_PARAMETER('blockhash', 'a valid on-chain block hash')
         const proof = { index: p.index, nodes: p.nodes, height: header.height }
         r.merklePath = convertProofToMerklePath(txid, proof)
@@ -288,42 +293,6 @@ interface WhatsOnChainProofTsc {
     txOrId: string,
     target: string,
     nodes: string[]
-}
-
-/**
- * Taal.com has the most functional txStatus and merkleProof endpoint for both mainNet and testNet
- * 
- * Proofs use targetType "header" which is converted to "merkleRoot".
- * 
- * Proofs correctly use duplicate computed node value symbol "*".
- * 
- * An apiKey must be used and must correspond to the target chain: mainNet or testNet.
- * 
- * @param txid 
- * @param apiKey 
- * @returns 
- */
-export async function getMerklePathFromTaal(txid: string, apiKey: string, hashToHeader?: sdk.HashToHeader): Promise<sdk.GetMerklePathResult> {
-
-    const r: sdk.GetMerklePathResult = { name: 'Taal' }
-
-    try {
-        const headers = { headers: { Authorization: apiKey } }
-
-        const { data } = await axios.get(`https://mapi.taal.com/mapi/tx/${txid}?merkleProof=true&merkleFormat=TSC`, headers)
-
-        //const txStatus = getMapiTxStatusPayload(txid, r.mapi.resp)
-
-        //if (txStatus.returnResult !== 'success' || !txStatus.merkleProof)
-        //    return r
-
-        //r.proof = txStatus.merkleProof
-
-    } catch (err: unknown) {
-        r.error = sdk.WalletError.fromUnknown(err)
-    }
-
-    return r
 }
 
 export async function getRawTxFromWhatsOnChain(txid: string, chain: sdk.Chain): Promise<sdk.GetRawTxResult> {

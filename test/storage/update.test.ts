@@ -38,7 +38,7 @@ describe('update tests', () => {
                 const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
                 expect(t.provenTxId).toBe(e.provenTxId)
                 expect(t.blockHash).toBe('fred')
-                console.log(`updated_at set to ${time} but read as ${t.updated_at}`)
+                //console.log(`updated_at set to ${time} but read as ${t.updated_at}`)
                 expect(t.updated_at.getTime()).toBe(time.getTime())
             }
         }

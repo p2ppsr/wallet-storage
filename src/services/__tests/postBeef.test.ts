@@ -9,7 +9,7 @@ describe('postBeef service tests', () => {
         const options = WalletServices.createDefaultOptions('main')
         const services = new WalletServices(options)
 
-        const txid = 'c3b6ee8b83a4261771ede9b0d2590d2f65853239ee34f84cdda36524ce317d76'
+        const txid = '9cce99686bc8621db439b7150dd5b3b269e4b0628fd75160222c417d6f2b95e4'
         const rawTx = await services.getRawTx(txid)
         const beef = new bsv.Beef()
         beef.mergeRawTx(rawTx.rawTx!)

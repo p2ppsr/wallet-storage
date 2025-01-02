@@ -9,8 +9,8 @@ describe('Wallet services tests', () => {
     const ctxs: TestSetup1Wallet[] = []
     
     beforeAll(async () => {
-        ctxs.push(await _tu.createSQLiteTestSetup1Wallet({ databaseName: 'walletServicesMain', chain: 'main', rootKeyHex: '3'.repeat(64)}))
-        ctxs.push(await _tu.createSQLiteTestSetup1Wallet({ databaseName: 'walletServicesTest', chain: 'test', rootKeyHex: '3'.repeat(64)}))
+        ctxs.push(await _tu.createSQLiteTestSetup1Wallet({ databaseName: 'walletMonitorMain', chain: 'main', rootKeyHex: '3'.repeat(64)}))
+        ctxs.push(await _tu.createSQLiteTestSetup1Wallet({ databaseName: 'walletMonitorTest', chain: 'test', rootKeyHex: '3'.repeat(64)}))
     })
 
     afterAll(async () => {
@@ -26,7 +26,7 @@ describe('Wallet services tests', () => {
 
             {
                 expect(monitor._tasks.length).toBe(0)
-                
+
 
             }
 

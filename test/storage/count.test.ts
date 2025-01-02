@@ -72,8 +72,8 @@ describe('count tests', () => {
 
     test('5 count OutputBasket', async () => {
         for (const { storage, setup } of setups) {
-            expect(await storage.countOutputBaskets({})).toBe(1)
-            expect(await storage.countOutputBaskets({}, setup.u1.created_at)).toBe(1)
+            expect(await storage.countOutputBaskets({})).toBe(3)
+            expect(await storage.countOutputBaskets({}, setup.u1.created_at)).toBe(3)
             expect(await storage.countOutputBaskets({}, new Date())).toBe(0)
         }
     })

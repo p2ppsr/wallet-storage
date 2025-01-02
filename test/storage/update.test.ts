@@ -1,9 +1,11 @@
 import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
 import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, verifyOne } from '../../src'
 import { ProvenTxReqStatus } from '../../src/sdk'
-import { normalizeDate, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
+import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
 import { ProvenTx, ProvenTxReq, User } from '../../src/storage/schema/tables'
+
+setLogging(true)
 
 describe('update tests', () => {
   jest.setTimeout(99999999)
@@ -49,6 +51,7 @@ describe('update tests', () => {
     for (const { storage, setup } of setups) {
       const referenceTime = new Date() // Capture time before updates
 
+      //optoinal
       const testValues: ProvenTx = {
         blockHash: 'mockBlockHash',
         created_at: new Date('2024-12-30T23:00:00Z'),
@@ -63,13 +66,13 @@ describe('update tests', () => {
       }
 
       // Fetch all proven transactions
-      const provenTxs = await storage.findProvenTxs({})
-      for (const tx of provenTxs) {
+      const r = await storage.findProvenTxs({})
+      for (const e of r) {
         // Update the entry with test values
-        await updateTable(storage.updateProvenTx.bind(storage), tx[primaryKey], testValues)
+        await updateTable(storage.updateProvenTx.bind(storage), e[primaryKey], testValues)
 
         // Verify that the updated entry matches the test values
-        const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: tx[primaryKey] }))
+        const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
         verifyValues(updatedTx, testValues, referenceTime)
 
         // Test each field for valid and invalid updates
@@ -81,37 +84,37 @@ describe('update tests', () => {
 
           if (typeof value === 'string') {
             const validString = `valid${key}`
-            const r1 = await storage.updateProvenTx(tx[primaryKey], { [key]: validString })
+            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validString })
             expect(r1).toBe(1)
 
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: tx[primaryKey] }))
+            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
             expect(updatedRow[key]).toBe(validString)
           }
 
           if (typeof value === 'number') {
             const validNumber = value + 1
-            const r1 = await storage.updateProvenTx(tx[primaryKey], { [key]: validNumber })
+            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validNumber })
             expect(r1).toBe(1)
 
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: tx[primaryKey] }))
+            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
             expect(updatedRow[key]).toBe(validNumber)
           }
 
           if (value instanceof Date) {
             const validDate = new Date('2024-12-31T00:00:00Z')
-            const r1 = await storage.updateProvenTx(tx[primaryKey], { [key]: validDate })
+            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validDate })
             expect(r1).toBe(1)
 
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: tx[primaryKey] }))
+            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
             expect(new Date(updatedRow[key]).toISOString()).toBe(validDate.toISOString())
           }
 
           if (Array.isArray(value)) {
             const validArray = value.map(v => v + 1)
-            const r1 = await storage.updateProvenTx(tx[primaryKey], { [key]: validArray })
+            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validArray })
             expect(r1).toBe(1)
 
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: tx[primaryKey] }))
+            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
             expect(updatedRow[key]).toEqual(validArray)
           }
         }
@@ -120,6 +123,7 @@ describe('update tests', () => {
   })
 
   test('001 ProvenTx set created_at and updated_at time', async () => {
+    // TBD implement timer to emulate locking records tec.
     for (const { storage } of setups) {
       const scenarios = [
         {
@@ -157,11 +161,11 @@ describe('update tests', () => {
           const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
 
           // Log the scenario for better test output
-          console.log(`Testing scenario: ${description}`)
+          log(`Testing scenario: ${description}`)
 
           // Validate times using `validateUpdateTime`
-          expect(validateUpdateTime(t.created_at, updates.created_at, referenceTime)).toBe(true)
-          expect(validateUpdateTime(t.updated_at, updates.updated_at, referenceTime)).toBe(true)
+          expect(validateUpdateTime(t.created_at, updates.created_at, referenceTime, 10, false)).toBe(true)
+          expect(validateUpdateTime(t.updated_at, updates.updated_at, referenceTime, 10, false)).toBe(true)
         }
       }
     }
@@ -221,12 +225,48 @@ describe('update tests', () => {
     }
   })
 
+  test('002 ProvenTx trigger DB unique constraint error for provenTxId', async () => {
+    for (const { storage, setup } of setups) {
+      // There is only 1 row in table so it is necessay to insert another row to perform unique constraint test
+      const initialRecord = {
+        provenTxId: 2,
+        txid: '',
+        height: 1,
+        index: 1,
+        merklePath: [],
+        blockHash: '',
+        created_at: new Date(),
+        updated_at: new Date(),
+        rawTx: [],
+        merkleRoot: ''
+      }
+
+      try {
+        log('Inserting initial record for UNIQUE constraint test...')
+        await storage.insertProvenTx(initialRecord)
+        log('Initial record inserted successfully.')
+      } catch (error: any) {
+        console.error('Error inserting initial record:', error.message)
+        return
+      }
+
+      await triggerUniqueConstraintError(storage, 'findProvenTxs', 'updateProvenTx', 'proven_txs', 'provenTxId', 1, true)
+    }
+  })
+
+  test('003 ProvenTxReq trigger DB foreign constraint error for provenTxId', async () => {
+    for (const { storage, setup } of setups) {
+      await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxId: 42 }, true)
+    }
+  })
+
   test('003 ProvenTx: trigger DB unique and foreign key constraint errors', async () => {
     for (const { storage, setup } of setups) {
       console.log(`Starting UNIQUE and FOREIGN KEY constraint tests for ${setup}...`)
 
       // Step 1: Insert an initial record for UNIQUE constraint test
       const initialRecord = {
+        provenTxId: Math.floor(Math.random() * 100000),
         txid: 'mockTxid',
         height: 12345,
         index: 1,
@@ -234,7 +274,6 @@ describe('update tests', () => {
         blockHash: 'exampleBlockHash',
         created_at: new Date('2024-12-30T23:00:00.000Z'),
         updated_at: new Date('2024-12-30T23:05:00.000Z'),
-        provenTxId: Math.floor(Math.random() * 100000),
         rawTx: [],
         merkleRoot: ''
       }
@@ -301,14 +340,6 @@ describe('update tests', () => {
           console.error('Unexpected error during FOREIGN KEY constraint test:', error.message)
         }
       }
-
-      // // Step 4: Retrieve and log records to validate test results
-      // try {
-      //   const records = await storage.getProvenTxs()
-      //   console.log('Retrieved records for testing:', records)
-      // } catch (error: any) {
-      //   console.error('Error retrieving records:', error.message)
-      // }
     }
   })
 
@@ -422,40 +453,33 @@ describe('update tests', () => {
     }
   })
 
-  test('102 ProvenTxReqs trigger DB unique constraint error for txid', async () => {
-    const primaryKey = schemaMetadata.provenTxReqs.primaryKey
-
+  test('102 ProvenTxReqs trigger DB unique constraint error for provenTxId', async () => {
     for (const { storage, setup } of setups) {
-      const records = await storage.findProvenTxReqs({})
+      await triggerUniqueConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', 1, true)
+    }
+  })
 
-      for (const record of records) {
-        const testValues: Partial<ProvenTxReq> = {
-          status: 'completed' as ProvenTxReqStatus,
-          history: JSON.stringify({ validated: true, timestamp: Date.now() }),
-          notify: JSON.stringify({ email: 'test@example.com', sent: true }),
-          rawTx: [1, 2, 3, 4],
-          inputBEEF: [5, 6, 7, 8],
-          attempts: 3,
-          notified: true,
-          txid: `mockTxid`,
-          batch: `batch-001`,
-          created_at: new Date('2024-12-30T23:00:00Z'),
-          updated_at: new Date('2024-12-30T23:05:00Z')
+  test('103 ProvenTxReqs trigger DB foreign constraint error for provenTxId', async () => {
+    for (const { storage, setup } of setups) {
+      await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxId: 42 }, true)
+    }
+  })
+
+  test('102a ProvenTxReqs trigger DB unique constraint error for provenTxReqId', async () => {
+    for (const { storage, setup } of setups) {
+      const r = await storage.findProvenTxReqs({})
+
+      try {
+        await storage.updateProvenTxReq(r[0].provenTxReqId, { provenTxReqId: r[0].provenTxReqId + 1 })
+        expect(true).toBe(false)
+      } catch (error: any) {
+        if (error.message.includes('SQLITE_CONSTRAINT: UNIQUE constraint failed: proven_tx_reqs.provenTxReqId')) {
+          console.log('Unique constraint error caught as expected:', error.message)
+          return
         }
 
-        try {
-          // Perform the update
-          await storage.updateProvenTxReq(record[primaryKey], testValues)
-
-          const updatedRow = verifyOne(await storage.findProvenTxReqs({ [primaryKey]: record[primaryKey] }))
-        } catch (error: any) {
-          // Break the loop when the unique constraint error occurs
-          if (error.message.includes('SQLITE_CONSTRAINT: UNIQUE constraint failed') && error.message.includes('proven_tx_reqs.txid')) {
-            console.log('error.message:', error.message)
-
-            break
-          }
-        }
+        console.log('Unexpected error:', error.message)
+        throw new Error(`Unexpected error: ${error.message}`)
       }
     }
   })

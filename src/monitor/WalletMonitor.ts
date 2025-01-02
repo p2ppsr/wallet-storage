@@ -78,39 +78,39 @@ export class WalletMonitor {
     _tasksRunning = false
     
     /**
-     * Default tasks with settings appropriate for a single user Dojo
+     * Default tasks with settings appropriate for a single user storage
      * possibly with sync'ing enabled
      */
     addDefaultTasks() : void {
-        this._tasks.push(new DojoTaskSendWaiting(this))
-        this._tasks.push(new DojoTaskCheckForProofs(this))
-        this._tasks.push(new DojoTaskNotifyOfProofs(this))
-        this._tasks.push(new DojoTaskFailAbandoned(this))
-        this._otherTasks.push(new DojoTaskSyncWhenIdle(this))
-        this._otherTasks.push(new DojoTaskCheckProofs(this))
+        this._tasks.push(new TaskSendWaiting(this))
+        this._tasks.push(new TaskCheckForProofs(this))
+        this._tasks.push(new TaskNotifyOfProofs(this))
+        this._tasks.push(new TaskFailAbandoned(this))
+        this._otherTasks.push(new TaskSyncWhenIdle(this))
+        this._otherTasks.push(new TaskCheckProofs(this))
     }
     
     /**
-     * Tasks appropriate for multi-user dojos
+     * Tasks appropriate for multi-user storage
      * without sync'ing enabled.
      */
-    addMultiUserDojoTasks() : void {
+    addMultiUserTasks() : void {
         const seconds = 1000
         const minutes = seconds * 60
         const hours = minutes * 60
         const days = hours * 24
-        this._tasks.push(new DojoTaskSendWaiting(this, 8 * seconds, 7 * seconds)) // Check every 8 seconds but must be 7 seconds old
-        this._tasks.push(new DojoTaskCheckForProofs(this, 2 * hours)) // Every two hours if no block found
-        this._tasks.push(new DojoTaskNotifyOfProofs(this, 5 * minutes)) // Every 5 minutes, supports marking nosend reqs as invalid
-        this._tasks.push(new DojoTaskFailAbandoned(this, 8 * minutes))
-        this._tasks.push(new DojoTaskPurge(this, {
+        this._tasks.push(new TaskSendWaiting(this, 8 * seconds, 7 * seconds)) // Check every 8 seconds but must be 7 seconds old
+        this._tasks.push(new TaskCheckForProofs(this, 2 * hours)) // Every two hours if no block found
+        this._tasks.push(new TaskNotifyOfProofs(this, 5 * minutes)) // Every 5 minutes, supports marking nosend reqs as invalid
+        this._tasks.push(new TaskFailAbandoned(this, 8 * minutes))
+        this._tasks.push(new TaskPurge(this, {
             purgeCompleted: true,
             purgeFailed: true,
             purgeCompletedDelay: 14 * days,
             purgeFailedDelay: 14 * days
         }, 6 * hours))
-        this._otherTasks.push(new DojoTaskValidate(this))
-        this._otherTasks.push(new DojoTaskCheckProofs(this, 1000 * 60 * 60 * 4))
+        this._otherTasks.push(new TaskValidate(this))
+        this._otherTasks.push(new TaskCheckProofs(this, 1000 * 60 * 60 * 4))
     }
 
     addTask(task: WalletMonitorTask) : void {
@@ -244,7 +244,7 @@ export class WalletMonitor {
 
     /**
      * Using an array of proof providing services, attempt to process each outstanding record
-     * in Dojo's `proven_tx_reqs` table.
+     * in storage's `proven_tx_reqs` table.
      *
      * Must manage switching services when a service goes down,
      * and when a service imposes rate limits,
@@ -341,7 +341,7 @@ export class WalletMonitor {
         this.lastNewHeaderWhen = new Date()
         console.log(`Watchman notified of new block header ${h.height}`)
         // Nudge the proof checker to try again.
-        DojoTaskCheckForProofs.checkNow = true
+        TaskCheckForProofs.checkNow = true
     }
 
     /**
@@ -366,7 +366,7 @@ export class WalletMonitor {
      * 
      * Verify the requests are valid, lookup proofs or updated transaction status using the array of getProofServices,
      * 
-     * When proofs are found, create new DojoProvenTxApi records and transition the requests' status to 'unconfirmed' or 'notifying',
+     * When proofs are found, create new ProvenTxApi records and transition the requests' status to 'unconfirmed' or 'notifying',
      * depending on chaintracks succeeding on proof verification. 
      *
      * Increments attempts if proofs where requested.
@@ -553,7 +553,7 @@ export class WalletMonitor {
      * Transaction satoshis value appears to be critical in capturing external value effect (inputs and outputs) of each transaction.
      * Transaction isOutgoing seems to be incorrect sometimes???
      * Output 'change' column appears to be unused, always 0. Instead 'purpose' = 'change' appears to be used. Actual value is either 'change' or null currently.
-     * Output 'providedBy' column is currently only 'dojo', 'you', or null.
+     * Output 'providedBy' column is currently only 'storage', 'you', or null.
      * Output 'tracked' ????
      * Output 'senderIdentityKey' is currently often an uncompressed key
      * 
@@ -868,7 +868,7 @@ function filter<T>(a: T[], pred: (v: T) => boolean) : { ts: T[], fs: T[] } {
 
 /**
  * A monitor task performs some periodic or state triggered maintenance function
- * on the data managed by a Dojo (Bitcoin UTXO manager, aka wallet)
+ * on the data managed by a wallet (Bitcoin UTXO manager, aka wallet)
  * 
  * The monitor maintains a collection of tasks.
  *
@@ -879,7 +879,7 @@ function filter<T>(a: T[], pred: (v: T) => boolean) : { ts: T[], fs: T[] } {
  * The monitor then waits a fixed interval before repeating...
  * 
  * Tasks may use the watchman_events table to persist their execution history.
- * This is done by accessing the wathman.dojo.storage object.
+ * This is done by accessing the wathman.storage object.
  */
 export abstract class WalletMonitorTask {
     
@@ -913,11 +913,11 @@ export abstract class WalletMonitorTask {
     abstract runTask(): Promise<void>
 }
 
-export class DojoTaskSendWaiting extends WalletMonitorTask {
+export class TaskSendWaiting extends WalletMonitorTask {
     static taskName = 'SendWaiting';
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 5, public agedMsecs = 0) {
-        super(monitor, DojoTaskSendWaiting.taskName);
+        super(monitor, TaskSendWaiting.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
@@ -944,7 +944,7 @@ export class DojoTaskSendWaiting extends WalletMonitorTask {
 }
 
 /**
- * `DojoTaskCheckForProofs` is a Dojo Watchman task that retreives merkle proofs for
+ * `TaskCheckForProofs` is a WalletMonitor task that retreives merkle proofs for
  * transactions.
  *
  * It is normally triggered by the Chaintracks new block header event.
@@ -955,7 +955,7 @@ export class DojoTaskSendWaiting extends WalletMonitorTask {
  * If a proof is obtained and validated, a new ProvenTx record is created and
  * the original ProvenTxReq status is advanced to 'notifying'.
  */
-export class DojoTaskCheckForProofs extends WalletMonitorTask {
+export class TaskCheckForProofs extends WalletMonitorTask {
     static taskName = 'CheckForProofs';
 
     /**
@@ -965,7 +965,7 @@ export class DojoTaskCheckForProofs extends WalletMonitorTask {
     static checkNow = false;
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 0) {
-        super(monitor, DojoTaskCheckForProofs.taskName);
+        super(monitor, TaskCheckForProofs.taskName);
     }
 
     /**
@@ -974,15 +974,15 @@ export class DojoTaskCheckForProofs extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
         return {
             run: (
-                DojoTaskCheckForProofs.checkNow ||
+                TaskCheckForProofs.checkNow ||
                 this.triggerMsecs > 0 && nowMsecsSinceEpoch - this.lastRunMsecsSinceEpoch > this.triggerMsecs
             )
         }
     }
 
     async runTask(): Promise<void> {
-        const countsAsAttempt = DojoTaskCheckForProofs.checkNow
-        DojoTaskCheckForProofs.checkNow = false;
+        const countsAsAttempt = TaskCheckForProofs.checkNow
+        TaskCheckForProofs.checkNow = false;
 
         const limit = 100;
         let offset = 0;
@@ -995,14 +995,14 @@ export class DojoTaskCheckForProofs extends WalletMonitorTask {
             const r = await this.monitor.getProofs(reqs, 2, countsAsAttempt);
             log += r.log
             console.log(log)
-            if (r.proven.length > 0) DojoTaskNotifyOfProofs.checkNow = true;
+            if (r.proven.length > 0) TaskNotifyOfProofs.checkNow = true;
             if (reqs.length < limit) break;
             offset += limit;
         }
     }
 }
 
-export class DojoTaskNotifyOfProofs extends WalletMonitorTask {
+export class TaskNotifyOfProofs extends WalletMonitorTask {
     static taskName = 'NotifyOfProofs';
 
     /**
@@ -1011,7 +1011,7 @@ export class DojoTaskNotifyOfProofs extends WalletMonitorTask {
     static checkNow = false;
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 0) {
-        super(monitor, DojoTaskNotifyOfProofs.taskName);
+        super(monitor, TaskNotifyOfProofs.taskName);
     }
 
     /**
@@ -1020,14 +1020,14 @@ export class DojoTaskNotifyOfProofs extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
         return {
             run: (
-                DojoTaskNotifyOfProofs.checkNow ||
+                TaskNotifyOfProofs.checkNow ||
                 this.triggerMsecs > 0 && nowMsecsSinceEpoch - this.lastRunMsecsSinceEpoch > this.triggerMsecs
             )
         };
     }
 
     async runTask(): Promise<void> {
-        DojoTaskNotifyOfProofs.checkNow = false;
+        TaskNotifyOfProofs.checkNow = false;
 
         const limit = 100;
         let offset = 0;
@@ -1054,11 +1054,11 @@ export class DojoTaskNotifyOfProofs extends WalletMonitorTask {
  * This returns inputs to spendable status and verifies that any
  * outputs are not spendable.
  */
-export class DojoTaskFailAbandoned extends WalletMonitorTask {
+export class TaskFailAbandoned extends WalletMonitorTask {
     static taskName = 'FailAbandoned';
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 5) {
-        super(monitor, DojoTaskFailAbandoned.taskName);
+        super(monitor, TaskFailAbandoned.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
@@ -1083,11 +1083,11 @@ export class DojoTaskFailAbandoned extends WalletMonitorTask {
     }
 }
 
-export class DojoTaskSyncWhenIdle extends WalletMonitorTask {
+export class TaskSyncWhenIdle extends WalletMonitorTask {
     static taskName = 'SyncWhenIdle';
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 1) {
-        super(monitor, DojoTaskSyncWhenIdle.taskName);
+        super(monitor, TaskSyncWhenIdle.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
@@ -1103,7 +1103,7 @@ export class DojoTaskSyncWhenIdle extends WalletMonitorTask {
     }
 }
 
-export class DojoTaskCheckProofs extends WalletMonitorTask {
+export class TaskCheckProofs extends WalletMonitorTask {
     static taskName = 'CheckProofs';
 
     /**
@@ -1112,20 +1112,20 @@ export class DojoTaskCheckProofs extends WalletMonitorTask {
     static checkNow = false;
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 60 * 4) {
-        super(monitor, DojoTaskCheckProofs.taskName);
+        super(monitor, TaskCheckProofs.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
         return {
             run: (
-                DojoTaskCheckProofs.checkNow ||
+                TaskCheckProofs.checkNow ||
                 nowMsecsSinceEpoch - this.lastRunMsecsSinceEpoch > this.triggerMsecs
             )
         };
     }
 
     async runTask(): Promise<void> {
-        DojoTaskCheckProofs.checkNow = false;
+        TaskCheckProofs.checkNow = false;
 
     //    const r = await checkCompletedWithoutProofs(this.storage)
     //    console.log("CheckProofs", JSON.stringify(r))
@@ -1134,7 +1134,7 @@ export class DojoTaskCheckProofs extends WalletMonitorTask {
 }
 
 /**
- * The Dojo database stores a variety of data that may be considered transient.
+ * The database stores a variety of data that may be considered transient.
  * 
  * At one extreme, the data that must be preserved:
  *   - unspent outputs (UTXOs)
@@ -1158,7 +1158,7 @@ export class DojoTaskCheckProofs extends WalletMonitorTask {
  *       + Delete mapi_responses records
  *       + proven_tx_reqs table delete records
  */
-export interface DojoPurgeParams {
+export interface PurgeParams {
    purgeCompleted: boolean
    purgeFailed: boolean
 
@@ -1177,13 +1177,13 @@ export interface DojoPurgeParams {
    purgeFailedAge?: number
 }
 
-export interface DojoPurgeResults {
+export interface PurgeResults {
    count: number,
    log: string
 }
 
 
-export interface DojoTaskPurgeParams extends DojoPurgeParams {
+export interface TaskPurgeParams extends PurgeParams {
    purgeCompleted: boolean
    purgeFailed: boolean
 
@@ -1191,7 +1191,7 @@ export interface DojoTaskPurgeParams extends DojoPurgeParams {
    purgeFailedDelay: number
 }
 
-export class DojoTaskPurge extends WalletMonitorTask {
+export class TaskPurge extends WalletMonitorTask {
     static taskName = 'Purge';
 
     /**
@@ -1199,28 +1199,28 @@ export class DojoTaskPurge extends WalletMonitorTask {
      */
     static checkNow = false;
 
-    constructor(monitor: WalletMonitor, public params: DojoTaskPurgeParams, public triggerMsecs = 0) {
-        super(monitor, DojoTaskPurge.taskName);
+    constructor(monitor: WalletMonitor, public params: TaskPurgeParams, public triggerMsecs = 0) {
+        super(monitor, TaskPurge.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
         return {
             run: (
-                DojoTaskPurge.checkNow ||
+                TaskPurge.checkNow ||
                 this.triggerMsecs > 0 && nowMsecsSinceEpoch - this.lastRunMsecsSinceEpoch > this.triggerMsecs
             )
         };
     }
 
     async runTask(): Promise<void> {
-        DojoTaskPurge.checkNow = false;
+        TaskPurge.checkNow = false;
 
         //const r = await this.storage.purgeData(this.params)
-        //console.log(`DojoTaskPurge ${r.count} records updated or deleted.\n${r.log}`)
+        //console.log(`TaskPurge ${r.count} records updated or deleted.\n${r.log}`)
     }
 }
 
-export class DojoTaskValidate extends WalletMonitorTask {
+export class TaskValidate extends WalletMonitorTask {
     static taskName = 'Validate';
 
     /**
@@ -1229,22 +1229,22 @@ export class DojoTaskValidate extends WalletMonitorTask {
     static checkNow = false;
 
     constructor(monitor: WalletMonitor, public triggerMsecs = 0) {
-        super(monitor, DojoTaskValidate.taskName);
+        super(monitor, TaskValidate.taskName);
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {
         return {
             run: (
-                DojoTaskValidate.checkNow ||
+                TaskValidate.checkNow ||
                 this.triggerMsecs > 0 && nowMsecsSinceEpoch - this.lastRunMsecsSinceEpoch > this.triggerMsecs
             )
         };
     }
 
     async runTask(): Promise<void> {
-        DojoTaskValidate.checkNow = false;
+        TaskValidate.checkNow = false;
 
-        //await this.monitor.validate(DojoValidateWhat.All, 'fix')
+        //await this.monitor.validate(ValidateWhat.All, 'fix')
         console.log("Validate done")
     }
 }

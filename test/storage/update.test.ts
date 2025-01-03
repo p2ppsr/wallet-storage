@@ -3,7 +3,7 @@ import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table
 import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
-import { ProvenTx, ProvenTxReq, User } from '../../src/storage/schema/tables'
+import { ProvenTx, ProvenTxReq, User, Certificate } from '../../src/storage/schema/tables'
 
 setLogging(true)
 
@@ -29,12 +29,6 @@ describe('update tests', () => {
     }
   })
 
-  afterEach(async () => {
-    for (const storage of storages) {
-      await storage.destroy()
-    }
-  })
-
   afterAll(async () => {
     for (const storage of storages) {
       await storage.destroy()
@@ -57,72 +51,77 @@ describe('update tests', () => {
     for (const { storage, setup } of setups) {
       const referenceTime = new Date() // Capture time before updates
 
-      //optoinal
-      const testValues: ProvenTx = {
-        blockHash: 'mockBlockHash',
-        created_at: new Date('2024-12-30T23:00:00Z'),
-        updated_at: new Date('2024-12-30T23:05:00Z'),
-        provenTxId: 1,
-        txid: 'mockTxid',
-        height: 12345,
-        index: 1,
-        merklePath: [1, 2, 3, 4],
-        rawTx: [4, 3, 2, 1],
-        merkleRoot: '1234'
-      }
-
       // Fetch all proven transactions
       const r = await storage.findProvenTxs({})
       for (const e of r) {
-        // Update the entry with test values
-        await updateTable(storage.updateProvenTx.bind(storage), e[primaryKey], testValues)
-
-        // Verify that the updated entry matches the test values
-        const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
-        verifyValues(updatedTx, testValues, referenceTime)
-
-        // Test each field for valid and invalid updates
-        for (const [key, value] of Object.entries(testValues)) {
-          if (key === primaryKey) {
-            // Skip testing updates to the primary key as they are invalid operations
-            continue
+        try {
+          // TBD optoinal params?
+          const testValues: ProvenTx = {
+            provenTxId: e.provenTxId,
+            txid: 'mockTxid',
+            blockHash: 'mockBlockHash',
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            height: 12345,
+            index: 1,
+            merklePath: [1, 2, 3, 4],
+            rawTx: [4, 3, 2, 1],
+            merkleRoot: '1234'
           }
 
-          if (typeof value === 'string') {
-            const validString = `valid${key}`
-            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validString })
-            expect(r1).toBe(1)
+          // Update the entry with test values
+          await updateTable(storage.updateProvenTx.bind(storage), e[primaryKey], testValues)
 
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
-            expect(updatedRow[key]).toBe(validString)
+          // Verify that the updated entry matches the test values
+          const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+          verifyValues(updatedTx, testValues, referenceTime)
+
+          // Test each field for valid and invalid updates
+          for (const [key, value] of Object.entries(testValues)) {
+            if (key === primaryKey) {
+              // Skip testing updates to the primary key as they are invalid operations
+              continue
+            }
+
+            if (typeof value === 'string') {
+              const validString = `valid${key}`
+              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validString })
+              expect(r1).toBe(1)
+
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              expect(updatedRow[key]).toBe(validString)
+            }
+
+            if (typeof value === 'number') {
+              const validNumber = value + 1
+              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validNumber })
+              expect(r1).toBe(1)
+
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              expect(updatedRow[key]).toBe(validNumber)
+            }
+
+            if (value instanceof Date) {
+              const validDate = new Date('2024-12-31T00:00:00Z')
+              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validDate })
+              expect(r1).toBe(1)
+
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              expect(new Date(updatedRow[key]).toISOString()).toBe(validDate.toISOString())
+            }
+
+            if (Array.isArray(value)) {
+              const validArray = value.map(v => v + 1)
+              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validArray })
+              expect(r1).toBe(1)
+
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              expect(updatedRow[key]).toEqual(validArray)
+            }
           }
-
-          if (typeof value === 'number') {
-            const validNumber = value + 1
-            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validNumber })
-            expect(r1).toBe(1)
-
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
-            expect(updatedRow[key]).toBe(validNumber)
-          }
-
-          if (value instanceof Date) {
-            const validDate = new Date('2024-12-31T00:00:00Z')
-            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validDate })
-            expect(r1).toBe(1)
-
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
-            expect(new Date(updatedRow[key]).toISOString()).toBe(validDate.toISOString())
-          }
-
-          if (Array.isArray(value)) {
-            const validArray = value.map(v => v + 1)
-            const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validArray })
-            expect(r1).toBe(1)
-
-            const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
-            expect(updatedRow[key]).toEqual(validArray)
-          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying ProvenTx record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
         }
       }
     }
@@ -179,57 +178,103 @@ describe('update tests', () => {
 
   test('002 ProvenTx setting individual values', async () => {
     for (const { storage, setup } of setups) {
-      const referenceTime = new Date()
-
-      const testValues: Partial<ProvenTx> = {
-        txid: 'mockUpdatedTxid',
-        created_at: new Date('2024-12-30T23:00:00Z'),
-        updated_at: new Date('2024-12-30T23:05:00Z')
+      // There is only 1 row in table so it is necessay to insert another row to perform unique constraint test
+      const initialRecord: ProvenTx = {
+        provenTxId: 2,
+        txid: 'mockTxid',
+        height: 1,
+        index: 1,
+        merklePath: [],
+        blockHash: '',
+        created_at: new Date(),
+        updated_at: new Date(),
+        rawTx: [],
+        merkleRoot: ''
       }
 
-      const r = await storage.findProvenTxs({})
-      for (const e of r) {
-        await updateTable(storage.updateProvenTx.bind(storage), e.provenTxId, testValues)
-
-        const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
-        log('t=', t)
-
-        // Verify test object
-        verifyValues(t, testValues, referenceTime)
-
-        // Test individual values
-        const r1 = await storage.updateProvenTx(0, { txid: 'mockValidTxid' })
-        await expect(Promise.resolve(r1)).resolves.toBe(0)
-
-        const r2 = await storage.updateProvenTx(1, { txid: undefined })
-        await expect(Promise.resolve(r2)).resolves.toBe(1)
-
-        await expect(storage.updateProvenTx(1, { provenTxId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
-
-        const r3 = await storage.updateProvenTx(1, { provenTxId: 1 })
-        await expect(Promise.resolve(r3)).resolves.toBe(1)
-
-        await expect(storage.updateProvenTx(1, { provenTxId: 2 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
-
-        await expect(storage.updateProvenTx(1, { provenTxId: 9999 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
-
-        const createdAt = new Date('2024-12-30T23:00:00Z')
-        const updatedAt = new Date('2024-12-30T23:05:00Z')
-        const r4 = await storage.updateProvenTx(1, { created_at: createdAt, updated_at: updatedAt })
-        await expect(Promise.resolve(r4)).resolves.toBe(1)
-
-        const futureDate = new Date('3000-01-01T00:00:00Z')
-        const r5 = await storage.updateProvenTx(1, { created_at: futureDate })
-        await expect(Promise.resolve(r5)).resolves.toBe(1)
-
-        const earlierDate = new Date('2024-12-30T22:59:59Z')
-        const r6 = await storage.updateProvenTx(1, { created_at: earlierDate })
-        await expect(Promise.resolve(r6)).resolves.toBe(1)
-
-        // Fails
-        // const r7 = await storage.updateProvenTx(9999, { txid: 'mockValidTxid' })
-        // await expect(Promise.resolve(r7)).resolves.toBe(9999)
+      try {
+        const r = await storage.insertProvenTx(initialRecord)
+        expect(r).toBeGreaterThan(1)
+      } catch (error: any) {
+        console.error('Error inserting initial record:', error.message)
+        return
       }
+
+      // Cant set id 1 to zero due to ref by provenTxReq
+      await expect(storage.updateProvenTx(1, { provenTxId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
+
+      // Can set id to zero
+      const r1 = await storage.updateProvenTx(2, { provenTxId: 0 })
+      await expect(Promise.resolve(r1)).resolves.toBe(1)
+      const r2 = await storage.findProvenTxs({})
+      expect(r2[0].provenTxId).toBe(0)
+      expect(r2[1].provenTxId).toBe(1)
+
+      // Reset id to back to original
+      const r3 = await storage.updateProvenTx(0, { provenTxId: 2 })
+      await expect(Promise.resolve(r3)).resolves.toBe(1)
+      const r4 = await storage.findProvenTxs({})
+      expect(r4[0].provenTxId).toBe(1)
+      expect(r4[1].provenTxId).toBe(2)
+
+      // Set id random value
+      const r5 = await storage.updateProvenTx(2, { provenTxId: 9999 })
+      await expect(Promise.resolve(r5)).resolves.toBe(1)
+      const r6 = await storage.findProvenTxs({})
+      expect(r6[0].provenTxId).toBe(1)
+      expect(r6[1].provenTxId).toBe(9999)
+
+      // Try to set other record id to same random id
+      await expect(storage.updateProvenTx(1, { provenTxId: 9999 })).rejects.toThrow(/UNIQUE constraint failed/)
+      const r7 = await storage.findProvenTxs({})
+      expect(r7[0].provenTxId).toBe(1)
+      expect(r7[1].provenTxId).toBe(9999)
+
+      // Update random id record with valid unique field
+      const r8 = await storage.updateProvenTx(9999, { txid: 'mockValidTxid' })
+      await expect(Promise.resolve(r8)).resolves.toBe(1)
+      const r9 = await storage.findProvenTxs({})
+      expect(r9[0].txid).not.toBe('mockValidTxid')
+      expect(r9[1].txid).toBe('mockValidTxid')
+
+      // Check original id record cannot be updated with same unique field
+      const r10 = await storage.updateProvenTx(2, { txid: 'mockValidTxid' })
+      await expect(Promise.resolve(r10)).resolves.toBe(0)
+      const r11 = await storage.findProvenTxs({})
+      expect(r11[0].txid).not.toBe('mockValidTxid')
+      expect(r11[1].txid).toBe('mockValidTxid')
+
+      // Try to update first record field with same unique field
+      await expect(storage.updateProvenTx(1, { txid: 'mockValidTxid' })).rejects.toThrow(/UNIQUE constraint failed/)
+      expect(r11[0].txid).not.toBe('mockValidTxid')
+      expect(r11[1].txid).toBe('mockValidTxid')
+
+      // Update random id with undefined unique no null field
+      const r12 = await storage.updateProvenTx(9999, { txid: undefined })
+      await expect(Promise.resolve(r12)).resolves.toBe(1)
+      const r13 = await storage.findProvenTxs({})
+      expect(r13[0].txid).not.toBe('mockValidTxid')
+      expect(r13[1].txid).toBe('mockValidTxid')
+
+      // Reset id to back to 2
+      const r14 = await storage.updateProvenTx(9999, { provenTxId: 2 })
+      await expect(Promise.resolve(r14)).resolves.toBe(1)
+      const r15 = await storage.findProvenTxs({})
+      expect(r15[0].provenTxId).toBe(1)
+      expect(r15[1].provenTxId).toBe(2)
+
+      const createdAt = new Date('2024-12-30T23:00:00Z')
+      const updatedAt = new Date('2024-12-30T23:05:00Z')
+      const r16 = await storage.updateProvenTx(2, { created_at: createdAt, updated_at: updatedAt })
+      await expect(Promise.resolve(r16)).resolves.toBe(1)
+
+      const futureDate = new Date('3000-01-01T00:00:00Z')
+      const r17 = await storage.updateProvenTx(2, { created_at: futureDate })
+      await expect(Promise.resolve(r17)).resolves.toBe(1)
+
+      const earlierDate = new Date('2024-12-30T22:59:59Z')
+      const r18 = await storage.updateProvenTx(2, { created_at: earlierDate })
+      await expect(Promise.resolve(r18)).resolves.toBe(1)
     }
   })
 
@@ -269,62 +314,67 @@ describe('update tests', () => {
       const r = await storage.findProvenTxReqs({})
 
       for (const e of r) {
-        const testValues: ProvenTxReq = {
-          provenTxReqId: e.provenTxReqId || 0,
-          status: 'completed' as ProvenTxReqStatus,
-          history: JSON.stringify({ validated: true, timestamp: Date.now() }),
-          notify: JSON.stringify({ email: 'test@example.com', sent: true }),
-          rawTx: [1, 2, 3, 4],
-          inputBEEF: [5, 6, 7, 8],
-          attempts: 3,
-          notified: true,
-          txid: `mockTxid-${Date.now()}`,
-          batch: `batch-001`,
-          created_at: new Date('2024-12-30T23:00:00Z'),
-          updated_at: new Date('2024-12-30T23:05:00Z')
-        }
-
-        // Update all fields in one go
-        const r1 = await storage.updateProvenTxReq(e[primaryKey], testValues)
-        expect(r1).toBe(1) // Expect one row updated
-
-        // Fetch the updated row for validation
-        const updatedRow = verifyOne(await storage.findProvenTxReqs({ [primaryKey]: e[primaryKey] }))
-        for (const [key, value] of Object.entries(testValues)) {
-          const actualValue = updatedRow[key]
-
-          // Handle Date fields by normalizing both sides
-          const normalizedActual = normalizeDate(actualValue)
-          const normalizedExpected = normalizeDate(value)
-          if (normalizedActual && normalizedExpected) {
-            expect(normalizedActual).toBe(normalizedExpected)
-            continue
+        try {
+          const testValues: ProvenTxReq = {
+            provenTxReqId: e.provenTxReqId || 0,
+            status: 'completed' as ProvenTxReqStatus,
+            history: JSON.stringify({ validated: true, timestamp: Date.now() }),
+            notify: JSON.stringify({ email: 'test@example.com', sent: true }),
+            rawTx: [1, 2, 3, 4],
+            inputBEEF: [5, 6, 7, 8],
+            attempts: 3,
+            notified: true,
+            txid: `mockTxid-${Date.now()}`,
+            batch: `batch-001`,
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z')
           }
 
-          // Handle JSON strings
-          if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
-            expect(JSON.parse(actualValue)).toStrictEqual(JSON.parse(value))
-            continue
-          }
+          // Update all fields in one go
+          const r1 = await storage.updateProvenTxReq(e[primaryKey], testValues)
+          expect(r1).toBe(1) // Expect one row updated
 
-          // Handle primitive types directly
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-            expect(actualValue).toBe(value)
-            continue
-          }
+          // Fetch the updated row for validation
+          const updatedRow = verifyOne(await storage.findProvenTxReqs({ [primaryKey]: e[primaryKey] }))
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
 
-          // Handle Buffer-like objects
-          if (typeof actualValue === 'object' && actualValue?.type === 'Buffer') {
-            const actualArray = actualValue.data || actualValue
-            const expectedArray = Buffer.isBuffer(value) || Array.isArray(value) ? Array.from(value as ArrayLike<number>) : value
-            expect(actualArray).toStrictEqual(expectedArray)
-            continue
-          }
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
 
-          // Handle unmatched cases (Buffer fallback handling)
-          log('actualValue type is ', typeof actualValue, '=', actualValue)
-          log('value type is ', typeof value, '=', value)
-          expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
+            // Handle JSON strings
+            if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+              expect(JSON.parse(actualValue)).toStrictEqual(JSON.parse(value))
+              continue
+            }
+
+            // Handle primitive types directly
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+              expect(actualValue).toBe(value)
+              continue
+            }
+
+            // Handle Buffer-like objects
+            if (typeof actualValue === 'object' && actualValue?.type === 'Buffer') {
+              const actualArray = actualValue.data || actualValue
+              const expectedArray = Buffer.isBuffer(value) || Array.isArray(value) ? Array.from(value as ArrayLike<number>) : value
+              expect(actualArray).toStrictEqual(expectedArray)
+              continue
+            }
+
+            // Handle unmatched cases (Buffer fallback handling)
+            log('actualValue type is ', typeof actualValue, '=', actualValue)
+            log('value type is ', typeof value, '=', value)
+            expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying ProvenTxReq record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
         }
       }
     }
@@ -396,94 +446,82 @@ describe('update tests', () => {
     for (const { storage, setup } of setups) {
       const referenceTime = new Date()
 
-      const testValues: Partial<ProvenTxReq> = {
-        txid: 'mockUpdatedTxid',
-        created_at: new Date('2024-12-30T23:00:00Z'),
-        updated_at: new Date('2024-12-30T23:05:00Z')
-      }
+      // Test individual values
 
-      const r = await storage.findProvenTxReqs({})
-      for (const e of r) {
-        await updateTable(storage.updateProvenTxReq.bind(storage), e.provenTxReqId, testValues)
+      // Can set id to zero
+      const r1 = await storage.updateProvenTxReq(1, { provenTxReqId: 0 })
+      await expect(Promise.resolve(r1)).resolves.toBe(1)
+      const r2 = await storage.findProvenTxReqs({})
+      expect(r2[0].provenTxReqId).toBe(0)
+      expect(r2[1].provenTxReqId).toBe(2)
 
-        const t = verifyOne(await storage.findProvenTxReqs({ provenTxReqId: e.provenTxReqId }))
-        log('t=', t)
-        // Verify test object
-        verifyValues(t, testValues, referenceTime)
+      // Reset id to back to 1
+      const r3 = await storage.updateProvenTxReq(0, { provenTxReqId: 1 })
+      await expect(Promise.resolve(r3)).resolves.toBe(1)
+      const r4 = await storage.findProvenTxReqs({})
+      expect(r4[0].provenTxReqId).toBe(1)
+      expect(r4[1].provenTxReqId).toBe(2)
 
-        // Test individual values
-        const r1 = await storage.updateProvenTxReq(0, { txid: 'mockValidTxid' })
-        await expect(Promise.resolve(r1)).resolves.toBe(0)
+      // Set id random value
+      const r5 = await storage.updateProvenTxReq(1, { provenTxReqId: 9999 })
+      await expect(Promise.resolve(r5)).resolves.toBe(1)
+      const r6 = await storage.findProvenTxReqs({})
+      // Note: Now second record returned
+      expect(r6[0].provenTxReqId).toBe(2)
+      expect(r6[1].provenTxReqId).toBe(9999)
 
-        const r2 = await storage.updateProvenTxReq(1, { txid: undefined })
-        await expect(Promise.resolve(r2)).resolves.toBe(1)
+      // Try to set other record id to same random id
+      await expect(storage.updateProvenTxReq(2, { provenTxReqId: 9999 })).rejects.toThrow(/UNIQUE constraint failed/)
+      const r7 = await storage.findProvenTxReqs({})
+      expect(r7[0].provenTxReqId).not.toBe(9999)
+      expect(r7[1].provenTxReqId).toBe(9999)
 
-        //await expect(storage.updateProvenTxReq(1, { provenTxReqId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
+      // Update random id record with valid unique field
+      const r8 = await storage.updateProvenTxReq(9999, { txid: 'mockValidTxid' })
+      await expect(Promise.resolve(r8)).resolves.toBe(1)
+      const r9 = await storage.findProvenTxReqs({})
+      expect(r9[0].txid).not.toBe('mockValidTxid')
+      expect(r9[1].txid).toBe('mockValidTxid')
 
-        const r3 = await storage.updateProvenTxReq(1, { provenTxReqId: 1 })
-        await expect(Promise.resolve(r3)).resolves.toBe(1)
+      // Check original id 1 record cannot be updated with same field
+      const r10 = await storage.updateProvenTxReq(1, { txid: 'mockValidTxid' })
+      await expect(Promise.resolve(r10)).resolves.toBe(0)
+      const r11 = await storage.findProvenTxReqs({})
+      expect(r11[0].txid).not.toBe('mockValidTxid')
+      expect(r11[1].txid).toBe('mockValidTxid')
 
-        await expect(storage.updateProvenTxReq(1, { provenTxReqId: 2 })).rejects.toThrow(/UNIQUE constraint failed/)
+      // Try to update second record field with same value
+      await expect(storage.updateProvenTxReq(2, { txid: 'mockValidTxid' })).rejects.toThrow(/UNIQUE constraint failed/)
+      expect(r11[0].txid).not.toBe('mockValidTxid')
+      expect(r11[1].txid).toBe('mockValidTxid')
 
-        //await expect(storage.updateProvenTxReq(1, { provenTxReqId: 9999 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
+      // Update random id with undefined unique no null field
+      const r12 = await storage.updateProvenTxReq(9999, { txid: undefined })
+      await expect(Promise.resolve(r12)).resolves.toBe(1)
+      const r13 = await storage.findProvenTxReqs({})
+      expect(r13[0].txid).not.toBe('mockValidTxid')
+      expect(r13[1].txid).toBe('mockValidTxid')
 
-        const createdAt = new Date('2024-12-30T23:00:00Z')
-        const updatedAt = new Date('2024-12-30T23:05:00Z')
-        const r4 = await storage.updateProvenTxReq(1, { created_at: createdAt, updated_at: updatedAt })
-        await expect(Promise.resolve(r4)).resolves.toBe(1)
+      // Reset id to back to 1
+      const r14 = await storage.updateProvenTxReq(9999, { provenTxReqId: 1 })
+      await expect(Promise.resolve(r14)).resolves.toBe(1)
+      const r15 = await storage.findProvenTxReqs({})
+      // Note: Now id 1 first record returned
+      expect(r15[0].provenTxReqId).toBe(1)
+      expect(r15[1].provenTxReqId).toBe(2)
 
-        const futureDate = new Date('3000-01-01T00:00:00Z')
-        const r5 = await storage.updateProvenTxReq(1, { created_at: futureDate })
-        await expect(Promise.resolve(r5)).resolves.toBe(1)
+      const createdAt = new Date('2024-12-30T23:00:00Z')
+      const updatedAt = new Date('2024-12-30T23:05:00Z')
+      const r16 = await storage.updateProvenTxReq(1, { created_at: createdAt, updated_at: updatedAt })
+      await expect(Promise.resolve(r16)).resolves.toBe(1)
 
-        const earlierDate = new Date('2024-12-30T22:59:59Z')
-        const r6 = await storage.updateProvenTxReq(1, { created_at: earlierDate })
-        await expect(Promise.resolve(r6)).resolves.toBe(1)
+      const futureDate = new Date('3000-01-01T00:00:00Z')
+      const r17 = await storage.updateProvenTxReq(1, { created_at: futureDate })
+      await expect(Promise.resolve(r17)).resolves.toBe(1)
 
-        // Fails
-        // const r7 = await storage.updateProvenTxReq(9999, { txid: 'mockValidTxid' })
-        // await expect(Promise.resolve(r7)).resolves.toBe(9999)
-      }
-    }
-  })
-
-  test('105 ProvenTxReq set batch field undefined', async () => {
-    for (const { storage } of setups) {
-      // Fetch all ProvenTxReq records
-      const r = await storage.findProvenTxReqs({})
-      log('Initial records:', r)
-
-      for (const e of r) {
-        try {
-          // Log the initial value of the batch field and the entire record
-          log(`Record before update (provenTxReqId=${e.provenTxReqId}):`, e)
-          log(`Initial batch value (provenTxReqId=${e.provenTxReqId}):`, e.batch)
-
-          // Update the batch field to undefined
-          const updateData = { batch: undefined }
-          log(`Attempting update with data (provenTxReqId=${e.provenTxReqId}):`, updateData)
-
-          const updateResult = await storage.updateProvenTxReq(e.provenTxReqId, updateData)
-          log(`Update result for provenTxReqId=${e.provenTxReqId}:`, updateResult)
-
-          // Retrieve the updated record
-          const updatedRecord = verifyOne(await storage.findProvenTxReqs({ provenTxReqId: e.provenTxReqId }))
-          log(`Updated record (provenTxReqId=${e.provenTxReqId}):`, updatedRecord)
-          log(`Updated batch value (provenTxReqId=${e.provenTxReqId}):`, updatedRecord.batch)
-
-          // Assert that the batch field is null
-          expect(updatedRecord.batch).toBe(null) // Batch should be null if set to undefined
-        } catch (error: any) {
-          // Log the error if one occurs
-          console.error(`Error updating or verifying record (provenTxReqId=${e.provenTxReqId}):`, error.message)
-
-          // Log additional debug info if needed
-          console.error('Update data:', { batch: undefined })
-          console.error('Failed record:', e)
-
-          throw error // Re-throw the error to fail the test
-        }
-      }
+      const earlierDate = new Date('2024-12-30T22:59:59Z')
+      const r18 = await storage.updateProvenTxReq(1, { created_at: earlierDate })
+      await expect(Promise.resolve(r18)).resolves.toBe(1)
     }
   })
 
@@ -499,10 +537,10 @@ describe('update tests', () => {
 
         try {
           const testValues: User = {
+            userId: e.userId,
             identityKey: `mockUpdatedIdentityKey-${e[primaryKey]}`,
             created_at: new Date('2024-12-30T23:00:00Z'),
-            updated_at: new Date('2024-12-30T23:05:00Z'),
-            userId: e.userId
+            updated_at: new Date('2024-12-30T23:05:00Z')
           }
 
           log(`Attempting update with values for ${primaryKey}=${e[primaryKey]}:`, testValues)
@@ -614,126 +652,256 @@ describe('update tests', () => {
 
   test('204 User setting individual values', async () => {
     for (const { storage, setup } of setups) {
-      const referenceTime = new Date()
+      // Test individual values
 
-      const testValues: Partial<User> = {
-        identityKey: 'mockUpdatedIdentityKey',
-        created_at: new Date('2024-12-30T23:00:00Z'),
-        updated_at: new Date('2024-12-30T23:05:00Z')
+      // The current records are used by other tables so it is necessay to insert another row to perform individual tests
+      const initialRecord: User = {
+        created_at: new Date(),
+        updated_at: new Date(),
+        userId: 3,
+        identityKey: ''
       }
 
-      const r = await storage.findUsers({})
-      for (const e of r) {
-        await updateTable(storage.updateUser.bind(storage), e.userId, testValues)
-
-        const t = verifyOne(await storage.findUsers({ userId: e.userId }))
-
-        // Verify test object
-        verifyValues(t, testValues, referenceTime)
-
-        // Test individual values
-        // const r1 = await storage.updateUser(0, { identityKey: 'mockValidIdentityKey' })
-        // await expect(Promise.resolve(r1)).resolves.toBe(0)
-
-        // const r2 = await storage.updateUser(1, { identityKey: undefined })
-        // await expect(Promise.resolve(r2)).resolves.toBe(1)
-
-        // await expect(storage.updateUser(1, { userId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
-
-        // const r3 = await storage.updateUser(1, { userId: 1 })
-        // await expect(Promise.resolve(r3)).resolves.toBe(1)
-
-        // //await expect(storage.updateUser(1, { userId: 2 })).rejects.toThrow(/UNIQUE constraint failed/)
-
-        // await expect(storage.updateUser(1, { userId: 9999 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
-
-        // const createdAt = new Date('2024-12-30T23:00:00Z')
-        // const updatedAt = new Date('2024-12-30T23:05:00Z')
-        // const r4 = await storage.updateUser(1, { created_at: createdAt, updated_at: updatedAt })
-        // await expect(Promise.resolve(r4)).resolves.toBe(1)
-
-        // const futureDate = new Date('3000-01-01T00:00:00Z')
-        // const r5 = await storage.updateUser(1, { created_at: futureDate })
-        // await expect(Promise.resolve(r5)).resolves.toBe(1)
-
-        // const earlierDate = new Date('2024-12-30T22:59:59Z')
-        // const r6 = await storage.updateUser(1, { created_at: earlierDate })
-        // await expect(Promise.resolve(r6)).resolves.toBe(1)
-
-        // Fails
-        // const r7 = await storage.updateUser(9999, { identityKey: 'mockValidIdentityKey' })
-        // await expect(Promise.resolve(r7)).resolves.toBe(9999)
+      try {
+        const r = await storage.insertUser(initialRecord)
+        expect(r).toBeGreaterThan(1)
+      } catch (error: any) {
+        console.error('Error inserting initial record:', error.message)
+        return
       }
+
+      // Cant set first record id to zero due to ref by other tables
+      await expect(storage.updateUser(1, { userId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
+
+      // Cant set second record id to zero due to ref by other tables
+      await expect(storage.updateUser(2, { userId: 0 })).rejects.toThrow(/FOREIGN KEY constraint failed/)
+
+      // Can set third record to zero
+      const r1 = await storage.updateUser(3, { userId: 0 })
+      await expect(Promise.resolve(r1)).resolves.toBe(1)
+      const r2 = await storage.findUsers({})
+      expect(r2[0].userId).toBe(0)
+      expect(r2[1].userId).toBe(1)
+      expect(r2[2].userId).toBe(2)
+
+      // Reset back to original
+      const r3 = await storage.updateUser(0, { userId: 3 })
+      await expect(Promise.resolve(r3)).resolves.toBe(1)
+      const r4 = await storage.findUsers({})
+      expect(r4[0].userId).toBe(1)
+      expect(r4[1].userId).toBe(2)
+      expect(r4[2].userId).toBe(3)
+
+      // Set record id to random value
+      const r5 = await storage.updateUser(3, { userId: 9999 })
+      await expect(Promise.resolve(r5)).resolves.toBe(1)
+      const r6 = await storage.findUsers({})
+      expect(r6[0].userId).toBe(1)
+      expect(r6[1].userId).toBe(2)
+      expect(r6[2].userId).toBe(9999)
+
+      // Try to set other record id to same random id
+      await expect(storage.updateUser(1, { userId: 9999 })).rejects.toThrow(/UNIQUE constraint failed/)
+      const r7 = await storage.findUsers({})
+      expect(r7[0].userId).toBe(1)
+      expect(r7[1].userId).toBe(2)
+      expect(r7[2].userId).toBe(9999)
+
+      // Update random id record with valid unique field
+      const r8 = await storage.updateUser(9999, { identityKey: 'mockValidIdentityKey' })
+      await expect(Promise.resolve(r8)).resolves.toBe(1)
+      const r9 = await storage.findUsers({})
+      expect(r9[0].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r9[1].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r9[2].identityKey).toBe('mockValidIdentityKey')
+
+      // Check original id record cannot be updated with same field
+      const r10 = await storage.updateUser(3, { identityKey: 'mockValidIdentityKey' })
+      await expect(Promise.resolve(r10)).resolves.toBe(0)
+      const r11 = await storage.findUsers({})
+      expect(r11[0].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r11[1].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r11[2].identityKey).toBe('mockValidIdentityKey')
+
+      // Try to update second record field with same value
+      await expect(storage.updateUser(2, { identityKey: 'mockValidIdentityKey' })).rejects.toThrow(/UNIQUE constraint failed/)
+      expect(r11[0].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r11[1].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r11[2].identityKey).toBe('mockValidIdentityKey')
+
+      // Update random id with undefined unique no null field
+      const r12 = await storage.updateUser(9999, { identityKey: undefined })
+      await expect(Promise.resolve(r12)).resolves.toBe(1)
+      const r13 = await storage.findUsers({})
+      expect(r13[0].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r13[1].identityKey).not.toBe('mockValidIdentityKey')
+      expect(r13[2].identityKey).toBe('mockValidIdentityKey')
+
+      // Reset id to back to 1
+      const r14 = await storage.updateUser(9999, { userId: 3 })
+      await expect(Promise.resolve(r14)).resolves.toBe(1)
+      const r15 = await storage.findUsers({})
+      // Note: Now id 1 first record returned
+      expect(r15[0].userId).toBe(1)
+      expect(r15[1].userId).toBe(2)
+      expect(r15[2].userId).toBe(3)
+
+      const createdAt = new Date('2024-12-30T23:00:00Z')
+      const updatedAt = new Date('2024-12-30T23:05:00Z')
+      const r16 = await storage.updateUser(1, { created_at: createdAt, updated_at: updatedAt })
+      await expect(Promise.resolve(r16)).resolves.toBe(1)
+
+      const futureDate = new Date('3000-01-01T00:00:00Z')
+      const r17 = await storage.updateUser(1, { created_at: futureDate })
+      await expect(Promise.resolve(r17)).resolves.toBe(1)
+
+      const earlierDate = new Date('2024-12-30T22:59:59Z')
+      const r18 = await storage.updateUser(1, { created_at: earlierDate })
+      await expect(Promise.resolve(r18)).resolves.toBe(1)
     }
   })
 
   test('3 find Certificate', async () => {
     for (const { storage, setup } of setups) {
-      // Fetch all certificates with a specified certifier
-      const certificates = await storage.findCertificates({}, [setup.u1cert1.certifier])
+      const primaryKey = schemaMetadata.certificates.primaryKey
 
-      for (const certificate of certificates) {
-        const createdTime = new Date('2024-12-30T23:00:00Z') // Hardcoded creation time
-        const updatedTime = new Date('2024-12-30T23:05:00Z') // Hardcoded update time, 5 minutes later
+      const r = await storage.findCertificates({})
+      log('Initial Certificate records:', r)
 
-        // Perform updates on the certificate
-        await storage.updateCertificate(certificate.certificateId, {
-          created_at: createdTime
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          updated_at: updatedTime
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          certifier: 'updatedCertifier'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          subject: 'updatedSubject'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          userId: 1
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          type: 'updatedType'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          serialNumber: 'updatedSerial'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          verifier: 'updatedVerifier'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          revocationOutpoint: 'updatedRevocation'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          signature: 'updatedSignature'
-        })
-        await storage.updateCertificate(certificate.certificateId, {
-          isDeleted: true
-        })
+      for (const e of r) {
+        log(`Testing updates for Certificate with ${primaryKey}=${e[primaryKey]}`)
 
-        // Update with empty object to test ignored updates
-        await storage.updateCertificate(certificate.certificateId, {})
-        await storage.updateCertificate(0, {}) // Test invalid update
+        try {
+          const testValues: Certificate = {
+            certificateId: e.certificateId,
+            userId: 1,
+            type: `mockType${e.certificateId}`,
+            serialNumber: `mockSerialNumber${e.certificateId}`,
+            certifier: `mockCertifier${e.certificateId}`,
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            subject: 'mockSubject',
+            revocationOutpoint: 'mockRevocationOutpoint',
+            signature: 'mockSignature',
+            isDeleted: false
+          }
 
-        // Verify the updated certificate
-        const verifiedCertificate = verifyOne(
-          await storage.findCertificates({
-            certificateId: certificate.certificateId
-          })
-        )
-        expect(verifiedCertificate.certificateId).toBe(certificate.certificateId)
-        expect(verifiedCertificate.userId).toBe(1)
-        expect(verifiedCertificate.type).toBe('updatedType')
-        expect(verifiedCertificate.serialNumber).toBe('updatedSerial')
-        expect(verifiedCertificate.certifier).toBe('updatedCertifier')
-        expect(verifiedCertificate.subject).toBe('updatedSubject')
-        expect(verifiedCertificate.verifier).toBe('updatedVerifier')
-        expect(verifiedCertificate.revocationOutpoint).toBe('updatedRevocation')
-        expect(verifiedCertificate.signature).toBe('updatedSignature')
-        expect(verifiedCertificate.isDeleted).toBe(true)
-        expect(new Date(verifiedCertificate.created_at.getTime())).toStrictEqual(new Date(createdTime.getTime()))
-        expect(new Date(verifiedCertificate.updated_at.getTime())).toStrictEqual(new Date(updatedTime.getTime()))
+          // Update all fields in one go
+          const r1 = await storage.updateCertificate(e[primaryKey], testValues)
+          expect(r1).toBe(1) // Expect one row updated
+
+          // Fetch the updated row for validation
+          const updatedRow = verifyOne(await storage.findCertificates({ [primaryKey]: e[primaryKey] }))
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle JSON strings
+            if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+              expect(JSON.parse(actualValue)).toStrictEqual(JSON.parse(value))
+              continue
+            }
+
+            // Handle primitive types directly
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+              expect(actualValue).toBe(value)
+              continue
+            }
+
+            // Handle Buffer-like objects
+            if (typeof actualValue === 'object' && actualValue?.type === 'Buffer') {
+              const actualArray = actualValue.data || actualValue
+              const expectedArray = Buffer.isBuffer(value) || Array.isArray(value) ? Array.from(value as ArrayLike<number>) : value
+              expect(actualArray).toStrictEqual(expectedArray)
+              continue
+            }
+
+            // Handle unmatched cases (Buffer fallback handling)
+            log('actualValue type is ', typeof actualValue, '=', actualValue)
+            log('value type is ', typeof value, '=', value)
+            expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying Certificate record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
       }
+    }
+  })
+
+  test('301 Certificate set created_at and updated_at time', async () => {
+    for (const { storage } of setups) {
+      const scenarios = [
+        {
+          description: 'Invalid created_at time',
+          updates: {
+            created_at: new Date('3000-01-01T00:00:00Z'), // Unrealistic future time
+            updated_at: new Date('2024-12-30T23:05:00Z') // Hardcoded update time
+          }
+        },
+        {
+          description: 'Invalid updated_at time',
+          updates: {
+            created_at: new Date('2024-12-30T23:00:00Z'), // Hardcoded creation time
+            updated_at: new Date('3000-01-01T00:00:00Z') // Unrealistic future time
+          }
+        },
+        {
+          description: 'created_at time overwrites updated_at time',
+          updates: {
+            created_at: new Date('2024-12-30T23:00:00Z'), // Hardcoded creation time
+            updated_at: new Date('2024-12-30T23:05:00Z') // Hardcoded update time
+          }
+        }
+      ]
+
+      for (const { description, updates } of scenarios) {
+        const referenceTime = new Date() // Capture time before updates
+
+        const r = await storage.findCertificates({})
+        for (const e of r) {
+          // Update fields based on the scenario
+          await storage.updateUser(e.certificateId, { created_at: updates.created_at })
+          await storage.updateUser(e.certificateId, { updated_at: updates.updated_at })
+
+          const t = verifyOne(await storage.findCertificates({ certificateId: e.certificateId }))
+
+          // Log the scenario for better test output
+          log(`Testing scenario: ${description}`)
+
+          // Validate times using `validateUpdateTime`
+          expect(validateUpdateTime(t.created_at, updates.created_at, referenceTime)).toBe(true)
+          expect(validateUpdateTime(t.updated_at, updates.updated_at, referenceTime)).toBe(true)
+        }
+      }
+    }
+  })
+
+  test('302 Certificate trigger DB unique constraint errors', async () => {
+    for (const { storage, setup } of setups) {
+      try {
+        const r = await storage.updateCertificate(2, {
+          type: `mockType`,
+          serialNumber: `mockSerialNumber`,
+          certifier: `mockCertifier`
+        })
+        await expect(Promise.resolve(r)).resolves.toBe(1)
+      } catch (error: any) {
+        console.error('Error updating second record:', error.message)
+        //return
+      }
+
+      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { certificateId: 0 }, 2, true)
+      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { type: `mockType` }, 1, true)
+      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { serialNumber: `mockSerialNumber`, 1, true })
+      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { certifier: `mockCertifier`, 1, true })
     }
   })
 

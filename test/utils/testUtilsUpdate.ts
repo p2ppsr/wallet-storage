@@ -26,6 +26,7 @@ export const log = (message: string, ...optionalParams: any[]): void => {
  */
 export const updateTable = async (updateFunction, id, testValues) => {
   for (const [key, value] of Object.entries(testValues)) {
+    log('id=', id, '[key]=', [key], 'value=', value)
     await updateFunction(id, { [key]: value })
   }
 }
@@ -193,7 +194,7 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  * @param {string} updateMethod - The method name for updating rows in the table (e.g., `updateProvenTxReq`).
  * @param {string} tableName - The name of the table being updated.
  * @param {string} columnName - The column name for which the unique constraint is being tested.
- * @param {any} [fieldValue=undefined] - The value that is used to trigger the constraint if it is not a primary key.
+ * @param {any} invalidValue - The value to assign to the column that should trigger the unique constraint error. This should be an object with the column name as the key.
  * @param {number} [increment=1] - The increment value to add to the column value during the test (default is 1).
  * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
@@ -207,7 +208,9 @@ export const triggerUniqueConstraintError = async (storage: any, findMethod: str
   setLogging(logEnabled)
 
   const rows = await storage[findMethod]({})
-  log('rows:', rows)
+  if (logEnabled) {
+    log('rows=', rows)
+  }
 
   if (!rows || rows.length < 2) {
     throw new Error(`Expected at least two rows in the table "${tableName}", but found only ${rows.length}. Please add more rows for the test.`)
@@ -217,16 +220,23 @@ export const triggerUniqueConstraintError = async (storage: any, findMethod: str
     throw new Error(`Column "${columnName}" does not exist in the table "${tableName}".`)
   }
 
-  log('invalidValue:', invalidValue)
-  log('invalidValue[columnName]=', invalidValue[columnName])
+  if (logEnabled) {
+    log('invalidValue=', invalidValue)
+  }
+
   if (invalidValue[columnName] !== undefined) {
     // Is an primary key so dynamically generate a new value for the column
     invalidValue[columnName] = rows[0][columnName] + increment
-    log('invalidValue:', invalidValue)
+    if (logEnabled) {
+      log('primary key=', invalidValue[columnName])
+    }
   }
 
   try {
-    //await storage.updateProvenTx(1, { txid: 'mockDupTxid' })
+    if (logEnabled) {
+      log('update=', rows[0][`${columnName}`])
+    }
+
     // Attempt the update with the new value that should trigger the constraint error
     await storage[updateMethod](rows[0][`${columnName}`], invalidValue)
     expect(true).toBe(false) // Force a failure if no error is thrown
@@ -266,7 +276,6 @@ export const triggerForeignKeyConstraintError = async (
 
   // Dynamically fetch rows using the correct method (findMethod)
   const rows = await storage[findMethod]({})
-  log('rows:', rows)
 
   if (!rows || rows.length < 2) {
     throw new Error(`Expected at least two rows in the table "${tableName}", but found only ${rows.length}. Please add more rows for the test.`)

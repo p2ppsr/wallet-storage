@@ -189,9 +189,11 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  * Triggers a unique constraint error by attempting to update a row with a value that violates a unique constraint.
  *
  * @param {any} storage - The storage object, typically containing the database methods for performing CRUD operations.
- * @param {string} method - The method name used to find rows (e.g., `ProvenTxReq`). The function dynamically calls `findProvenTxReqs`.
+ * @param {string} findMethod - The method name for finding rows in the table (e.g., `findProvenTxReqs`).
+ * @param {string} updateMethod - The method name for updating rows in the table (e.g., `updateProvenTxReq`).
  * @param {string} tableName - The name of the table being updated.
  * @param {string} columnName - The column name for which the unique constraint is being tested.
+ * @param {any} [fieldValue=undefined] - The value that is used to trigger the constraint if it is not a primary key.
  * @param {number} [increment=1] - The increment value to add to the column value during the test (default is 1).
  * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
@@ -199,9 +201,9 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  *
  * @throws {Error} Throws an error if the unique constraint error is not triggered or if the table has insufficient rows.
  *
- * @example await triggerUniqueConstraintError(storage, 'ProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', 1, true)
+ * @example await triggerUniqueConstraintError(storage, 'ProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', undefined, 1, true)
  */
-export const triggerUniqueConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, increment: number = 1, logEnabled: boolean = true): Promise<void> => {
+export const triggerUniqueConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, invalidValue: any, increment: number = 1, logEnabled: boolean = true): Promise<void> => {
   setLogging(logEnabled)
 
   const rows = await storage[findMethod]({})
@@ -215,16 +217,21 @@ export const triggerUniqueConstraintError = async (storage: any, findMethod: str
     throw new Error(`Column "${columnName}" does not exist in the table "${tableName}".`)
   }
 
-  // Dynamically generate a new value for the column (for example, incrementing an ID)
-  const dynamicValue = rows[0][columnName] + increment
-  log('dynamicValue:', dynamicValue)
+  log('invalidValue:', invalidValue)
+  log('invalidValue[columnName]=', invalidValue[columnName])
+  if (invalidValue[columnName] !== undefined) {
+    // Is an primary key so dynamically generate a new value for the column
+    invalidValue[columnName] = rows[0][columnName] + increment
+    log('invalidValue:', invalidValue)
+  }
 
   try {
+    //await storage.updateProvenTx(1, { txid: 'mockDupTxid' })
     // Attempt the update with the new value that should trigger the constraint error
-    await storage[updateMethod](rows[0][`${columnName}`], { [columnName]: dynamicValue })
+    await storage[updateMethod](rows[0][`${columnName}`], invalidValue)
     expect(true).toBe(false) // Force a failure if no error is thrown
   } catch (error: any) {
-    logUniqueConstraintError(error, tableName, columnName, logEnabled)
+    logUniqueConstraintError(error, tableName, Object.keys(invalidValue)[0], logEnabled)
   }
 }
 

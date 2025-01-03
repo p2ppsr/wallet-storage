@@ -302,8 +302,8 @@ describe('update tests', () => {
         return
       }
 
-      await triggerUniqueConstraintError(storage, 'findProvenTxs', 'updateProvenTx', 'proven_txs', 'provenTxId', { provenTxId: 0 }, 1, true)
-      await triggerUniqueConstraintError(storage, 'findProvenTxs', 'updateProvenTx', 'proven_txs', 'provenTxId', { txid: 'mockDupTxid' }, 1, true)
+      await triggerUniqueConstraintError(storage, 'findProvenTxs', 'updateProvenTx', 'proven_txs', 'provenTxId', { provenTxId: 2 })
+      await triggerUniqueConstraintError(storage, 'findProvenTxs', 'updateProvenTx', 'proven_txs', 'provenTxId', { txid: 'mockDupTxid' })
     }
   })
 
@@ -431,14 +431,14 @@ describe('update tests', () => {
         console.error('Error updating second record:', error.message)
         return
       }
-      await triggerUniqueConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxReqId: 0 })
+      await triggerUniqueConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxReqId: 2 })
       await triggerUniqueConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { txid: 'mockDupTxid' })
     }
   })
 
   test('103 ProvenTxReq trigger DB foreign constraint error for provenTxId', async () => {
     for (const { storage, setup } of setups) {
-      await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxId: 0 }, true)
+      await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxId: 0 })
     }
   })
 
@@ -639,7 +639,7 @@ describe('update tests', () => {
         console.error('Error updating second record:', error.message)
         return
       }
-      await triggerUniqueConstraintError(storage, 'findUsers', 'updateUser', 'users', 'userId', { userId: 0 })
+      await triggerUniqueConstraintError(storage, 'findUsers', 'updateUser', 'users', 'userId', { userId: 2 })
       await triggerUniqueConstraintError(storage, 'findUsers', 'updateUser', 'users', 'userId', { identityKey: 'mockDupIdentityKey' })
     }
   })
@@ -886,22 +886,31 @@ describe('update tests', () => {
 
   test('302 Certificate trigger DB unique constraint errors', async () => {
     for (const { storage, setup } of setups) {
+      // Multi-field combined constrant
+      const initInvalidValues = {
+        userId: 2,
+        type: `mockType2`,
+        certifier: `mockCertifier2`,
+        serialNumber: `mockSerialNumber2`
+      }
+
       try {
-        const r = await storage.updateCertificate(2, {
-          type: `mockType`,
-          serialNumber: `mockSerialNumber`,
-          certifier: `mockCertifier`
-        })
+        const r = await storage.updateCertificate(2, initInvalidValues)
         await expect(Promise.resolve(r)).resolves.toBe(1)
       } catch (error: any) {
         console.error('Error updating second record:', error.message)
-        //return
       }
 
-      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { certificateId: 0 }, 2, true)
-      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { type: `mockType` }, 1, true)
-      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { serialNumber: `mockSerialNumber`, 1, true })
-      //await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificate', 'certificateId', { certifier: `mockCertifier`, 1, true })
+      // Have to create additional object as update method adds update_at to the object?
+      const invalidValues = {
+        userId: 2,
+        type: `mockType2`,
+        certifier: `mockCertifier2`,
+        serialNumber: `mockSerialNumber2`
+      }
+
+      await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificates', 'certificateId', { certificateId: 2 })
+      await triggerUniqueConstraintError(storage, 'findCertificates', 'updateCertificate', 'certificates', 'certificateId', invalidValues)
     }
   })
 

@@ -141,25 +141,32 @@ export const setLogging = (enabled: boolean): void => {
 }
 
 /**
- * Logs an error based on the specific unique constraint failure or unexpected error.
+ * Logs the unique constraint error for multiple fields.
  *
  * @param {any} error - The error object that contains the error message.
- * @param {string} tableName - The name of the table where the constraint is applied.
- * @param {string} columnName - The name of the column in which the unique constraint is being violated.
- * @param {boolean} [logEnabled=true] - A flag to enable or disable logging for this error.
- *
- * @returns {void} This function does not return any value. It logs the error to the console.
- *
- * @example logUniqueConstraintError(error, 'proven_tx_reqs', 'provenTxReqId', logEnabled)
+ * @param {string} tableName - The name of the table where the constraint was violated.
+ * @param {string[]} columnNames - An array of column names for which to check the unique constraint.
+ * @param {boolean} logEnabled - A flag to enable or disable logging.
  */
-const logUniqueConstraintError = (error: any, tableName: string, columnName: string, logEnabled: boolean = true): void => {
+export const logUniqueConstraintError = (error: any, tableName: string, columnNames: string[], logEnabled: boolean = true): void => {
   if (logEnabled) {
-    if (error.message.includes(`SQLITE_CONSTRAINT: UNIQUE constraint failed: ${tableName}.${columnName}`)) {
-      log(`${columnName} constraint error caught as expected:`, error.message)
+    // Construct the expected error message string with the table name prefixed to each column
+    const expectedErrorString = `SQLITE_CONSTRAINT: UNIQUE constraint failed: ${columnNames.map(col => `${tableName}.${col}`).join(', ')}`
+
+    log('expectedErrorString=', expectedErrorString)
+
+    // Check if the error message contains the expected string
+    if (error.message.includes(expectedErrorString)) {
+      console.log(`Unique constraint error for columns ${columnNames.join(', ')} caught as expected:`, error.message)
     } else {
-      log('Unexpected error:', error.message)
-      throw new Error(`Unexpected error: ${error.message}`)
+      console.log('Unexpected error message:', error.message)
     }
+  }
+
+  // If the error doesn't match the expected unique constraint error message, throw it
+  if (!error.message.includes(`SQLITE_CONSTRAINT: UNIQUE constraint failed: ${columnNames.map(col => `${tableName}.${col}`).join(', ')}`)) {
+    console.log('Unexpected error:', error.message)
+    throw new Error(`Unexpected error: ${error.message}`)
   }
 }
 
@@ -194,17 +201,26 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  * @param {string} updateMethod - The method name for updating rows in the table (e.g., `updateProvenTxReq`).
  * @param {string} tableName - The name of the table being updated.
  * @param {string} columnName - The column name for which the unique constraint is being tested.
- * @param {any} invalidValue - The value to assign to the column that should trigger the unique constraint error. This should be an object with the column name as the key.
- * @param {number} [increment=1] - The increment value to add to the column value during the test (default is 1).
+ * @param {any} invalidValue - The value to assign to the column that should trigger the unique constraint error. This should be an object with the column name(s) as the key(s).
+ * @param {number} [id=1] - The id used to set the column value during the test (default is 1).
  * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
  * @returns {Promise<void>} This function does not return a value, but performs an async operation to test the unique constraint error.
  *
  * @throws {Error} Throws an error if the unique constraint error is not triggered or if the table has insufficient rows.
  *
- * @example await triggerUniqueConstraintError(storage, 'ProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', undefined, 1, true)
+ * @example await triggerUniqueConstraintError(storage, 'ProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxReqId: 42 }, 1, true)
  */
-export const triggerUniqueConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, invalidValue: any, increment: number = 1, logEnabled: boolean = true): Promise<void> => {
+export const triggerUniqueConstraintError = async (
+  storage: any,
+  findMethod: string,
+  updateMethod: string,
+  tableName: string,
+  columnName: string,
+  invalidValue: any, // This remains an object passed in by the caller
+  id: number = 1,
+  logEnabled: boolean = true
+): Promise<void> => {
   setLogging(logEnabled)
 
   const rows = await storage[findMethod]({})
@@ -224,24 +240,20 @@ export const triggerUniqueConstraintError = async (storage: any, findMethod: str
     log('invalidValue=', invalidValue)
   }
 
-  if (invalidValue[columnName] !== undefined) {
-    // Is an primary key so dynamically generate a new value for the column
-    invalidValue[columnName] = rows[0][columnName] + increment
-    if (logEnabled) {
-      log('primary key=', invalidValue[columnName])
-    }
-  }
+  // Create columnNames from invalidValue keys before the update
+  const columnNames = Object.keys(invalidValue)
 
   try {
     if (logEnabled) {
-      log('update=', rows[0][`${columnName}`])
+      log('update id=', id)
     }
 
     // Attempt the update with the new value that should trigger the constraint error
-    await storage[updateMethod](rows[0][`${columnName}`], invalidValue)
+    await storage[updateMethod](id, invalidValue)
     expect(true).toBe(false) // Force a failure if no error is thrown
   } catch (error: any) {
-    logUniqueConstraintError(error, tableName, Object.keys(invalidValue)[0], logEnabled)
+    // Handle the error by passing columnNames for validation in logUniqueConstraintError
+    logUniqueConstraintError(error, tableName, columnNames, logEnabled)
   }
 }
 

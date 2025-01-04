@@ -7,6 +7,7 @@ import { listActionsSdk } from './methods/listActionsSdk'
 import { listOutputsSdk } from "./methods/listOutputsSdk";
 import { purgeData } from "./methods/purgeData";
 import { requestSyncChunk } from "./methods/requestSyncChunk";
+import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 
 export interface StorageKnexOptions extends StorageBaseOptions {
     /**
@@ -48,6 +49,12 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return r
     }
 
+    dbTypeSubstring(source: string, fromOffset: number, forLength?: number) {
+        if (this.dbtype === 'MySQL')
+            return `substring(${source} from ${fromOffset} for ${forLength!})`
+        return `substr(${source}, ${fromOffset}, ${forLength})`
+    }
+
     override async getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken)
     : Promise<number[] | undefined>
     {
@@ -55,12 +62,14 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
 
         let rawTx: number[] | undefined = undefined
         if (Number.isInteger(offset) && Number.isInteger(length)) {
-            const rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select substring(rawTx from ${offset! + 1} for ${length}) as rawTx from proven_txs where txid = '${txid}'`))[0]
+            let rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select ${this.dbTypeSubstring('rawTx', offset! + 1, length)} as rawTx from proven_txs where txid = '${txid}'`))
+            if (this.dbtype === 'MySQL') rs = (rs as unknown as { rawTx: Buffer | null }[][])[0]
             const r = verifyOneOrNone(rs)
             if (r && r.rawTx) {
                 rawTx = Array.from(r.rawTx)
             } else {
-                const rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select substring(rawTx from ${offset! + 1} for ${length}) as rawTx from proven_tx_reqs where txid = '${txid}' and status in ('unsent', 'nosend', 'sending', 'unmined', 'completed')`))[0]
+                let rs: { rawTx: Buffer | null }[] = (await this.toDb(trx).raw(`select ${this.dbTypeSubstring('rawTx', offset! + 1, length)} as rawTx from proven_tx_reqs where txid = '${txid}' and status in ('unsent', 'nosend', 'sending', 'unmined', 'completed')`))
+                if (this.dbtype === 'MySQL') rs = (rs as unknown as { rawTx: Buffer | null }[][])[0]
                 const r = verifyOneOrNone(rs)
                 if (r && r.rawTx) {
                     rawTx = Array.from(r.rawTx)
@@ -147,16 +156,19 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
 
-    async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
+    override async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await listCertificatesSdk(this, vargs, originator)
+    }
+    override async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
         return await listActionsSdk(this, vargs, originator)
     }
-    async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
+    override async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         return await listOutputsSdk(this, vargs, originator)
     }
-    async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
+    override async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
         throw new Error("Method not implemented.");
     }
-    async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
+    override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
         throw new Error("Method not implemented.");
     }
 

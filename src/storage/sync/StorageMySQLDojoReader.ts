@@ -1,4 +1,4 @@
-import { asString, convertProofToMerklePath, deserializeTscMerkleProofNodes, sdk, validateSecondsSinceEpoch, verifyId, verifyInteger, verifyOne, verifyTruthy } from "../..";
+import { asString, convertProofToMerklePath, deserializeTscMerkleProofNodes, sdk, validateSecondsSinceEpoch, verifyHexString, verifyId, verifyInteger, verifyOne, verifyOptionalHexString, verifyTruthy } from "../..";
 import { DBType, StorageKnexOptions, StorageSyncReader, table } from ".."
 
 import { Knex } from "knex";
@@ -40,7 +40,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         const r: table.Settings = {
             created_at: verifyTruthy(d.created_at),
             updated_at: verifyTruthy(d.updated_at),
-            storageIdentityKey: verifyTruthy(d.dojoIdentityKey),
+            storageIdentityKey: verifyHexString(d.dojoIdentityKey),
             storageName: d.dojoName || `${this.chain} Dojo Import`,
             chain: this.chain,
             dbtype: "MySQL",
@@ -78,7 +78,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 basketId: verifyInteger(d.basketId),
                 userId: verifyInteger(d.userId),
-                name: verifyTruthy(d.name),
+                name: verifyTruthy(d.name).trim().toLowerCase(),
                 numberOfDesiredUTXOs: verifyInteger(d.numberOfDesiredUTXOs),
                 minimumDesiredUTXOValue: verifyInteger(d.minimumDesiredUTXOValue),
                 isDeleted: !!d.isDeleted
@@ -100,7 +100,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 txLabelId: verifyInteger(d.txLabelId),
                 userId: verifyInteger(d.userId),
-                label: verifyTruthy(d.label),
+                label: verifyTruthy(d.label).trim().toLowerCase(),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -120,7 +120,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 outputTagId: verifyInteger(d.outputTagId),
                 userId: verifyInteger(d.userId),
-                tag: verifyTruthy(d.tag),
+                tag: verifyTruthy(d.tag).trim().toLowerCase(),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -149,7 +149,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 transactionId: verifyInteger(d.transactionId),
                 userId: verifyInteger(d.userId),
                 status: verifyTruthy(convertTxStatus(d.status)),
-                reference: verifyTruthy(d.referenceNumber),
+                reference: verifyTruthy(d.referenceNumber).trim().toLowerCase(),
                 isOutgoing: !!d.isOutgoing,
                 satoshis: verifyInteger(d.amount),
                 description: verifyTruthy(d.note || ''),
@@ -180,7 +180,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 userId: verifyInteger(d.userId),
                 transactionId: verifyInteger(d.transactionId),
                 satoshis: verifyInteger(d.satoshis),
-                keyOffset: verifyTruthy(d.keyOffset),
+                keyOffset: verifyTruthy(d.keyOffset).trim(),
                 isRedeemed: !!d.isRedeemed,
                 lockingScript: Array.from(verifyTruthy(d.outputScript))
             }
@@ -215,14 +215,14 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 basketId: verifyOptionalInteger(d.basketId),
                 spendable: !!d.spendable,
                 change: d.providedBy !== 'you' && d.purpose === 'change',
-                outputDescription: d.description || '',
+                outputDescription: (d.description || '').trim(),
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
-                providedBy: verifyTruthy(d.providedBy || ''),
-                purpose: verifyTruthy(d.purpose || ''),
-                type: verifyTruthy(d.type),
+                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase(),
+                purpose: verifyTruthy(d.purpose || '').trim().toLowerCase(),
+                type: verifyTruthy(d.type).trim(),
                 txid: nullToUndefined(d.txid),
-                senderIdentityKey: nullToUndefined(d.senderIdentityKey),
+                senderIdentityKey: verifyOptionalHexString(d.senderIdentityKey),
                 derivationPrefix: nullToUndefined(d.derivationPrefix),
                 derivationSuffix: nullToUndefined(d.derivationSuffix),
                 customInstructions: nullToUndefined(d.customInstruction),
@@ -253,13 +253,13 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 certificateId: verifyInteger(d.certificateId),
                 userId: verifyInteger(d.userId),
-                type: verifyTruthy(d.type),
-                serialNumber: verifyTruthy(d.serialNumber),
-                certifier: verifyTruthy(d.certifier),
-                subject: verifyTruthy(d.subject),
-                revocationOutpoint: verifyTruthy(d.revocationOutpoint),
-                signature: verifyTruthy(d.signature),
-                verifier: nullToUndefined(d.validationKey),
+                type: verifyTruthy(d.type).trim(), // base64
+                serialNumber: verifyTruthy(d.serialNumber).trim(), // base64
+                certifier: verifyHexString(d.certifier),
+                subject: verifyHexString(d.subject),
+                revocationOutpoint: verifyTruthy(d.revocationOutpoint).trim().toLowerCase(),
+                signature: verifyHexString(d.signature),
+                verifier: verifyOptionalHexString(d.validationKey),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -279,9 +279,9 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 userId: verifyInteger(d.userId),
                 certificateId: verifyInteger(d.certificateId),
-                fieldName: verifyTruthy(d.fieldName),
-                fieldValue: verifyTruthy(d.fieldValue),
-                masterKey: verifyTruthy(d.masterKey),
+                fieldName: verifyTruthy(d.fieldName).trim().toLowerCase(),
+                fieldValue: verifyTruthy(d.fieldValue).trim(), // base64
+                masterKey: verifyTruthy(d.masterKey).trim(), // base64
             }
             rs.push(r)
         }
@@ -297,8 +297,8 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 syncStateId: verifyInteger(d.syncStateId),
                 userId: verifyInteger(d.userId),
-                storageIdentityKey: verifyTruthy(d.storageIdentityKey),
-                storageName: verifyTruthy(d.storageName || 'dojo importer'),
+                storageIdentityKey: verifyHexString(d.storageIdentityKey),
+                storageName: verifyTruthy(d.storageName || 'dojo importer').trim().toLowerCase(),
                 status: convertSyncStatus(d.status),
                 init: !!d.init,
                 refNum: verifyTruthy(d.refNum),
@@ -356,13 +356,13 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 created_at: verifyTruthy(d.created_at),
                 updated_at: verifyTruthy(d.updated_at),
                 provenTxId: verifyInteger(d.provenTxId),
-                txid: verifyTruthy(d.txid),
+                txid: verifyHexString(d.txid),
                 height: verifyInteger(d.height),
                 index: verifyInteger(d.index),
                 merklePath: mp.toBinary(),
                 rawTx: Array.from(verifyTruthy(d.rawTx)),
-                blockHash: asString(verifyTruthy(d.blockHash)),
-                merkleRoot: asString(verifyTruthy(d.merkleRoot)),
+                blockHash: verifyHexString(asString(verifyTruthy(d.blockHash))),
+                merkleRoot: verifyHexString(asString(verifyTruthy(d.merkleRoot))),
             }
 
             rs.push(r)
@@ -487,7 +487,8 @@ function convertTxStatus(status: DojoTransactionStatusApi): sdk.TransactionStatu
 }
 
 function nullToUndefined<T>(v: T) : T | undefined {
-    if (v === null) return undefined
+    if (v === null) return undefined;
+    if (typeof v === 'string') return v.trim() as T;
     return v
 }
 

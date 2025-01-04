@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, verifyTruthy, Wallet, WalletMonitor, WalletMonitorOptions, WalletServices, WalletSigner, WalletStorage } from '../../src'
+import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, StorageSyncReader, table, verifyTruthy, Wallet, WalletMonitor, WalletMonitorOptions, WalletServices, WalletSigner, WalletStorage } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
 import { Beef } from '@bsv/sdk';
@@ -79,6 +79,11 @@ export abstract class TestUtilsWalletStorage {
             await fsp.copyFile(srcPath, dstPath)
         }
         return dstPath
+    }
+
+    static async existingDataFile(filename: string): Promise<string> {
+        const folder = './test/data/'
+        return folder + filename
     }
 
     static createLocalSQLite(filename: string): Knex {
@@ -227,6 +232,48 @@ export abstract class TestUtilsWalletStorage {
             activeStorage,
             storage,
             setup,
+            signer,
+            services,
+            monitor,
+            wallet,
+            userId
+        }
+        return r
+    }
+
+    static async createLegacyCopyWallet(databaseName: string) : Promise<TestWalletNoSetup> { 
+        const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
+        const readerKnex = _tu.createLocalSQLite(readerFile)
+        const chain: sdk.Chain = 'test'
+        const reader = new StorageKnex({ chain, knex: readerKnex })
+        const rootKeyHex = "153a3df216"+"686f55b253991c"+"7039da1f648"+"ffc5bfe93d6ac2c25ac"+"2d4070918d"
+        const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe" 
+        const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
+        const keyDeriver = new sdk.KeyDeriver(rootKey)
+        const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
+        const walletKnex = _tu.createLocalSQLite(walletFile)
+        const activeStorage = new StorageKnex({ chain, knex: walletKnex })
+        await activeStorage.dropAllData()
+        await activeStorage.migrate(databaseName)
+        await activeStorage.makeAvailable()
+        const storage = new WalletStorage(activeStorage)
+        await storage.SyncFromReader(identityKey, reader)
+        await reader.destroy()
+        const signer = new WalletSigner(chain, keyDeriver, storage)
+        await signer.authenticate(undefined, false)
+        const services = new WalletServices(chain)
+        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services)
+        const monitor = new WalletMonitor(monopts)
+        const wallet = new Wallet(signer, keyDeriver, services, monitor)
+        const userId = signer._user!.userId
+        const r: TestWallet<{}> = {
+            rootKey,
+            identityKey,
+            keyDeriver,
+            chain,
+            activeStorage,
+            storage,
+            setup: {},
             signer,
             services,
             monitor,
@@ -648,3 +695,24 @@ export interface TestWallet<T> {
 async function insertEmptySetup(storage: StorageKnex, identityKey: string) : Promise<object> { return {} }
 
 export type TestSetup1Wallet = TestWallet<TestSetup1>
+export type TestWalletNoSetup = TestWallet<{}>
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function expectToThrowWERR<R>(
+  expectedClass: new (...args: any[]) => any,
+  fn: () => Promise<R>
+): Promise<void> {
+  try {
+    await fn()
+  } catch (eu: unknown) {
+    const e = sdk.WalletError.fromUnknown(eu)
+    if (e.name !== expectedClass.name || !e.isError)
+      console.log(`Error name ${e.name} vs class name ${expectedClass.name}\n${e.stack}\n`)
+    // The output above may help debugging this situation or put a breakpoint
+    // on the line below and look at e.stack
+    expect(e.name).toBe(expectedClass.name)
+    expect(e.isError).toBe(true)
+    return
+  }
+  throw new Error(`${expectedClass.name} was not thrown`)
+}

@@ -1,4 +1,5 @@
 import { sdk, table, verifyOneOrNone } from "..";
+import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
@@ -136,6 +137,10 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     }
     async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined> {
         return verifyOneOrNone(await this.findWatchmanEvents({ id }, undefined, undefined, trx))
+    }
+
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await listCertificatesSdk(this, vargs, originator)
     }
 }
 

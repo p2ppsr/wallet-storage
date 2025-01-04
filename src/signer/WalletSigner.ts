@@ -83,6 +83,12 @@ export class WalletSigner implements sdk.WalletSigner {
         return r
     }
 
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        await this.verifyStorageAvailable()
+        vargs.userId = this._user!.userId
+        const r = await this.storage.listCertificatesSdk(vargs, originator)
+        return r
+    }
 
 
     async signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> {
@@ -102,10 +108,6 @@ export class WalletSigner implements sdk.WalletSigner {
         throw new Error("Method not implemented.");
     }
     async acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult> {
-        await this.verifyStorageAvailable()
-        throw new Error("Method not implemented.");
-    }
-    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
         await this.verifyStorageAvailable()
         throw new Error("Method not implemented.");
     }

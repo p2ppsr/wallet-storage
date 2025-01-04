@@ -100,7 +100,14 @@ export class WalletMonitor {
         this._otherTasks.push(new TaskCheckProofs(this))
         this._otherTasks.push(new TaskFailAbandoned(this))
         this._otherTasks.push(new TaskNotifyOfProofs(this))
-        this._otherTasks.push(new TaskPurge(this, { purgeCompleted: false, purgeFailed: true, purgeCompletedAge: 2 * this.oneWeek , purgeFailedAge: 5 * this.oneDay }))
+        this._otherTasks.push(new TaskPurge(this, {
+            purgeSpent: false,
+            purgeCompleted: false,
+            purgeFailed: true,
+            purgeSpentAge: 2 * this.oneWeek,
+            purgeCompletedAge: 2 * this.oneWeek,
+            purgeFailedAge: 5 * this.oneDay
+        }))
         this._otherTasks.push(new TaskSendWaiting(this))
         this._otherTasks.push(new TaskSyncWhenIdle(this))
     }
@@ -131,10 +138,12 @@ export class WalletMonitor {
         this._tasks.push(new TaskNotifyOfProofs(this, 5 * minutes)) // Every 5 minutes, supports marking nosend reqs as invalid
         this._tasks.push(new TaskFailAbandoned(this, 8 * minutes))
         this._tasks.push(new TaskPurge(this, {
-            purgeCompleted: true,
+            purgeSpent: false,
+            purgeCompleted: false,
             purgeFailed: true,
-            purgeCompletedAge: 14 * days,
-            purgeFailedAge: 14 * days
+            purgeSpentAge: 2 * this.oneWeek,
+            purgeCompletedAge: 2 * this.oneWeek,
+            purgeFailedAge: 5 * this.oneDay
         }, 6 * hours))
         this._otherTasks.push(new TaskValidate(this))
         this._otherTasks.push(new TaskCheckProofs(this, 1000 * 60 * 60 * 4))

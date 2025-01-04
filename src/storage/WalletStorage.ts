@@ -288,6 +288,9 @@ export class WalletStorage implements sdk.WalletStorage {
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         return await this.getActive().listOutputsSdk(vargs, originator)
     }
+   async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await this.getActive().listCertificatesSdk(vargs, originator)
+   }
 
     async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.CertificateField[]> {
         return await this.getActive().findCertificateFields(partial, since, paged, trx)

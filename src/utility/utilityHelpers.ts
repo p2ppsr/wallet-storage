@@ -70,6 +70,28 @@ export function verifyTruthy<T> (v: T | null | undefined, description?: string):
 /**
  * Helper function.
  *
+ * Verifies that a hex string is trimmed and lower case.
+ */
+export function verifyHexString (v: string): string {
+  if (typeof v !== 'string') throw new sdk.WERR_INTERNAL('A string is required.');
+  v = v.trim().toLowerCase()
+  return v
+}
+
+/**
+ * Helper function.
+ *
+ * Verifies that an optional or null hex string is undefined or a trimmed lowercase string.
+ */
+export function verifyOptionalHexString (v?: string | null): string | undefined {
+  if (!v) return undefined
+  return verifyHexString(v)
+}
+
+
+/**
+ * Helper function.
+ *
  * Verifies that an optional or null number has a numeric value.
  */
 export function verifyNumber (v: number | null | undefined): number {

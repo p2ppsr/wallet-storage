@@ -18,6 +18,7 @@ export interface TuEnv {
     mainTaalApiKey: string
     testTaalApiKey: string
     devKeys: Record<string, string>
+    noMySQL: boolean
 }
 
 export abstract class TestUtilsWalletStorage {
@@ -29,6 +30,7 @@ export abstract class TestUtilsWalletStorage {
             throw new sdk.WERR_INTERNAL('.env file configuration is missing or incomplete.')
         const userId = Number(chain === 'main' ? process.env.MY_MAIN_USERID : process.env.MY_TEST_USERID)
         const DEV_KEYS = process.env.DEV_KEYS || '{}'
+        const noMySQL = !!process.env.NOMYSQL
         return {
             chain,
             userId,
@@ -36,6 +38,7 @@ export abstract class TestUtilsWalletStorage {
             mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
             testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
             devKeys: JSON.parse(DEV_KEYS),
+            noMySQL
         }
     }
 

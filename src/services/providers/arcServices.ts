@@ -239,10 +239,10 @@ export async function postBeefToTaalArcMiner(
 : Promise<sdk.PostBeefResult>
 {
     const r1 = await postBeefToArcMiner(beef, txids, config)
+    return r1
+
     if (r1.status === 'success') return r1
     const datas: object = { r1: r1.data }
-
-    const obeef = Array.isArray(beef) ? bsv.Beef.fromBinary(beef) : beef
 
     // 2024-12-15 Testing still fails to consistently accept multiple new transactions in one Beef.
     // Earlier testing seemed to confirm it worked. Did they break it??
@@ -251,8 +251,8 @@ export async function postBeefToTaalArcMiner(
     // Clearly they updated their code since the atomic beef spec wasn't written until after
     // the original tests were done...
     {
-        if (obeef.atomicTxid === undefined) {
-            const abeef = obeef.toBinaryAtomic(txids[txids.length -1])
+        if (beef.atomicTxid === undefined) {
+            const abeef = beef.toBinaryAtomic(txids[txids.length -1])
             const r2 = await postBeefToArcMiner(abeef, txids, config)
             datas['r2'] = r2.data
             r2.data = datas
@@ -267,7 +267,7 @@ export async function postBeefToTaalArcMiner(
         txidResults: []
     }
     for (const txid of txids) {
-        const ab = obeef.toBinaryAtomic(txid)
+        const ab = beef.toBinaryAtomic(txid)
         const b = bsv.Beef.fromBinary(ab)
         const rt = await postBeefToArcMiner(b, [txid], config)
         if (rt.status === 'error') r3.status = 'error'
@@ -280,7 +280,7 @@ export async function postBeefToTaalArcMiner(
 }
 
 export async function postBeefToArcMiner(
-    beef: number[] | bsv.Beef,
+    beef: bsv.Beef,
     txids: string[],
     config: ArcServiceConfig
 )
@@ -291,13 +291,11 @@ export async function postBeefToArcMiner(
     let url = ''
 
     let r: sdk.PostBeefResult | undefined = undefined
-    let beefBinary = Array.isArray(beef) ? beef : beef.toBinary()
-    beef = Array.isArray(beef) ? bsv.Beef.fromBinary(beef) : beef
-
 
     // HACK to resolve ARC error when row has zero leaves.
     // beef.addComputedLeaves()
-    beefBinary = beef.toBinary()
+
+    const beefBinary = beef.toBinary()
 
     try {
         const length = beefBinary.length

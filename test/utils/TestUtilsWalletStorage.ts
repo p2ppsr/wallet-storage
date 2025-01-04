@@ -241,7 +241,18 @@ export abstract class TestUtilsWalletStorage {
         return r
     }
 
-    static async createLegacyCopyWallet(databaseName: string) : Promise<TestWalletNoSetup> { 
+    static async createLegacyWalletSQLiteCopy(databaseName: string) : Promise<TestWalletNoSetup> { 
+        const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
+        const walletKnex = _tu.createLocalSQLite(walletFile)
+        return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
+    }
+
+    static async createLegacyWalletMySQLCopy(databaseName: string) : Promise<TestWalletNoSetup> { 
+        const walletKnex = _tu.createLocalMySQL(databaseName)
+        return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
+    }
+
+    static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>) : Promise<TestWalletNoSetup> { 
         const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
         const readerKnex = _tu.createLocalSQLite(readerFile)
         const chain: sdk.Chain = 'test'
@@ -250,8 +261,6 @@ export abstract class TestUtilsWalletStorage {
         const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe" 
         const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
         const keyDeriver = new sdk.KeyDeriver(rootKey)
-        const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
-        const walletKnex = _tu.createLocalSQLite(walletFile)
         const activeStorage = new StorageKnex({ chain, knex: walletKnex })
         await activeStorage.dropAllData()
         await activeStorage.migrate(databaseName)

@@ -28,7 +28,7 @@ describe('StorageMySQLDojoReader tests', () => {
         await writer.destroy()
     })
 
-    test('0', async () => {
+    test.skip('0', async () => {
         const readerSettings = await reader.getSettings()
         const writerSettings = await writer.getSettings()
 

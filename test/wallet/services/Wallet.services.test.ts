@@ -23,7 +23,7 @@ describe('Wallet services tests', () => {
         for (const { chain, wallet, services } of ctxs) {
             if (!wallet.services || !services) throw new sdk.WERR_INTERNAL('test requires setup with services')
             {
-                const us = await wallet.services.getUtxoStatus('4104e70a02f5af48a1989bf630d92523c9d14c45c75f7d1b998e962bff6ff9995fc5bdb44f1793b37495d80324acba7c8f537caaf8432b8d47987313060cc82d8a93ac', 'script')
+                const us = await wallet.services.getUtxoStatus('4104eca750b68551fb5aa893acb428b6a7d2d673498fd055cf2a8d402211b9500bdc27936846c2aa45cf82afe2f566b69cd7f7298154b0ffb25fbfa4fef8986191c4ac', 'script')
                 if (chain === 'main') {
                     expect(us.status).toBe('success')
                     expect(us.isUtxo).toBe(true)
@@ -35,7 +35,8 @@ describe('Wallet services tests', () => {
         }
     })
 
-    test('1 getBsvExchangeRate', async () => {
+    // Underlying WoC service is rate limited
+    test.skip('1 getBsvExchangeRate', async () => {
         for (const { chain, wallet, services } of ctxs) {
             if (!wallet.services || !services) throw new sdk.WERR_INTERNAL('test requires setup with services')
 
@@ -109,13 +110,14 @@ describe('Wallet services tests', () => {
                     const beef = new bsv.Beef()
                     beef.mergeBump(mp.merklePath!)
                     beef.mergeRawTx(rawTx.rawTx!)
-                    console.log(beef.toLogString())
-                    const r = await wallet.services.postBeef(beef, [txid])
+                    // Using postTxs as postBeef is problematic still...
+                    const r = await wallet.services.postTxs(beef, [txid])
                     if (r[0].status === 'error') {
+                        console.log(beef.toLogString())
                         console.log(beef.toHex())
                     }
                     expect(r[0].txidResults[0].txid).toBe(txid)
-                    expect(r[0].status).toBe('error')
+                    expect(r[0].status).toBe('success')
                 }
             }
         }

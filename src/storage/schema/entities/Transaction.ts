@@ -160,7 +160,7 @@ export class Transaction extends EntityBase<table.Transaction> {
     }
 
     override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
-        if (this.provenTxId) this.provenTxId = syncMap.transaction.idMap[this.provenTxId]
+        if (this.provenTxId) this.provenTxId = syncMap.provenTx.idMap[this.provenTxId]
         this.userId = userId
         this.transactionId = 0
         this.transactionId = await storage.insertTransaction(this.toApi(), trx)

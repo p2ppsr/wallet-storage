@@ -1,4 +1,4 @@
-import { asString, sdk, validateSecondsSinceEpoch, verifyId, verifyInteger, verifyOne, verifyTruthy } from "../..";
+import { asString, convertProofToMerklePath, deserializeTscMerkleProofNodes, sdk, validateSecondsSinceEpoch, verifyHexString, verifyId, verifyInteger, verifyOne, verifyOptionalHexString, verifyTruthy } from "../..";
 import { DBType, StorageKnexOptions, StorageSyncReader, table } from ".."
 
 import { Knex } from "knex";
@@ -40,7 +40,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         const r: table.Settings = {
             created_at: verifyTruthy(d.created_at),
             updated_at: verifyTruthy(d.updated_at),
-            storageIdentityKey: verifyTruthy(d.dojoIdentityKey),
+            storageIdentityKey: verifyHexString(d.dojoIdentityKey),
             storageName: d.dojoName || `${this.chain} Dojo Import`,
             chain: this.chain,
             dbtype: "MySQL",
@@ -78,7 +78,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 basketId: verifyInteger(d.basketId),
                 userId: verifyInteger(d.userId),
-                name: verifyTruthy(d.name),
+                name: verifyTruthy(d.name).trim().toLowerCase(),
                 numberOfDesiredUTXOs: verifyInteger(d.numberOfDesiredUTXOs),
                 minimumDesiredUTXOValue: verifyInteger(d.minimumDesiredUTXOValue),
                 isDeleted: !!d.isDeleted
@@ -100,7 +100,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 txLabelId: verifyInteger(d.txLabelId),
                 userId: verifyInteger(d.userId),
-                label: verifyTruthy(d.label),
+                label: verifyTruthy(d.label).trim().toLowerCase(),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -120,7 +120,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 outputTagId: verifyInteger(d.outputTagId),
                 userId: verifyInteger(d.userId),
-                tag: verifyTruthy(d.tag),
+                tag: verifyTruthy(d.tag).trim().toLowerCase(),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -149,7 +149,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 transactionId: verifyInteger(d.transactionId),
                 userId: verifyInteger(d.userId),
                 status: verifyTruthy(convertTxStatus(d.status)),
-                reference: verifyTruthy(d.referenceNumber),
+                reference: verifyTruthy(d.referenceNumber).trim().toLowerCase(),
                 isOutgoing: !!d.isOutgoing,
                 satoshis: verifyInteger(d.amount),
                 description: verifyTruthy(d.note || ''),
@@ -180,7 +180,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 userId: verifyInteger(d.userId),
                 transactionId: verifyInteger(d.transactionId),
                 satoshis: verifyInteger(d.satoshis),
-                keyOffset: verifyTruthy(d.keyOffset),
+                keyOffset: verifyTruthy(d.keyOffset).trim(),
                 isRedeemed: !!d.isRedeemed,
                 lockingScript: Array.from(verifyTruthy(d.outputScript))
             }
@@ -197,6 +197,10 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return q
     }
+    limitString(s: string, maxLen: number) : string {
+        if (s.length > maxLen) s = s.slice(0, maxLen);
+        return s
+    }
     async findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]> {
         const q = this.findOutputsQuery(partial, noScript, since, paged, trx)
         const ds = await q
@@ -211,13 +215,14 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 basketId: verifyOptionalInteger(d.basketId),
                 spendable: !!d.spendable,
                 change: d.providedBy !== 'you' && d.purpose === 'change',
+                outputDescription: (d.description || '').trim(),
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
-                providedBy: verifyTruthy(d.providedBy || ''),
-                purpose: verifyTruthy(d.purpose || ''),
-                type: verifyTruthy(d.type),
+                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase(),
+                purpose: verifyTruthy(d.purpose || '').trim().toLowerCase(),
+                type: verifyTruthy(d.type).trim(),
                 txid: nullToUndefined(d.txid),
-                senderIdentityKey: nullToUndefined(d.senderIdentityKey),
+                senderIdentityKey: verifyOptionalHexString(d.senderIdentityKey),
                 derivationPrefix: nullToUndefined(d.derivationPrefix),
                 derivationSuffix: nullToUndefined(d.derivationSuffix),
                 customInstructions: nullToUndefined(d.customInstruction),
@@ -248,13 +253,13 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 certificateId: verifyInteger(d.certificateId),
                 userId: verifyInteger(d.userId),
-                type: verifyTruthy(d.type),
-                serialNumber: verifyTruthy(d.serialNumber),
-                certifier: verifyTruthy(d.certifier),
-                subject: verifyTruthy(d.subject),
-                revocationOutpoint: verifyTruthy(d.revocationOutpoint),
-                signature: verifyTruthy(d.signature),
-                verifier: nullToUndefined(d.validationKey),
+                type: verifyTruthy(d.type).trim(), // base64
+                serialNumber: verifyTruthy(d.serialNumber).trim(), // base64
+                certifier: verifyHexString(d.certifier),
+                subject: verifyHexString(d.subject),
+                revocationOutpoint: verifyTruthy(d.revocationOutpoint).trim().toLowerCase(),
+                signature: verifyHexString(d.signature),
+                verifier: verifyOptionalHexString(d.validationKey),
                 isDeleted: !!d.isDeleted
             }
             rs.push(r)
@@ -274,9 +279,9 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 userId: verifyInteger(d.userId),
                 certificateId: verifyInteger(d.certificateId),
-                fieldName: verifyTruthy(d.fieldName),
-                fieldValue: verifyTruthy(d.fieldValue),
-                masterKey: verifyTruthy(d.masterKey),
+                fieldName: verifyTruthy(d.fieldName).trim().toLowerCase(),
+                fieldValue: verifyTruthy(d.fieldValue).trim(), // base64
+                masterKey: verifyTruthy(d.masterKey).trim(), // base64
             }
             rs.push(r)
         }
@@ -292,8 +297,8 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 updated_at: verifyTruthy(d.updated_at),
                 syncStateId: verifyInteger(d.syncStateId),
                 userId: verifyInteger(d.userId),
-                storageIdentityKey: verifyTruthy(d.storageIdentityKey),
-                storageName: verifyTruthy(d.storageName || 'dojo importer'),
+                storageIdentityKey: verifyHexString(d.storageIdentityKey),
+                storageName: verifyTruthy(d.storageName || 'dojo importer').trim().toLowerCase(),
                 status: convertSyncStatus(d.status),
                 init: !!d.init,
                 refNum: verifyTruthy(d.refNum),
@@ -351,13 +356,13 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 created_at: verifyTruthy(d.created_at),
                 updated_at: verifyTruthy(d.updated_at),
                 provenTxId: verifyInteger(d.provenTxId),
-                txid: verifyTruthy(d.txid),
+                txid: verifyHexString(d.txid),
                 height: verifyInteger(d.height),
                 index: verifyInteger(d.index),
                 merklePath: mp.toBinary(),
                 rawTx: Array.from(verifyTruthy(d.rawTx)),
-                blockHash: asString(verifyTruthy(d.blockHash)),
-                merkleRoot: asString(verifyTruthy(d.merkleRoot)),
+                blockHash: verifyHexString(asString(verifyTruthy(d.blockHash))),
+                merkleRoot: verifyHexString(asString(verifyTruthy(d.merkleRoot))),
             }
 
             rs.push(r)
@@ -460,175 +465,6 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
-
-
-    override async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
-        const r: sdk.RequestSyncChunkResult = {}
-
-        let itemCount = args.maxItems
-        let roughSize = args.maxRoughSize
-        let i = 0
-        let done = false
-
-        const user = verifyOne(await this.findUsers({ identityKey: args.identityKey }))
-
-        const addItems = async (a: ChunkerArgs) => {
-            if (i >= args.offsets.length) { done = true; return }
-            let { offset, name: oname } = args.offsets[i++]
-            if (a.name !== oname) throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. '${a.name}' expected, found ${oname}.`);
-            let preAddCalled = false
-            for (; !done;) {
-                const limit = Math.min(itemCount, Math.max(10, args.maxItems / a.maxDivider))
-                if (limit <= 0) break;
-                const items = await a.findItems(this, user.userId, args.since, limit, offset)
-                checkEntityValues(items)
-                if (!preAddCalled) { a.preAdd(); preAddCalled = true }
-                if (items.length === 0) break;
-                for (const item of items) {
-                    offset++
-                    a.addItem(item)
-                    itemCount--
-                    roughSize -= JSON.stringify(item).length
-                    if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-                }
-            }
-        }
-        
-        const chunkers: ChunkerArgs[] = [
-            {
-                name: 'provenTx', maxDivider: 100, preAdd: () => {r.provenTxs = []}, addItem: (i: table.ProvenTx) => { r.provenTxs!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.getProvenTxsForUser(userId, since, { limit, offset }) }
-            },
-            {
-                name: 'outputBasket', maxDivider: 1, preAdd: () => {r.outputBaskets = []}, addItem: (i: table.OutputBasket) => { r.outputBaskets!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findOutputBaskets({ userId }, since, { limit, offset }) }
-            },
-            {
-                name: 'outputTag', maxDivider: 1, preAdd: () => {r.outputTags = []}, addItem: (i: table.OutputTag) => { r.outputTags!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findOutputTags({ userId }, since, { limit, offset }) }
-            },
-            {
-                name: 'txLabel', maxDivider: 1, preAdd: () => {r.txLabels = []}, addItem: (i: table.TxLabel) => { r.txLabels!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findTxLabels({ userId }, since, { limit, offset }) }
-            },
-            {
-                name: 'transaction', maxDivider: 25, preAdd: () => {r.transactions = []}, addItem: (i: table.Transaction) => { r.transactions!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findTransactions({ userId }, undefined, false, since, { limit, offset }) }
-            },
-            {
-                name: 'output', maxDivider: 25, preAdd: () => {r.outputs = []}, addItem: (i: table.Output) => { r.outputs!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findOutputs({ userId }, false, since, { limit, offset }) }
-            },
-            {
-                name: 'txLabelMap', maxDivider: 1, preAdd: () => {r.txLabelMaps = []}, addItem: (i: table.TxLabelMap) => { r.txLabelMaps!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.getTxLabelMapsForUser(userId, since, { limit, offset }) }
-            },
-            {
-                name: 'outputTagMap', maxDivider: 1, preAdd: () => {r.outputTagMaps = []}, addItem: (i: table.OutputTagMap) => { r.outputTagMaps!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.getOutputTagMapsForUser(userId, since, { limit, offset }) }
-            },
-            {
-                name: 'certificate', maxDivider: 25, preAdd: () => {r.certificates = []}, addItem: (i: table.Certificate) => { r.certificates!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findCertificates({ userId }, undefined, undefined, since, { limit, offset }) }
-            },
-            {
-                name: 'certificateField', maxDivider: 25, preAdd: () => {r.certificateFields = []}, addItem: (i: table.CertificateField) => { r.certificateFields!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findCertificateFields({ userId }, since, { limit, offset }) }
-            },
-            {
-                name: 'commission', maxDivider: 25, preAdd: () => {r.commissions = []}, addItem: (i: table.Commission) => { r.commissions!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.findCommissions({ userId }, since, { limit, offset }) }
-            },
-            {
-                name: 'provenTxReq', maxDivider: 100, preAdd: () => {r.provenTxReqs = []}, addItem: (i: table.ProvenTxReq) => { r.provenTxReqs!.push(i) },
-                findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) =>
-                     { return await storage.getProvenTxReqsForUser(userId, since, { limit, offset }) }
-            },
-        ]
-
-        for (; !done;) {
-            for (const c of chunkers) {
-                await addItems(c)
-            }
-        }
-
-        return r
-    }
-        
-}
-
-function deserializeTscMerkleProofNodes(nodes: Buffer): string[] {
-    if (!Buffer.isBuffer(nodes)) throw new sdk.WERR_INTERNAL('Buffer or string expected.')
-    const buffer = nodes
-    const ns: string[] = []
-    for (let offset = 0; offset < buffer.length;) {
-        const flag = buffer[offset++]
-        if (flag === 1)
-            ns.push('*')
-        else if (flag === 0) {
-            ns.push(asString(buffer.subarray(offset, offset + 32)))
-            offset += 32
-        } else {
-            throw new sdk.WERR_BAD_REQUEST(`node type byte ${flag} is not supported here.`)
-        }
-    }
-    return ns
-}
-
-interface TscMerkleProofApi {
-  height: number
-  index: number
-  nodes: string[]
-}
-
-function convertProofToMerklePath(txid: string, proof: TscMerkleProofApi): MerklePath {
-    const blockHeight = proof.height
-    const treeHeight = proof.nodes.length
-    type Leaf = {
-        offset: number
-        hash?: string
-        txid?: boolean
-        duplicate?: boolean
-    }
-    const path: Leaf[][] = Array(treeHeight).fill(0).map(() => ([]))
-    let index = proof.index
-    for (let level = 0; level < treeHeight; level++) {
-        const node = proof.nodes[level]
-        const isOdd = index % 2 === 1
-        const offset = isOdd ? index - 1 : index + 1
-        const leaf: Leaf = { offset }
-        if (node === '*' || (level === 0 && node === txid)) {
-            leaf.duplicate = true
-        } else {
-            leaf.hash = node
-        }
-        path[level].push(leaf)
-        if (level === 0) {
-            const txidLeaf: Leaf = {
-                offset: proof.index,
-                hash: txid,
-                txid: true,
-            }
-            if (isOdd) {
-                path[0].push(txidLeaf)
-            } else {
-                path[0].unshift(txidLeaf)
-            }
-        }
-        index = index >> 1
-    }
-    return new MerklePath(blockHeight, path)
 }
 
 type DojoProvenTxReqStatusApi =
@@ -651,7 +487,8 @@ function convertTxStatus(status: DojoTransactionStatusApi): sdk.TransactionStatu
 }
 
 function nullToUndefined<T>(v: T) : T | undefined {
-    if (v === null) return undefined
+    if (v === null) return undefined;
+    if (typeof v === 'string') return v.trim() as T;
     return v
 }
 
@@ -665,32 +502,4 @@ type DojoSyncStatus = 'success' | 'error' | 'identified' | 'updated' | 'unknown'
 
 function convertSyncStatus(status: DojoSyncStatus) : sdk.SyncStatus {
     return status
-}
-
-type ChunkerArgs = {
-        name: string,
-        maxDivider: number,
-        preAdd: () => void,
-        addItem: (i: any) => void,
-        findItems: (
-            storage: sdk.StorageSyncReader,
-            userId: number,
-            since: Date | undefined,
-            limit: number,
-            offset: number
-        ) => Promise<any[]>,
-}
-
-function checkIsDate(v: any) {
-    if (!(v instanceof Date))
-        throw new sdk.WERR_INVALID_OPERATION('bad date')
-}
-function checkEntityValues(es: object[]) {
-    for (const e of es) {
-        checkIsDate(e['created_at'])
-        checkIsDate(e['updated_at'])
-        for (const key of Object.keys(e))
-            if (e[key] === null)
-                throw new sdk.WERR_INVALID_OPERATION()
-    }
 }

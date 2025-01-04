@@ -1,8 +1,10 @@
 import { Beef, BeefParty, Utils, PrivateKey } from "@bsv/sdk";
-import { sdk, stampLog, toWalletNetwork } from '.'
+import { sdk, stampLog, toWalletNetwork, WalletMonitor } from '.'
 
 export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     signer: sdk.WalletSigner
+    services?: sdk.WalletServices
+    monitor?: WalletMonitor
 
     beef: BeefParty
     trustSelf?: sdk.TrustSelf
@@ -10,7 +12,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     userParty: string
     isLogging: boolean
 
-    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi) {
+    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: WalletMonitor) {
         if (!signer.isAuthenticated())
             throw new sdk.WERR_INVALID_PARAMETER('signer', 'valid and authenticated')
         if (!keyDeriver)
@@ -19,6 +21,9 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.signer = signer
         // Give signer access to our keyDeriver
         this.signer.keyDeriver = keyDeriver
+        this.services = services
+        this.monitor = monitor
+
         this.storageParty = signer.storageIdentity!.storageIdentityKey
         this.userParty = signer.getClientChangeKeyPair().publicKey
         this.beef = new BeefParty([this.storageParty, this.userParty])
@@ -37,6 +42,12 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         //console.log(stampLogFormat(vargs.log))
     }
 
+    getServices() : sdk.WalletServices {
+        if (!this.services)
+            throw new sdk.WERR_INVALID_PARAMETER('services', 'valid in constructor arguments to be retreived here.')
+        return this.services
+    }
+    
     /**
      * @returns the full list of txids whose validity this wallet claims to know.
      * 

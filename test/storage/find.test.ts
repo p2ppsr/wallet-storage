@@ -72,8 +72,8 @@ describe('find tests', () => {
 
     test('5 find OutputBasket', async () => {
         for (const { storage, setup } of setups) {
-            expect((await storage.findOutputBaskets({})).length).toBe(1)
-            expect((await storage.findOutputBaskets({}, setup.u1.created_at)).length).toBe(1)
+            expect((await storage.findOutputBaskets({})).length).toBe(3)
+            expect((await storage.findOutputBaskets({}, setup.u1.created_at)).length).toBe(3)
             expect((await storage.findOutputBaskets({}, new Date())).length).toBe(0)
         }
     })

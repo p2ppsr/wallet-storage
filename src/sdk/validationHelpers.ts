@@ -124,7 +124,7 @@ function validateOptionalHexString(s: string | undefined, name: string, min?: nu
  * @returns 
  */
 function validateHexString(s: string, name: string, min?: number, max?: number): string {
-  s = s.trim().toUpperCase()
+  s = s.trim().toLowerCase()
   if (s.length % 2 === 1)
     throw new sdk.WERR_INVALID_PARAMETER(name, `even length, not ${s.length}.`)
   const hexRegex = /^[0-9A-Fa-f]+$/;
@@ -236,6 +236,7 @@ export interface ValidProcessActionArgs {
   isNoSend: boolean
   // true if options.acceptDelayedBroadcast is true
   isDelayed: boolean
+  userId?: number
   log?: string
 }
 
@@ -251,6 +252,9 @@ export interface ValidCreateActionArgs extends ValidProcessActionArgs {
   options: ValidCreateActionOptions
   // true if transaction creation completion will require a `signAction` call.
   isSignAction: boolean
+
+  userId?: number
+  log?: string
 }
 
 export interface ValidSignActionArgs extends ValidProcessActionArgs {
@@ -258,6 +262,9 @@ export interface ValidSignActionArgs extends ValidProcessActionArgs {
   reference: sdk.Base64String
 
   options: sdk.ValidSignActionOptions
+
+  userId?: number
+  log?: string
 }
 
 export function validateCreateActionArgs(args: sdk.CreateActionArgs) : ValidCreateActionArgs {
@@ -313,7 +320,9 @@ export function validateSignActionArgs(args: sdk.SignActionArgs) : ValidSignActi
       isSendWith: false,
       isDelayed: false,
       isNoSend: false,
-      isNewTx: true
+      isNewTx: true,
+      userId: undefined,
+      log: ''
     }
     vargs.isSendWith = vargs.options.sendWith.length > 0
     vargs.isDelayed = vargs.options.acceptDelayedBroadcast
@@ -324,12 +333,14 @@ export function validateSignActionArgs(args: sdk.SignActionArgs) : ValidSignActi
 
 export interface ValidAbortActionArgs {
   reference: sdk.Base64String
+  userId?: number
   log?: string
 }
 
 export function validateAbortActionArgs(args: sdk.AbortActionArgs) : ValidAbortActionArgs {
     const vargs: ValidAbortActionArgs = {
       reference: validateBase64String(args.reference, 'reference'),
+      userId: undefined,
       log: ''
     }
 
@@ -393,6 +404,7 @@ export interface ValidInternalizeActionArgs {
   description: sdk.DescriptionString5to50Bytes
   labels: sdk.LabelStringUnder300Bytes[]
   seekPermission: sdk.BooleanDefaultTrue
+  userId?: number
   log?: string
 }
 
@@ -413,6 +425,7 @@ export function validateInternalizeActionArgs(args: sdk.InternalizeActionArgs) :
       description: validateStringLength(args.description, 'description', 5, 50),
       labels: (args.labels || []).map(t => validateLabel(t)),
       seekPermission: defaultTrue(args.seekPermission),
+      userId: undefined,
       log: ''
     }
 
@@ -436,6 +449,7 @@ export function validateOutpointString(outpoint: string, name: string): string {
 export interface ValidRelinquishOutputArgs {
   basket: sdk.BasketStringUnder300Bytes
   output: sdk.OutpointString
+  userId?: number
   log?: string
 }
 
@@ -443,6 +457,7 @@ export function validateRelinquishOutputArgs(args: sdk.RelinquishOutputArgs) : V
     const vargs: ValidRelinquishOutputArgs = {
       basket: validateBasket(args.basket),
       output: validateOutpointString(args.output, 'output'),
+      userId: undefined,
       log: ''
     }
 
@@ -453,6 +468,7 @@ export interface ValidRelinquishCertificateArgs {
   type: sdk.Base64String
   serialNumber: sdk.Base64String
   certifier: sdk.PubKeyHex
+  userId?: number
   log?: string
 }
 
@@ -461,6 +477,7 @@ export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificat
       type: validateBase64String(args.type, 'type'),
       serialNumber: validateBase64String(args.serialNumber, 'serialNumber'),
       certifier: validateHexString(args.certifier, 'certifier'),
+      userId: undefined,
       log: ''
     }
 
@@ -474,17 +491,19 @@ export interface ValidListCertificatesArgs {
   offset: sdk.PositiveIntegerOrZero
   privileged: sdk.BooleanDefaultFalse
   privilegedReason?: sdk.DescriptionString5to50Bytes
+  userId?: number,
   log?: string
 }
 
 export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs) : ValidListCertificatesArgs {
     const vargs: ValidListCertificatesArgs = {
-      certifiers: defaultEmpty(args.certifiers.map(c => validateHexString(c, 'certifiers'))),
-      types: defaultEmpty(args.types.map(t => validateBase64String(t, 'types'))),
+      certifiers: defaultEmpty(args.certifiers.map(c => validateHexString(c.trim(), 'certifiers'))),
+      types: defaultEmpty(args.types.map(t => validateBase64String(t.trim(), 'types'))),
       limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
       offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
       privileged: defaultFalse(args.privileged),
       privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
+      userId: undefined,
       log: ''
     }
     return vargs
@@ -508,6 +527,7 @@ export interface ValidAcquireCertificateArgs {
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
 
+  userId?: string
   log?: string
 }
 
@@ -566,6 +586,7 @@ export async function validateAcquireCertificateArgs(args: sdk.AcquireCertificat
     keyringForSubject: validateOptionalKeyringForSubject(args.keyringForSubject, 'keyringForSubject'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
+    userId: undefined,
     log: ''
   }
   if (vargs.privileged && !vargs.privilegedReason)
@@ -598,6 +619,7 @@ export interface ValidAcquireDirectCertificateArgs {
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
 
+  userId?: number
   log?: string
 }
 
@@ -622,6 +644,7 @@ export function validateAcquireDirectCertificateArgs(args: sdk.AcquireCertificat
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
     subject: '',
+    userId: undefined,
     log: ''
   }
   return vargs
@@ -639,6 +662,7 @@ export interface ValidProveCertificateArgs {
   verifier: sdk.PubKeyHex
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
+  userId?: number
   log?: string
 }
 
@@ -658,6 +682,7 @@ export function validateProveCertificateArgs(args: sdk.ProveCertificateArgs)
     verifier: validateHexString(args.verifier, 'verifier'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
+    userId: undefined,
     log: ''
   }
   return vargs
@@ -668,6 +693,7 @@ export interface ValidDiscoverByIdentityKeyArgs {
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: boolean
+  userId?: number
   log?: string
 }
 
@@ -679,6 +705,7 @@ export function validateDiscoverByIdentityKeyArgs(args: sdk.DiscoverByIdentityKe
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
+    userId: undefined,
     log: ''
   }
   return vargs
@@ -689,6 +716,7 @@ export interface ValidDiscoverByAttributesArgs {
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: boolean
+  userId?: number
   log?: string
 }
 
@@ -709,6 +737,7 @@ export function validateDiscoverByAttributesArgs(args: sdk.DiscoverByAttributesA
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
+    userId: undefined,
     log: ''
   }
   return vargs
@@ -727,6 +756,7 @@ export interface ValidListOutputsArgs {
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
   knownTxids: string[]
+  userId?: number
   log?: string
 }
 
@@ -765,6 +795,8 @@ export function validateListOutputsArgs(args: sdk.ListOutputsArgs) : ValidListOu
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
       knownTxids: [],
+      userId: undefined,
+      log: ''
     }
 
     return vargs
@@ -782,6 +814,7 @@ export interface ValidListActionsArgs {
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
+  userId?: number
   log?: string
 }
 
@@ -818,7 +851,9 @@ export function validateListActionsArgs(args: sdk.ListActionsArgs) : ValidListAc
       includeOutputLockingScripts: defaultFalse(args.includeOutputLockingScripts),
       limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
-      seekPermission: defaultTrue(args.seekPermission)
+      seekPermission: defaultTrue(args.seekPermission),
+      userId: undefined,
+      log: ''
     }
 
     if (vargs.labels.length < 1)

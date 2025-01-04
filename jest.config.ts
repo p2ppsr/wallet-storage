@@ -17,7 +17,7 @@ export default async (): Promise<Config> => {
     // Default is 'node'
     testEnvironment: 'node',
     // default [ '**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)' ]
-    testMatch: ['**/?(*.)+(test).[tj]s'],
+    testMatch: ['**/?(*.)+(test).[tj]s',"**/__test/**/*.test.ts"],
     // default []
     testRegex: [],
     transform: { '^.+\\.ts$': ['ts-jest', { rootDir: '.' }] }

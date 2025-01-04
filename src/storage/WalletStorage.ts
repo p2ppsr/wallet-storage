@@ -1,4 +1,5 @@
-import { sdk, StorageBase, table } from "..";
+import * as bsv from '@bsv/sdk'
+import { entity, sdk, StorageBase, StorageSyncReader, table, verifyId, verifyOne } from "..";
 
 /**
  * The `WalletStorage` class delivers storage access to the wallet while managing multiple `StorageBase` derived storage services.
@@ -15,17 +16,120 @@ import { sdk, StorageBase, table } from "..";
  */
 export class WalletStorage implements sdk.WalletStorage {
 
-    services: StorageBase[] = []
+    services: sdk.WalletStorage[] = []
 
-    constructor() {
-
+    constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[]) {
+        this.services = [ active ]
+        if (backups) this.services.concat(backups)
     }
 
-    getActive(): StorageBase { return this.services[0] }
+    getActive(): sdk.WalletStorage { return this.services[0] }
+
+    isAvailable(): boolean {
+        return this.getActive().isAvailable()
+    }
+
+    get settings() : table.Settings | undefined { return this.getActive().settings }
+
+    async makeAvailable(): Promise<void> {
+        this.getActive().makeAvailable()
+    }
 
     async destroy(): Promise<void> {
         return await this.getActive().destroy()
     }
+
+    async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
+        return this.getActive().purgeData(params, trx)
+    }
+
+    async SyncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
+        const writer = this.getActive()
+        const readerSettings = await reader.getSettings()
+
+        const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
+
+        let log = ''
+        let inserts = 0, updates = 0
+        for (;;) {
+            const args = ss.makeRequestSyncChunkArgs(identityKey)
+            const chunk = await reader.requestSyncChunk(args)
+            const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+            inserts += r.inserts
+            updates += r.updates
+            log += `${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}\n`
+            if (r.done)
+                break;
+        }
+        //console.log(log)
+        console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
+    }
+    
+    /**
+     * For all `status` values besides 'failed', just updates the transaction records status property.
+     * 
+     * For 'status' of 'failed', attempts to make outputs previously allocated as inputs to this transaction usable again.
+     * 
+     * @throws ERR_DOJO_COMPLETED_TX if current status is 'completed' and new status is not 'completed.
+     * @throws ERR_DOJO_PROVEN_TX if transaction has proof or provenTxId and new status is not 'completed'. 
+     * 
+     * @param status 
+     * @param transactionId 
+     * @param userId 
+     * @param reference 
+     * @param trx 
+     */
+    async updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
+    : Promise<void>
+    {
+        if (!transactionId && !(userId && reference)) throw new sdk.WERR_MISSING_PARAMETER('either transactionId or userId and reference')
+
+        await this.transaction(async trx => {
+
+            const where: Partial<table.Transaction> = {}
+            if (transactionId) where.transactionId = transactionId
+            if (userId) where.userId = userId
+            if (reference) where.reference = reference
+
+            const tx = verifyOne(await this.findTransactions(where, undefined, true, undefined, undefined, trx))
+
+            //if (tx.status === status)
+                // no change required. Assume inputs and outputs spendable and spentBy are valid for status.
+                //return
+
+            // Once completed, this method cannot be used to "uncomplete" transaction.
+            if (status !== 'completed' && tx.status === 'completed' || tx.provenTxId) throw new sdk.WERR_INVALID_OPERATION('The status of a "completed" transaction cannot be changed.')
+            // It is not possible to un-fail a transaction. Information is lost and not recoverable. 
+            if (status !== 'failed' && tx.status === 'failed') throw new sdk.WERR_INVALID_OPERATION(`A "failed" transaction may not be un-failed by this method.`)
+
+            switch (status) {
+                case 'failed': {
+                    // Attempt to make outputs previously allocated as inputs to this transaction usable again.
+                    // Only clear input's spentBy and reset spendable = true if it references this transaction
+                    const t = new entity.Transaction(tx)
+                    const inputs = await t.getInputs(this, trx)
+                    for (const input of inputs) {
+                        // input is a prior output belonging to userId that reference this transaction either by `spentBy`
+                        // or by txid and vout.
+                        await this.updateOutput(verifyId(input.outputId), { spendable: true, spentBy: undefined }, trx)
+                    }
+                } break;
+                case 'nosend':
+                case 'unsigned':
+                case 'unprocessed':
+                case 'sending':
+                case 'unproven': 
+                case 'completed':
+                    break;
+                default:
+                    throw new sdk.WERR_INVALID_PARAMETER('status', `not be ${status}`)
+            }
+
+            await this.updateTransaction(tx.transactionId, { status }, trx)
+
+        }, trx)
+    }
+
 
     /////////////////
     //
@@ -154,17 +258,24 @@ export class WalletStorage implements sdk.WalletStorage {
     async getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken) {
         return await this.getActive().getRawTxOfKnownValidTransaction(txid, offset, length, trx)
     }
-    getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
-        throw new Error("Method not implemented.");
+
+    async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+        return await this.getActive().getLabelsForTransactionId(transactionId, trx)
     }
-    getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
-        throw new Error("Method not implemented.");
+    async getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]> {
+        return await this.getActive().getTagsForOutputId(outputId, trx)
     }
-    getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
-        throw new Error("Method not implemented.");
+    async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
+        return await this.getActive().getProvenTxsForUser(userId, since, paged, trx)
     }
-    getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
-        throw new Error("Method not implemented.");
+    async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
+        return await this.getActive().getProvenTxReqsForUser(userId, since, paged, trx)
+    }
+    async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
+        return await this.getActive().getTxLabelMapsForUser(userId, since, paged, trx)
+    }
+    async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
+        return await this.getActive().getOutputTagMapsForUser(userId, since, paged, trx)
     }
 
     async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
@@ -177,6 +288,9 @@ export class WalletStorage implements sdk.WalletStorage {
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         return await this.getActive().listOutputsSdk(vargs, originator)
     }
+   async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await this.getActive().listCertificatesSdk(vargs, originator)
+   }
 
     async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.CertificateField[]> {
         return await this.getActive().findCertificateFields(partial, since, paged, trx)
@@ -222,6 +336,46 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     async findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]> {
         return await this.getActive().findWatchmanEvents(partial, since, paged, trx)
+    }
+
+    async findUserByIdentityKey(key: string, trx?: sdk.TrxToken): Promise<table.User | undefined> {
+        return await this.getActive().findUserByIdentityKey(key, trx)
+    }
+    async findCertificateById(id: number, trx?: sdk.TrxToken): Promise<table.Certificate | undefined> {
+        return await this.getActive().findCertificateById(id, trx)
+    }
+    async findCommissionById(id: number, trx?: sdk.TrxToken): Promise<table.Commission | undefined> {
+        return await this.getActive().findCommissionById(id, trx)
+    }
+    async findOutputBasketById(id: number, trx?: sdk.TrxToken): Promise<table.OutputBasket | undefined> {
+        return await this.getActive().findOutputBasketById(id, trx)
+    }
+    async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean): Promise<table.Output | undefined> {
+        return await this.getActive().findOutputById(id, trx)
+    }
+    async findOutputTagById(id: number, trx?: sdk.TrxToken): Promise<table.OutputTag | undefined> {
+        return await this.getActive().findOutputTagById(id, trx)
+    }
+    async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx | undefined> {
+        return await this.getActive().findProvenTxById(id, trx)
+    }
+    async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq | undefined> {
+        return await this.getActive().findProvenTxReqById(id, trx)
+    }
+    async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState | undefined> {
+        return await this.getActive().findSyncStateById(id, trx)
+    }
+    async findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean): Promise<table.Transaction | undefined> {
+        return await this.getActive().findTransactionById(id, trx)
+    }
+    async findTxLabelById(id: number, trx?: sdk.TrxToken): Promise<table.TxLabel | undefined> {
+        return await this.getActive().findTxLabelById(id, trx)
+    }
+    async findUserById(id: number, trx?: sdk.TrxToken): Promise<table.User | undefined> {
+        return await this.getActive().findUserById(id, trx)
+    }
+    async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent | undefined> {
+        return await this.getActive().findWatchmanEventById(id, trx)
     }
 
     async countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken): Promise<number> {

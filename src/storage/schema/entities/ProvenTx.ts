@@ -1,6 +1,7 @@
 import { MerklePath } from "@bsv/sdk"
 import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
+import { ChaintracksClientApi } from "../../../services/chaintracker";
 
 export class ProvenTx extends EntityBase<table.ProvenTx> {
     
@@ -101,4 +102,101 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
         // ProvenTxs are never updated.
         return false
     }
+
+    /**
+     * How high attempts can go before status is forced to invalid
+     */
+    static getProofAttemptsLimit = 8
+
+    /**
+     * How many hours we have to try for a poof
+     */
+    static getProofMinutes = 60
+
+    /**
+     * Try to create a new ProvenTx from a ProvenTxReq and GetMerkleProofResultApi
+     * 
+     * If a valid proof can be confirmed by chaintracks, it succeeds.
+     * 
+     * Otherwise it returns undefined and updates req.status to either 'unknown', 'invalid', or 'unconfirmed'
+     * 
+     * @param req 
+     * @param gmpResult 
+     * @param chaintracks 
+     * @returns 
+     */
+    static async fromReq(
+        req: entity.ProvenTxReq,
+        gmpResult: sdk.GetMerklePathResult,
+        chaintracks: ChaintracksClientApi,
+        countsAsAttempt: boolean
+    )
+    : Promise<ProvenTx | undefined>
+    {
+        if (!req.txid) throw new sdk.WERR_MISSING_PARAMETER('req.txid')
+        if (!req.rawTx) throw new sdk.WERR_MISSING_PARAMETER('req.rawTx')
+
+        if (!req.rawTx) throw new sdk.WERR_INTERNAL('rawTx must be valid')
+
+        req.addHistoryNote({ what: 'getMerkleProof result', result: gmpResult, attempts: req.attempts })
+
+        if (!gmpResult.name && !gmpResult.merklePath && !gmpResult.error) {
+            // Most likely offline or now services configured.
+            // Does not count as a proof attempt.
+            return undefined
+        }
+
+        if (!gmpResult.merklePath) {
+
+            if (req.created_at) {
+                const reqAgeInMsecs = Date.now() - req.created_at.getTime()
+                const reqAgeInMinutes = Math.ceil(reqAgeInMsecs < 1 ? 0 : reqAgeInMsecs / (1000 * 60))
+
+                if (req.attempts > entity.ProvenTx.getProofAttemptsLimit && reqAgeInMinutes > entity.ProvenTx.getProofMinutes) {
+                    // Start the process of setting transactions to 'failed'
+                    req.addHistoryNote({ what: 'getMerkleProof invalid', attempts: req.attempts, ageInMinutes: reqAgeInMinutes })
+                    req.notified = false
+                    req.status = 'invalid'
+                }
+            }
+            return undefined
+        }
+
+        if (countsAsAttempt)
+            req.attempts++
+        
+        const merklePaths = (Array.isArray(gmpResult.merklePath)) ? gmpResult.merklePath : [gmpResult.merklePath]
+
+        for (const proof of merklePaths) {
+
+            try {
+                const now = new Date()
+                const leaf = proof.path[0].find(leaf => leaf.txid === true && leaf.hash === req.txid)
+                if (!leaf) throw new sdk.WERR_INTERNAL('merkle path does not contain leaf for txid')
+
+                const proven = new ProvenTx({
+                    created_at: now,
+                    updated_at: now,
+                    provenTxId: 0,
+                    txid: req.txid,
+                    height: proof.blockHeight,
+                    index: leaf.offset,
+                    merklePath: proof.toBinary(),
+                    rawTx: req.rawTx,
+                    merkleRoot: gmpResult.header!.merkleRoot,
+                    blockHash: gmpResult.header!.hash
+                })
+
+                return proven
+
+            } catch (err: unknown) {
+                req.addHistoryNote({
+                    what: "getMerkleProof catch",
+                    proof,
+                    error: sdk.WalletError.fromUnknown(err)
+                })
+            }
+        }
+    }
+    
 }

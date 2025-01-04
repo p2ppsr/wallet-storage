@@ -49,7 +49,7 @@ export class WalletError extends Error implements WalletErrorObject {
     let stack: string | undefined
     const details: Record<string, string> = {}
     if (err !== null && typeof err === 'object') {
-      if (err["name"] === "Error")
+      if (err["name"] === "Error" || err["name"] === "FetchError")
         name = err["code"] || err["status"] || "WERR_UNKNOWN"
       else
         name = err["name"] || err["code"] || err["status"] || "WERR_UNKNOWN"

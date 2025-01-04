@@ -15,6 +15,7 @@ export class Output extends EntityBase<table.Output> {
             spendable: false,
             change: false,
             satoshis: 0,
+            outputDescription: '',
             vout: 0,
             type: '',
             providedBy: '',
@@ -56,6 +57,8 @@ export class Output extends EntityBase<table.Output> {
     set vout(v: number) { this.api.vout = v }
     get satoshis() { return this.api.satoshis }
     set satoshis(v: number) { this.api.satoshis = v }
+    get outputDescription() { return this.api.outputDescription }
+    set outputDescription(v: string) { this.api.outputDescription = v }
     get spendable() { return this.api.spendable }
     set spendable(v: boolean) { this.api.spendable = v }
     get change() { return this.api.change }
@@ -104,6 +107,7 @@ export class Output extends EntityBase<table.Output> {
             this.type !== ei.type ||
             this.providedBy !== ei.providedBy ||
             this.purpose !== ei.purpose ||
+            this.outputDescription !== ei.outputDescription ||
             this.spendingDescription !== ei.spendingDescription ||
             this.derivationPrefix !== ei.derivationPrefix ||
             this.derivationSuffix !== ei.derivationSuffix ||
@@ -153,6 +157,7 @@ export class Output extends EntityBase<table.Output> {
             this.type = ei.type
             this.providedBy = ei.providedBy
             this.purpose = ei.purpose
+            this.outputDescription = ei.outputDescription
             this.spendingDescription = ei.spendingDescription
             this.senderIdentityKey = ei.senderIdentityKey
             this.customInstructions = ei.customInstructions

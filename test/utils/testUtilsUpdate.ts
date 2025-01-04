@@ -205,7 +205,7 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  * @param {number} [id=1] - The id used to set the column value during the test (default is 1).
  * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
- * @returns {Promise<void>} This function does not return a value, but performs an async operation to test the unique constraint error.
+ * @returns {Promise<boolean>} This function returns true if error thrown otherwise false, it performs an async operation to test the unique constraint error.
  *
  * @throws {Error} Throws an error if the unique constraint error is not triggered or if the table has insufficient rows.
  *
@@ -220,7 +220,7 @@ export const triggerUniqueConstraintError = async (
   invalidValue: any, // This remains an object passed in by the caller
   id: number = 1,
   logEnabled: boolean = true
-): Promise<void> => {
+): Promise<boolean> => {
   setLogging(logEnabled)
 
   const rows = await storage[findMethod]({})
@@ -234,6 +234,10 @@ export const triggerUniqueConstraintError = async (
 
   if (!(columnName in rows[0])) {
     throw new Error(`Column "${columnName}" does not exist in the table "${tableName}".`)
+  }
+
+  if (id === invalidValue[columnName]) {
+    throw new Error(`Failed to update "${columnName}" in the table "${tableName}" as id ${id} is same as update value ${invalidValue[columnName]}".`)
   }
 
   if (logEnabled) {
@@ -250,10 +254,11 @@ export const triggerUniqueConstraintError = async (
 
     // Attempt the update with the new value that should trigger the constraint error
     await storage[updateMethod](id, invalidValue)
-    expect(true).toBe(false) // Force a failure if no error is thrown
+    return false
   } catch (error: any) {
     // Handle the error by passing columnNames for validation in logUniqueConstraintError
     logUniqueConstraintError(error, tableName, columnNames, logEnabled)
+    return true
   }
 }
 
@@ -266,23 +271,16 @@ export const triggerUniqueConstraintError = async (
  * @param {string} tableName - The name of the table being updated.
  * @param {string} columnName - The column name being tested for the foreign key constraint.
  * @param {any} invalidValue - The value to assign to the column that should trigger the foreign key constraint error. This should be an object with the column name as the key.
+ * @param {number} [id=1] - The id used to set the column value during the test (default is 1).
  * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
- * @returns {Promise<void>} This function does not return any value, but performs the test for the foreign key constraint error.
+ * @returns {Promise<boolean>} This function returns true if error thrown otherwise false, it performs an async operation to test the foreign key constraint error.
  *
  * @throws {Error} Throws an error if the foreign key constraint error is not triggered.
  *
  * @example await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxId', { provenTxId: 42 })
  */
-export const triggerForeignKeyConstraintError = async (
-  storage: any,
-  findMethod: string,
-  updateMethod: string,
-  tableName: string,
-  columnName: string,
-  invalidValue: any,
-  logEnabled: boolean = true // default to logging enabled
-): Promise<void> => {
+export const triggerForeignKeyConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, invalidValue: any, id: number = 1, logEnabled: boolean = true): Promise<boolean> => {
   // Set logging state based on the argument
   setLogging(logEnabled)
 
@@ -297,14 +295,20 @@ export const triggerForeignKeyConstraintError = async (
     throw new Error(`Column "${columnName}" does not exist in the table "${tableName}".`)
   }
 
+  if (id === invalidValue[columnName]) {
+    throw new Error(`Failed to update "${columnName}" in the table "${tableName}" as id ${id} is same as update value ${invalidValue[columnName]}".`)
+  }
+
   // TBD See what types need to be passed in before raising errors
 
   try {
     // Attempt the update with the invalid value that should trigger the foreign key constraint error
-    await storage[updateMethod](rows[0][columnName], invalidValue) // Pass the object with the column name and value
-    expect(true).toBe(false) // Force a failure if no error is thrown
+    const r = await storage[updateMethod](id, invalidValue) // Pass the object with the column name and value
+    log('r=', r)
+    return false
   } catch (error: any) {
     logForeignConstraintError(error, tableName, columnName, logEnabled)
+    return true
   }
 }
 

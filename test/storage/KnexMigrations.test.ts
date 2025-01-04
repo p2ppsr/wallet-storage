@@ -6,14 +6,17 @@ describe('KnexMigrations tests', () => {
     jest.setTimeout(99999999)
 
     const knexs: Knex[] = []
+    const env = _tu.getEnv('test')
 
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('migratetest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         knexs.push(knexSQLite)
 
-        const knexMySQL = _tu.createLocalMySQL('migratetest')
-        knexs.push(knexMySQL)
+        if (!env.noMySQL) {
+            const knexMySQL = _tu.createLocalMySQL('migratetest')
+            knexs.push(knexMySQL)
+        }
     })
 
     afterAll(async () => {

@@ -9,6 +9,7 @@ describe('StorageMySQLDojoReader tests', () => {
     jest.setTimeout(99999999)
 
     const chain: sdk.Chain = 'test'
+    const env = _tu.getEnv(chain)
     let reader: sdk.StorageSyncReader
     let writer: sdk.WalletStorage //sdk.StorageSyncWriter
 
@@ -17,7 +18,8 @@ describe('StorageMySQLDojoReader tests', () => {
         const readerKnex = _tu.createMySQLFromConnection(connection)
         reader = new StorageMySQLDojoReader({ chain, knex: readerKnex })
 
-        const writerKnex = _tu.createLocalMySQL('stagingdojotone')
+        const writerKnex = !env.noMySQL ? _tu.createLocalMySQL('stagingdojotone') :
+        _tu.createLocalSQLite(await _tu.newTmpFile('stagingdojotone', false, false, true))
         writer = new StorageKnex({ chain, knex: writerKnex })
         await writer.dropAllData()
         await writer.migrate('stagingdojotone')

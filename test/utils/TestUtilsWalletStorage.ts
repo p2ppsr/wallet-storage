@@ -18,6 +18,7 @@ export interface TuEnv {
     mainTaalApiKey: string
     testTaalApiKey: string
     devKeys: Record<string, string>
+    noMySQL: boolean
 }
 
 export abstract class TestUtilsWalletStorage {
@@ -29,6 +30,7 @@ export abstract class TestUtilsWalletStorage {
             throw new sdk.WERR_INTERNAL('.env file configuration is missing or incomplete.')
         const userId = Number(chain === 'main' ? process.env.MY_MAIN_USERID : process.env.MY_TEST_USERID)
         const DEV_KEYS = process.env.DEV_KEYS || '{}'
+        const noMySQL = !!process.env.NOMYSQL
         return {
             chain,
             userId,
@@ -36,7 +38,126 @@ export abstract class TestUtilsWalletStorage {
             mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
             testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
             devKeys: JSON.parse(DEV_KEYS),
+            noMySQL
         }
+    }
+
+    static async createNoSendP2PKHTestOutpoint(
+        address: string,
+        satoshis: number,
+        noSendChange: string[] | undefined,
+        wallet: sdk.Wallet
+    ): Promise<{
+        noSendChange: string[]
+        txid: string
+        cr: sdk.CreateActionResult
+        sr: sdk.SignActionResult
+    }> {
+        return await _tu.createNoSendP2PKHTestOutpoints(
+            1,
+            address,
+            satoshis,
+            noSendChange,
+            wallet
+        )
+    }
+
+    static async createNoSendP2PKHTestOutpoints(
+        count: number,
+        address: string,
+        satoshis: number,
+        noSendChange: string[] | undefined,
+        wallet: sdk.Wallet
+    ): Promise<{
+        noSendChange: string[]
+        txid: string
+        cr: sdk.CreateActionResult
+        sr: sdk.SignActionResult
+    }> {
+        const outputs: sdk.CreateActionOutput[] = []
+        for (let i = 0; i < count; i++) {
+            outputs.push({
+                basket: `test-p2pkh-output-${i}`,
+                satoshis,
+                lockingScript: _tu.getLockP2PKH(address).toHex(),
+                outputDescription: `p2pkh ${i}`
+            })
+        }
+
+        const createArgs: sdk.CreateActionArgs = {
+            description: `to ${address}`,
+            outputs,
+            options: {
+                noSendChange,
+                randomizeOutputs: false,
+                signAndProcess: false,
+                noSend: true
+            }
+        }
+
+        const cr = await wallet.createAction(createArgs)
+        noSendChange = cr.noSendChange
+
+        expect(cr.noSendChange).toBeTruthy()
+        expect(cr.sendWithResults).toBeUndefined()
+        expect(cr.tx).toBeUndefined()
+        expect(cr.txid).toBeUndefined()
+
+        expect(cr.signableTransaction).toBeTruthy()
+        const st = cr.signableTransaction!
+        expect(st.reference).toBeTruthy()
+        // const tx = Transaction.fromAtomicBEEF(st.tx) // Transaction doesn't support V2 Beef yet.
+        const atomicBeef = Beef.fromBinary(st.tx)
+        const tx = atomicBeef.txs[atomicBeef.txs.length - 1].tx
+        for (const input of tx.inputs) {
+            expect(atomicBeef.findTxid(input.sourceTXID!)).toBeTruthy()
+        }
+
+        // Spending authorization check happens here...
+        //expect(st.amount > 242 && st.amount < 300).toBe(true)
+        // sign and complete
+        const signArgs: sdk.SignActionArgs = {
+            reference: st.reference,
+            spends: {},
+            options: {
+                returnTXIDOnly: true,
+                noSend: true
+            }
+        }
+
+        const sr = await wallet.signAction(signArgs)
+
+        let txid = sr.txid!
+        // Update the noSendChange txid to final signed value.
+        noSendChange = noSendChange!.map(op => `${txid}.${op.split('.')[1]}`)
+        return { noSendChange, txid, cr, sr }
+    }
+
+    static getKeyPair(priv?: string | bsv.PrivateKey): TestKeyPair {
+        if (priv === undefined) priv = bsv.PrivateKey.fromRandom()
+        else if (typeof priv === 'string') priv = new bsv.PrivateKey(priv, 'hex')
+
+        const pub = bsv.PublicKey.fromPrivateKey(priv)
+        const address = pub.toAddress()
+        return { privateKey: priv, publicKey: pub, address }
+    }
+
+    static getLockP2PKH(address: string) {
+        const p2pkh = new bsv.P2PKH()
+        const lock = p2pkh.lock(address)
+        return lock
+    }
+
+    static getUnlockP2PKH(priv: bsv.PrivateKey, satoshis: number) {
+        const p2pkh = new bsv.P2PKH()
+        const lock = _tu.getLockP2PKH(_tu.getKeyPair(priv).address)
+        // Prepare to pay with SIGHASH_ALL and without ANYONE_CAN_PAY.
+        // In otherwords:
+        // - all outputs must remain in the current order, amount and locking scripts.
+        // - all inputs must remain from the current outpoints and sequence numbers.
+        // (unlock scripts are never signed)
+        const unlock = p2pkh.unlock(priv, 'all', false, satoshis, lock)
+        return unlock
     }
 
     /**
@@ -126,7 +247,7 @@ export abstract class TestUtilsWalletStorage {
         chain?: sdk.Chain,
         rootKeyHex?: string,
         dropAll?: boolean
-    }) : Promise<TestWallet<{}>> { 
+    }): Promise<TestWallet<{}>> {
         return await this.createKnexTestWallet({
             ...args,
             knex: _tu.createLocalMySQL(args.databaseName)
@@ -137,7 +258,7 @@ export abstract class TestUtilsWalletStorage {
         databaseName: string,
         chain?: sdk.Chain,
         rootKeyHex?: string,
-    }) : Promise<TestWallet<TestSetup1>> { 
+    }): Promise<TestWallet<TestSetup1>> {
         return await this.createKnexTestSetup1Wallet({
             ...args,
             dropAll: true,
@@ -150,7 +271,7 @@ export abstract class TestUtilsWalletStorage {
         chain?: sdk.Chain,
         rootKeyHex?: string,
         dropAll?: boolean
-    }) : Promise<TestWallet<{}>> { 
+    }): Promise<TestWallet<{}>> {
         const localSQLiteFile = await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
         return await this.createKnexTestWallet({
             ...args,
@@ -162,7 +283,7 @@ export abstract class TestUtilsWalletStorage {
         databaseName: string,
         chain?: sdk.Chain,
         rootKeyHex?: string,
-    }) : Promise<TestWallet<TestSetup1>> { 
+    }): Promise<TestWallet<TestSetup1>> {
         const localSQLiteFile = await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
         return await this.createKnexTestSetup1Wallet({
             ...args,
@@ -177,7 +298,7 @@ export abstract class TestUtilsWalletStorage {
         chain?: sdk.Chain,
         rootKeyHex?: string,
         dropAll?: boolean,
-    }) : Promise<TestWallet<{}>> { 
+    }): Promise<TestWallet<{}>> {
         return await _tu.createKnexTestWalletWithSetup({
             ...args,
             insertSetup: insertEmptySetup
@@ -190,7 +311,7 @@ export abstract class TestUtilsWalletStorage {
         chain?: sdk.Chain,
         rootKeyHex?: string,
         dropAll?: boolean,
-    }) : Promise<TestWallet<TestSetup1>> { 
+    }): Promise<TestWallet<TestSetup1>> {
         return await _tu.createKnexTestWalletWithSetup({
             ...args,
             insertSetup: _tu.createTestSetup1
@@ -204,7 +325,7 @@ export abstract class TestUtilsWalletStorage {
         rootKeyHex?: string,
         dropAll?: boolean,
         insertSetup: (storage: StorageKnex, identityKey: string) => Promise<T>
-    }) : Promise<TestWallet<T>> { 
+    }): Promise<TestWallet<T>> {
         args.chain ||= 'test'
         args.rootKeyHex ||= '1'.repeat(64)
         const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
@@ -241,24 +362,24 @@ export abstract class TestUtilsWalletStorage {
         return r
     }
 
-    static async createLegacyWalletSQLiteCopy(databaseName: string) : Promise<TestWalletNoSetup> { 
+    static async createLegacyWalletSQLiteCopy(databaseName: string): Promise<TestWalletNoSetup> {
         const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
         const walletKnex = _tu.createLocalSQLite(walletFile)
         return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
     }
 
-    static async createLegacyWalletMySQLCopy(databaseName: string) : Promise<TestWalletNoSetup> { 
+    static async createLegacyWalletMySQLCopy(databaseName: string): Promise<TestWalletNoSetup> {
         const walletKnex = _tu.createLocalMySQL(databaseName)
         return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
     }
 
-    static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>) : Promise<TestWalletNoSetup> { 
+    static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>): Promise<TestWalletNoSetup> {
         const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
         const readerKnex = _tu.createLocalSQLite(readerFile)
         const chain: sdk.Chain = 'test'
         const reader = new StorageKnex({ chain, knex: readerKnex })
-        const rootKeyHex = "153a3df216"+"686f55b253991c"+"7039da1f648"+"ffc5bfe93d6ac2c25ac"+"2d4070918d"
-        const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe" 
+        const rootKeyHex = "153a3df216" + "686f55b253991c" + "7039da1f648" + "ffc5bfe93d6ac2c25ac" + "2d4070918d"
+        const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe"
         const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
         const keyDeriver = new sdk.KeyDeriver(rootKey)
         const activeStorage = new StorageKnex({ chain, knex: walletKnex })
@@ -431,7 +552,7 @@ export abstract class TestUtilsWalletStorage {
             outputId: 0,
             userId: t.userId,
             transactionId: t.transactionId,
-            basketId: basket ? basket.basketId :  undefined,
+            basketId: basket ? basket.basketId : undefined,
             spendable: true,
             change: true,
             outputDescription: 'not mutch to say',
@@ -557,7 +678,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async createTestSetup1(storage: sdk.WalletStorage, u1IdentityKey?: string) : Promise<TestSetup1> {
+    static async createTestSetup1(storage: sdk.WalletStorage, u1IdentityKey?: string): Promise<TestSetup1> {
         const u1 = await _tu.insertTestUser(storage, u1IdentityKey)
         const u1basket1 = await _tu.insertTestOutputBasket(storage, u1)
         const u1basket2 = await _tu.insertTestOutputBasket(storage, u1)
@@ -724,4 +845,10 @@ export async function expectToThrowWERR<R>(
     return
   }
   throw new Error(`${expectedClass.name} was not thrown`)
+}
+
+export type TestKeyPair = {
+  privateKey: bsv.PrivateKey
+  publicKey: bsv.PublicKey
+  address: string
 }

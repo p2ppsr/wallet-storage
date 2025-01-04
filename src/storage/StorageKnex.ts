@@ -276,7 +276,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
     override async insertSyncState(syncState: table.SyncState, trx?: sdk.TrxToken) : Promise<number> {
-        const e = await this.validateEntityForInsert(syncState, trx)
+        const e = await this.validateEntityForInsert(syncState, trx, ['when'], ['init'])
         if (e.syncStateId === 0) delete e.syncStateId
         const [id] = await this.toDb(trx)<table.SyncState>('sync_states').insert(e)
         syncState.syncStateId = id
@@ -322,7 +322,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
     override async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
         await this.verifyReadyForDatabaseAccess(trx)
-        return await this.toDb(trx)<table.SyncState>('sync_states').where({ syncStateId: id }).update(this.validatePartialForUpdate(update))
+        return await this.toDb(trx)<table.SyncState>('sync_states').where({ syncStateId: id }).update(this.validatePartialForUpdate(update, ['when'], ['init']))
     }
     override async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken) : Promise<number> {
         await this.verifyReadyForDatabaseAccess(trx)
@@ -488,7 +488,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     override async findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
         const q = this.findSyncStatesQuery(partial, since, paged, trx)
         const r = await q
-        return this.validateEntities(r, undefined, ['init'])
+        return this.validateEntities(r, ['when'], ['init'])
     }
     override async findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]> {
         const q = this.findTransactionsQuery(partial, status, noRawTx, since, paged, trx)

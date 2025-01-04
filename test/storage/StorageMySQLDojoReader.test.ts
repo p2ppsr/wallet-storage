@@ -17,9 +17,10 @@ describe('StorageMySQLDojoReader tests', () => {
         const readerKnex = _tu.createMySQLFromConnection(connection)
         reader = new StorageMySQLDojoReader({ chain, knex: readerKnex })
 
-        const writerKnex = _tu.createLocalMySQL('stagingdojocopy')
+        const writerKnex = _tu.createLocalMySQL('stagingdojotone')
         writer = new StorageKnex({ chain, knex: writerKnex })
-        await writer.migrate('stagingdojocopy')
+        await writer.dropAllData()
+        await writer.migrate('stagingdojotone')
     })
 
     afterAll(async () => {

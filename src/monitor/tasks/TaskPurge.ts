@@ -1,3 +1,4 @@
+import { sdk } from '../..';
 import { WalletMonitor } from '../WalletMonitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
@@ -26,36 +27,7 @@ import { WalletMonitorTask } from './WalletMonitorTask';
  *       + Delete mapi_responses records
  *       + proven_tx_reqs table delete records
  */
-export interface PurgeParams {
-   purgeCompleted: boolean
-   purgeFailed: boolean
-
-   /**
-    * Minimum age in msecs for transient completed transaction data purge.
-    * 
-    * Default is 14 days.
-    */
-   purgeCompletedAge?: number
-
-   /**
-    * Minimum age in msecs for failed transaction data purge.
-    * 
-    * Default is 14 days.
-    */
-   purgeFailedAge?: number
-}
-
-export interface PurgeResults {
-   count: number,
-   log: string
-}
-
-export interface TaskPurgeParams extends PurgeParams {
-   purgeCompleted: boolean
-   purgeFailed: boolean
-
-   purgeCompletedDelay: number
-   purgeFailedDelay: number
+export interface TaskPurgeParams extends sdk.PurgeParams {
 }
 
 export class TaskPurge extends WalletMonitorTask {
@@ -82,7 +54,7 @@ export class TaskPurge extends WalletMonitorTask {
     async runTask(): Promise<void> {
         TaskPurge.checkNow = false;
 
-        //const r = await this.storage.purgeData(this.params)
-        //console.log(`TaskPurge ${r.count} records updated or deleted.\n${r.log}`)
+        const r = await this.storage.purgeData(this.params)
+        console.log(`TaskPurge ${r.count} records updated or deleted.\n${r.log}`)
     }
 }

@@ -5,6 +5,8 @@ import { Knex } from "knex";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { listActionsSdk } from './methods/listActionsSdk'
 import { listOutputsSdk } from "./methods/listOutputsSdk";
+import { purgeData } from "./methods/purgeData";
+import { requestSyncChunk } from "./methods/requestSyncChunk";
 
 export interface StorageKnexOptions extends StorageBaseOptions {
     /**
@@ -74,21 +76,75 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return rawTx
     }
 
-    override async requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunkResult> {
-        throw new Error("Method not implemented.");
+    getProvenTxsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const k = this.toDb(trx)
+        let q = k('proven_txs').where(function() {
+            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_txs.provenTxId = transactions.provenTxId and transactions.userId = ${userId}`))
+        })
+        if (paged) {
+            q = q.limit(paged.limit)
+            q = q.offset(paged.offset || 0)
+        }
+        if (since) q = q.where('updated_at', '>=', since)
+        return q
     }
-    
-    override async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
-        throw new Error("Method not implemented.");
+    override async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]> {
+        const q = this.getProvenTxsForUserQuery(userId, since, paged, trx)
+        const rs = await q
+        return this.validateEntities(rs)
     }
-    override async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
-        throw new Error("Method not implemented.");
+
+    getProvenTxReqsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const k = this.toDb(trx)
+        let q = k('proven_tx_reqs').where(function() {
+            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_tx_reqs.txid = transactions.txid and transactions.userId = ${userId}`))
+        })
+        if (paged) {
+            q = q.limit(paged.limit)
+            q = q.offset(paged.offset || 0)
+        }
+        if (since) q = q.where('updated_at', '>=', since)
+        return q
     }
-    override async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
-        throw new Error("Method not implemented.");
+    override async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]> {
+        const q = this.getProvenTxReqsForUserQuery(userId, since, paged, trx)
+        const rs = await q
+        return this.validateEntities(rs, undefined, ['notified'])
     }
-    override async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
-        throw new Error("Method not implemented.");
+
+
+    getTxLabelMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const k = this.toDb(trx)
+        let q = k('tx_labels_map')
+            .whereExists(k.select('*').from('tx_labels').whereRaw(`tx_labels.txLabelId = tx_labels_map.txLabelId and tx_labels.userId = ${userId}`))
+        if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
+        if (paged) {
+            q = q.limit(paged.limit)
+            q = q.offset(paged.offset || 0)
+        }
+        return q
+    }
+    override async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
+        const q = this.getTxLabelMapsForUserQuery(userId, since, paged, trx)
+        const rs = await q
+        return this.validateEntities(rs, undefined, ['isDeleted'])
+    }
+
+    getOutputTagMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
+        const k = this.toDb(trx)
+        let q = k('output_tags_map')
+            .whereExists(k.select('*').from('output_tags').whereRaw(`output_tags.outputTagId = output_tags_map.outputTagId and output_tags.userId = ${userId}`))
+        if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
+        if (paged) {
+            q = q.limit(paged.limit)
+            q = q.offset(paged.offset || 0)
+        }
+        return q
+    }
+    override async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
+        const q = this.getOutputTagMapsForUserQuery(userId, since, paged, trx)
+        const rs = await q
+        return this.validateEntities(rs, undefined, ['isDeleted'])
     }
 
     async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
@@ -598,7 +654,11 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
      * Helper to force uniform behavior across database engines.
      * Use to process the update template for entities being updated.
      */
-    validatePartialForUpdate<T extends sdk.EntityTimeStamp>(update: Partial<T>, dateFields?: string[]) : Partial<T> {
+    validatePartialForUpdate<T extends sdk.EntityTimeStamp>(
+        update: Partial<T>,
+        dateFields?: string[],
+        booleanFields?: string[]
+    ) : Partial<T> {
         if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first');
         const v: any = update
         if (v.created_at) v.created_at = this.validateEntityDate(v.created_at);
@@ -612,10 +672,18 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
                     v[df] = this.validateOptionalEntityDate(v[df])
             }
         }
+        if (booleanFields) {
+            for (const df of booleanFields) {
+                if (update[df] !== undefined)
+                    update[df] = !!(update[df]) ? 1 : 0
+            }
+        }
         for (const key of Object.keys(v)) {
             const val = v[key]
             if (Array.isArray(val) && (val.length === 0 || typeof val[0] === 'number')) {
                 v[key] = Buffer.from(val)
+            } else if (val === undefined) {
+                v[key] = null
             }
         }
         this.isDirty = true
@@ -626,7 +694,11 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
      * Helper to force uniform behavior across database engines.
      * Use to process new entities being inserted into the database.
      */
-    async validateEntityForInsert<T extends sdk.EntityTimeStamp>(entity: T, trx?: sdk.TrxToken, dateFields?: string[]): Promise<any> {
+    async validateEntityForInsert<T extends sdk.EntityTimeStamp>(
+        entity: T, trx?: sdk.TrxToken,
+        dateFields?: string[],
+        booleanFields?: string[]
+    ): Promise<any> {
         await this.verifyReadyForDatabaseAccess(trx)
         const v: any = { ...entity }
         v.created_at = this.validateOptionalEntityDate(v.created_at, true)!
@@ -639,10 +711,18 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
                     v[df] = this.validateOptionalEntityDate(v[df])
             }
         }
+        if (booleanFields) {
+            for (const df of booleanFields) {
+                if (entity[df] !== undefined)
+                    entity[df] = !!(entity[df]) ? 1 : 0
+            }
+        }
         for (const key of Object.keys(v)) {
             const val = v[key]
             if (Array.isArray(val) && (val.length === 0 || typeof val[0] === 'number')) {
                 v[key] = Buffer.from(val)
+            } else if (val === undefined) {
+                v[key] = null
             }
         }
         this.isDirty = true
@@ -678,6 +758,9 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         return this.validateEntities(tags, undefined, ['isDeleted'])
     }
 
+    override async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
+        return await purgeData(this, params, trx)
+    }
 }
 
 export type DBType = 'SQLite' | 'MySQL'

@@ -1,10 +1,11 @@
 import { DBType, sdk, StorageBaseOptions, table, validateSecondsSinceEpoch, verifyTruthy } from "..";
+import { requestSyncChunk } from "./methods/requestSyncChunk";
 
 export abstract class StorageSyncReader implements sdk.StorageSyncReader {
     chain: sdk.Chain
     settings?: table.Settings
     whenLastAccess?: Date
-    get dbtype() : DBType | undefined { return this.settings?.dbtype }
+    get dbtype(): DBType | undefined { return this.settings?.dbtype }
 
     constructor(options: StorageBaseOptions) {
         this.chain = options.chain
@@ -29,31 +30,37 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
 
     abstract getSettings(trx?: sdk.TrxToken): Promise<table.Settings>
 
-   abstract getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]>
-   abstract getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]>
-   abstract getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]>
-   abstract getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]>
+    abstract getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>
+    abstract getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]>
+    abstract getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]>
+    abstract getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]>
 
-   abstract findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.CertificateField[]>
-   abstract findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]>
-   abstract findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Commission[]>
-   abstract findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputBasket[]>
-   abstract findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]>
-   abstract findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
-   abstract findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]>
-   abstract findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabel[]>
+    abstract findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.CertificateField[]>
+    abstract findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Certificate[]>
+    abstract findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Commission[]>
+    abstract findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputBasket[]>
+    abstract findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Output[]>
+    abstract findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
+    abstract findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Transaction[]>
+    abstract findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
 
-   // These are needed for automation:
-   abstract findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]>
-   abstract findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.User[]>
+    // These are needed for automation:
+    abstract findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]>
+    abstract findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.User[]>
 
-   abstract requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunkResult>
+    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
+        return requestSyncChunk(this, args)
+    }
 
     /**
      * Helper to force uniform behavior across database engines.
      * Use to process all individual records with time stamps retreived from database.
      */
-    validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]) : T {
+    validateEntity<T extends sdk.EntityTimeStamp>(
+        entity: T,
+        dateFields?: string[],
+        booleanFields?: string[]
+    ): T {
         entity.created_at = this.validateDate(entity.created_at)
         entity.updated_at = this.validateDate(entity.updated_at)
         if (dateFields) {
@@ -70,7 +77,9 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
         }
         for (const key of Object.keys(entity)) {
             const val = entity[key]
-            if (Buffer.isBuffer(val)) {
+            if (val === null) {
+                entity[key] = undefined
+            } else if (Buffer.isBuffer(val)) {
                 entity[key] = Array.from(val)
             }
         }
@@ -82,7 +91,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
      * Use to process all arrays of records with time stamps retreived from database.
      * @returns input `entities` array with contained values validated.
      */
-    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]) : T[] {
+    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] {
         for (let i = 0; i < entities.length; i++) {
             entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
         }
@@ -95,7 +104,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
      * @returns 
      */
     validateEntityDate(date: Date | string | number)
-    : Date | string {
+        : Date | string {
         if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
         let r: Date | string = this.validateDate(date)
         switch (this.dbtype) {
@@ -116,7 +125,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
      * @returns 
      */
     validateOptionalEntityDate(date: Date | string | number | null | undefined, useNowAsDefault?: boolean)
-    : Date | string | undefined {
+        : Date | string | undefined {
         if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
         let r: Date | string | undefined = this.validateOptionalDate(date)
         if (!r && useNowAsDefault) r = new Date()
@@ -132,7 +141,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
         return r
     }
 
-    validateDate(date: Date | string | number) : Date {
+    validateDate(date: Date | string | number): Date {
         let r: Date
         if (date instanceof Date)
             r = date
@@ -141,12 +150,12 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
         return r
     }
 
-    validateOptionalDate(date: Date | string | number | null | undefined) : Date | undefined {
+    validateOptionalDate(date: Date | string | number | null | undefined): Date | undefined {
         if (date === null || date === undefined) return undefined
         return this.validateDate(date)
     }
 
-    validateDateForWhere(date: Date | string | number) : Date | string | number {
+    validateDateForWhere(date: Date | string | number): Date | string | number {
         if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
         if (typeof date === 'number') date = validateSecondsSinceEpoch(date)
         const vdate = verifyTruthy(this.validateDate(date))
@@ -162,5 +171,5 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
         }
         return r
     }
-    
+
 }

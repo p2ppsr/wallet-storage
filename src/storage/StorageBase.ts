@@ -17,6 +17,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
     abstract dropAllData(): Promise<void>
     abstract migrate(storageName: string): Promise<string>
+    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
     /////////////////
     //

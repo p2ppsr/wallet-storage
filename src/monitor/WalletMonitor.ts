@@ -10,6 +10,8 @@ import { TaskNotifyOfProofs } from './tasks/TaskNotifyOfProofs'
 import { TaskCheckForProofs } from './tasks/TaskCheckForProofs'
 import { TaskSendWaiting } from './tasks/TaskSendWaiting'
 import { WalletMonitorTask } from './tasks/WalletMonitorTask'
+import { TaskClock } from './tasks/TaskClock'
+import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
 export interface WalletMonitorOptions {
 
@@ -76,6 +78,11 @@ export class WalletMonitor {
         this.chaintracks = options.chaintracks
     }
 
+    oneSecond = 1000
+    oneMinute = 60 * this.oneSecond
+    oneHour = 60 * this.oneMinute
+    oneDay = 24 * this.oneHour
+    oneWeek = 7 * this.oneDay
     /**
      * _tasks are typically run by the scheduler but may also be run by runTask.
      */
@@ -86,6 +93,17 @@ export class WalletMonitor {
     _otherTasks: WalletMonitorTask[] = []
     _tasksRunning = false
     
+    addAllTasksToOther() : void {
+        this._otherTasks.push(new TaskClock(this))
+        this._otherTasks.push(new TaskNewHeader(this))
+        this._otherTasks.push(new TaskCheckForProofs(this))
+        this._otherTasks.push(new TaskCheckProofs(this))
+        this._otherTasks.push(new TaskFailAbandoned(this))
+        this._otherTasks.push(new TaskNotifyOfProofs(this))
+        this._otherTasks.push(new TaskPurge(this, { purgeCompleted: false, purgeFailed: true, purgeCompletedAge: 2 * this.oneWeek , purgeFailedAge: 5 * this.oneDay }))
+        this._otherTasks.push(new TaskSendWaiting(this))
+        this._otherTasks.push(new TaskSyncWhenIdle(this))
+    }
     /**
      * Default tasks with settings appropriate for a single user storage
      * possibly with sync'ing enabled
@@ -115,8 +133,8 @@ export class WalletMonitor {
         this._tasks.push(new TaskPurge(this, {
             purgeCompleted: true,
             purgeFailed: true,
-            purgeCompletedDelay: 14 * days,
-            purgeFailedDelay: 14 * days
+            purgeCompletedAge: 14 * days,
+            purgeFailedAge: 14 * days
         }, 6 * hours))
         this._otherTasks.push(new TaskValidate(this))
         this._otherTasks.push(new TaskCheckProofs(this, 1000 * 60 * 60 * 4))
@@ -187,7 +205,7 @@ export class WalletMonitor {
             for (const ttr of tasksToRun) {
 
                 try {
-                    console.log(`${new Date().toISOString()} running  ${ttr.name}`)
+                    //console.log(`${new Date().toISOString()} running  ${ttr.name}`)
                     await ttr.runTask()
                 } catch(eu: unknown) {
                     const e = sdk.WalletError.fromUnknown(eu)

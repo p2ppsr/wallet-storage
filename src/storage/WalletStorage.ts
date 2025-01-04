@@ -18,12 +18,9 @@ export class WalletStorage implements sdk.WalletStorage {
 
     services: sdk.WalletStorage[] = []
 
-    constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[], importFrom?: StorageSyncReader) {
+    constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[]) {
         this.services = [ active ]
         if (backups) this.services.concat(backups)
-        if (importFrom) {
-            throw new sdk.WERR_NOT_IMPLEMENTED('coming soon!')
-        }
     }
 
     getActive(): sdk.WalletStorage { return this.services[0] }
@@ -42,6 +39,32 @@ export class WalletStorage implements sdk.WalletStorage {
         return await this.getActive().destroy()
     }
 
+    async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
+        return this.getActive().purgeData(params, trx)
+    }
+
+    async SyncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
+        const writer = this.getActive()
+        const readerSettings = await reader.getSettings()
+
+        const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
+
+        let log = ''
+        let inserts = 0, updates = 0
+        for (;;) {
+            const args = ss.makeRequestSyncChunkArgs(identityKey)
+            const chunk = await reader.requestSyncChunk(args)
+            const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+            inserts += r.inserts
+            updates += r.updates
+            log += `${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}\n`
+            if (r.done)
+                break;
+        }
+        //console.log(log)
+        console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
+    }
+    
     /**
      * For all `status` values besides 'failed', just updates the transaction records status property.
      * 

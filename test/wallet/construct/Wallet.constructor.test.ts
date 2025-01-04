@@ -9,7 +9,7 @@ describe('Wallet constructor tests', () => {
     const ctxs: TestSetup1Wallet[] = []
     
     beforeAll(async () => {
-        ctxs.push(await _tu.createMySqlTestSetup1Wallet({ databaseName: 'walletConstruct', chain: 'test', rootKeyHex: '1'.repeat(64)}))
+        ctxs.push(await _tu.createMySQLTestSetup1Wallet({ databaseName: 'walletConstruct', chain: 'test', rootKeyHex: '1'.repeat(64)}))
         ctxs.push(await _tu.createSQLiteTestSetup1Wallet({ databaseName: 'walletConstruct', chain: 'test', rootKeyHex: '2'.repeat(64)}))
     })
 

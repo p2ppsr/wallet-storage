@@ -6,6 +6,7 @@ export interface WalletStorage extends sdk.StorageSyncReader {
 
    dropAllData(): Promise<void>
    migrate(storageName: string): Promise<string>
+   purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
 
    /////////////////
@@ -181,3 +182,30 @@ export interface StorageProcessActionSdkResults {
 }
 
 export interface ProvenOrRawTx { proven?: table.ProvenTx, rawTx?: number[], inputBEEF?: number[] }
+
+export interface PurgeParams {
+   purgeCompleted: boolean
+   purgeFailed: boolean
+   purgeSpent: boolean
+
+   /**
+    * Minimum age in msecs for transient completed transaction data purge.
+    * Default is 14 days.
+    */
+   purgeCompletedAge?: number
+   /**
+    * Minimum age in msecs for failed transaction data purge.
+    * Default is 14 days.
+    */
+   purgeFailedAge?: number
+   /**
+    * Minimum age in msecs for failed transaction data purge.
+    * Default is 14 days.
+    */
+   purgeSpentAge?: number
+}
+
+export interface PurgeResults {
+   count: number,
+   log: string
+}

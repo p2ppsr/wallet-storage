@@ -186,7 +186,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('providedBy', 130).notNullable()
                     table.string('purpose', 20).notNullable()
                     table.string('type', 50).notNullable()
-                    table.string('outputDescription', 50)
+                    table.string('outputDescription', 300) // allow extra room for encryption and imports
                     table.string('txid', 64)
                     table.string('senderIdentityKey', 130)
                     table.string('derivationPrefix', 32)

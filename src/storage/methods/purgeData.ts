@@ -1,9 +1,8 @@
 import { Knex } from "knex"
 import { StorageKnex, table } from ".."
 import { sdk } from "../.."
-import { unbasketOutput } from "@babbage/sdk-ts"
 
-export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
+export async function purgeData(storage: StorageKnex, params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
     const r: sdk.PurgeResults = { count: 0, log: ''}
     const defaultAge = 1000 * 60 * 60 * 24 * 14
 
@@ -32,7 +31,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
         // select * from transactions where updated_at < '2024-08-20' and status = 'completed' and not provenTxId is null and (not truncatedExternalInputs is null or not beef is null or not rawTransaction is null)
         qs.push({
             log: 'conpleted transactions purged of transient data',
-            q: dsk.toDb(trx)('transactions')
+            q: storage.toDb(trx)('transactions')
                 .update({
                     inputBEEF: null,
                     rawTx: null
@@ -46,7 +45,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
                 })
         })
 
-        const completedReqs = await dsk.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
+        const completedReqs = await storage.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
         .select("provenTxReqId")
         .where('updated_at', '<', before)
         .where('status', 'completed')
@@ -57,7 +56,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
         if (completedReqIds.length > 0) {
             qs.push({
                 log: 'completed proven_tx_reqs deleted',
-                q: dsk.toDb(trx)('proven_tx_reqs').whereIn('provenTxReqId', completedReqIds).delete()
+                q: storage.toDb(trx)('proven_tx_reqs').whereIn('provenTxReqId', completedReqIds).delete()
             })
         }
 
@@ -70,7 +69,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
 
         const qs: PurgeQuery[] = []
 
-        const failedTxsQ = dsk.toDb(trx)<{ transactionId: number }>('transactions')
+        const failedTxsQ = storage.toDb(trx)<{ transactionId: number }>('transactions')
             .select("transactionId")
             .where('updated_at', '<', before)
             .where('status', 'failed')
@@ -79,25 +78,25 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
 
         await deleteTransactions(failedTxIds, qs, 'failed', true)
 
-        const invalidReqs = await dsk.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
+        const invalidReqs = await storage.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
         .select("provenTxReqId")
         .where('updated_at', '<', before)
         .where('status', 'invalid')
         const invalidReqIds = invalidReqs.map(o => o.provenTxReqId)
         if (invalidReqIds.length > 0) qs.push({
             log: 'invalid proven_tx_reqs deleted',
-            q: dsk.toDb(trx)('proven_tx_reqs') .whereIn('provenTxReqId', invalidReqIds) .delete()
+            q: storage.toDb(trx)('proven_tx_reqs') .whereIn('provenTxReqId', invalidReqIds) .delete()
         })
 
 
-        const doubleSpendReqs = await dsk.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
+        const doubleSpendReqs = await storage.toDb(trx)<{ provenTxReqId: number }>('proven_tx_reqs')
         .select("provenTxReqId")
         .where('updated_at', '<', before)
         .where('status', 'doubleSpend')
         const doubleSpendReqIds = doubleSpendReqs.map(o => o.provenTxReqId)
         if (doubleSpendReqIds.length > 0) qs.push({
             log: 'doubleSpend proven_tx_reqs deleted',
-            q: dsk.toDb(trx)('proven_tx_reqs') .whereIn('provenTxReqId', doubleSpendReqIds) .delete()
+            q: storage.toDb(trx)('proven_tx_reqs') .whereIn('provenTxReqId', doubleSpendReqIds) .delete()
         })
 
         for (const q of qs) await runPurgeQuery(q)
@@ -109,7 +108,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
 
         let qs: PurgeQuery[] = []
 
-        const spentTxsQ = dsk.toDb(trx)<{ transactionId: number }>('transactions')
+        const spentTxsQ = storage.toDb(trx)<{ transactionId: number }>('transactions')
             .select("transactionId")
             .where('updated_at', '<', before)
             .where('status', 'completed')
@@ -121,7 +120,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
             const update: Partial<table.Output> = { spentBy: undefined }
             qs.push({
                 log: 'spent outputs no longer tracked by spentBy',
-                q: dsk.toDb(trx)<table.Output>('outputs').update(dsk.validatePartialForUpdate(update, undefined, ['spendable']))
+                q: storage.toDb(trx)<table.Output>('outputs').update(storage.validatePartialForUpdate(update, undefined, ['spendable']))
                     .where('spendable', false)
                     .whereIn('spentBy', spentTxIds)
             })
@@ -138,7 +137,7 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
     const qs: PurgeQuery[] = []
     qs.push({
         log: 'orphan proven_txs deleted',
-        q: dsk.toDb(trx)('proven_txs')
+        q: storage.toDb(trx)('proven_txs')
             .whereRaw(`not exists(select * from transactions as t where t.txid = proven_txs.txid or t.provenTxId = proven_txs.provenTxId)`)
             .whereRaw(`not exists(select * from proven_tx_reqs as r where r.txid = proven_txs.txid or r.provenTxId = proven_txs.provenTxId)`)
             .delete()
@@ -149,41 +148,41 @@ export async function purgeData(dsk: StorageKnex, params: sdk.PurgeParams, trx?:
 
     async function deleteTransactions(transactionIds: number[], qs: PurgeQuery[], reason: string, markNotSpentBy: boolean) {
         if (transactionIds.length > 0) {
-            const outputs = await dsk.toDb(trx)<{ outputId: number} >('outputs')
+            const outputs = await storage.toDb(trx)<{ outputId: number} >('outputs')
                 .select("outputId")
                 .whereIn('transactionId', transactionIds)
             const outputIds = outputs.map(o => o.outputId)
             if (outputIds.length > 0) {
                 qs.push({
                     log: `${reason} output_tags_map deleted`,
-                    q: dsk.toDb(trx)<table.OutputTagMap>('output_tags_map').whereIn("outputId", outputIds).delete()
+                    q: storage.toDb(trx)<table.OutputTagMap>('output_tags_map').whereIn("outputId", outputIds).delete()
                 })
                 qs.push({
                     log: `${reason} outputs deleted`,
-                    q: dsk.toDb(trx)<table.Output>('outputs').whereIn("outputId", outputIds).delete()
+                    q: storage.toDb(trx)<table.Output>('outputs').whereIn("outputId", outputIds).delete()
                 })
             }
 
             qs.push({
                 log: `${reason} tx_labels_map deleted`,
-                q: dsk.toDb(trx)<table.TxLabelMap>('tx_labels_map').whereIn("transactionId", transactionIds).delete()
+                q: storage.toDb(trx)<table.TxLabelMap>('tx_labels_map').whereIn("transactionId", transactionIds).delete()
             })
 
             qs.push({
                 log: `${reason} commissions deleted`,
-                q: dsk.toDb(trx)<table.Commission>('commissions').whereIn('transactionId', transactionIds).delete()
+                q: storage.toDb(trx)<table.Commission>('commissions').whereIn('transactionId', transactionIds).delete()
             })
 
             if (markNotSpentBy) {
                 qs.push({
                     log: 'unspent outputs updated to spendable',
-                    q: dsk.toDb(trx)<table.Output>('outputs').update({ spendable: true, spentBy: undefined }).whereIn('spentBy', transactionIds)
+                    q: storage.toDb(trx)<table.Output>('outputs').update({ spendable: true, spentBy: undefined }).whereIn('spentBy', transactionIds)
                 })
             }
 
             qs.push({
                 log: `${reason} transactions deleted`,
-                q: dsk.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', transactionIds).delete()
+                q: storage.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', transactionIds).delete()
             })
         }
     }

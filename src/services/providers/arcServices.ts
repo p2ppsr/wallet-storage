@@ -253,7 +253,7 @@ export async function postBeefToTaalArcMiner(
     {
         if (beef.atomicTxid === undefined) {
             const abeef = beef.toBinaryAtomic(txids[txids.length -1])
-            const r2 = await postBeefToArcMiner(abeef, txids, config)
+            const r2 = await postBeefToArcMiner(beef, txids, config)
             datas['r2'] = r2.data
             r2.data = datas
             if (r2.status === 'success') return r2

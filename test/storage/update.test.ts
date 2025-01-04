@@ -3,7 +3,8 @@ import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table
 import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
-import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output } from '../../src/storage/schema/tables'
+import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, WatchmanEvent, SyncState } from '../../src/storage/schema/tables'
+import { SyncMap } from '../../src/storage/schema/entities'
 
 setLogging(true)
 
@@ -1839,6 +1840,7 @@ describe('update tests', () => {
       }
     }
   })
+
   test('8 find Output', async () => {
     const primaryKey = 'outputId' // Use outputId as the unique primary key
 
@@ -1846,6 +1848,7 @@ describe('update tests', () => {
       const records = await storage.findOutputs({})
       log('Initial Output records:', records)
 
+      // Ensure all records have valid foreign keys
       for (const record of records) {
         if (!record.transactionId) record.transactionId = 1 // Assign a valid default transactionId
         if (!record.basketId) record.basketId = 1 // Assign a valid default basketId
@@ -1854,44 +1857,50 @@ describe('update tests', () => {
         }
       }
 
+      // Test updates for each record
       for (const record of records) {
         log(`Testing updates for Output with ${primaryKey}=${record[primaryKey]}`)
 
-        // Assign valid foreign keys if missing
-        if (!record.transactionId) {
-          log(`Assigning default transactionId to record ${record.outputId}`)
-          record.transactionId = 1 // Ensure transactionId exists in the `transactions` table
+        // Ensure a unique combination of transactionId, vout, and userId
+        const existingRecords = await storage.findOutputs({})
+        const usedCombinations = new Set(existingRecords.map(r => `${r.transactionId}-${r.vout}-${r.userId}`))
+
+        let testTransactionId = record.transactionId
+        let testVout = record.vout + 1 // Increment vout to avoid conflict
+        let testUserId = record.userId
+
+        // Find a unique combination
+        while (usedCombinations.has(`${testTransactionId}-${testVout}-${testUserId}`)) {
+          testVout += 1
         }
-        if (!record.basketId) {
-          log(`Assigning default basketId to record ${record.outputId}`)
-          record.basketId = 1 // Ensure basketId exists in the `output_baskets` table
-        }
+
         try {
           const testValues: Output = {
-            outputId: record.outputId,
-            userId: 2, // Matches userId in output_baskets table
-            transactionId: record.transactionId ?? 1, // Ensure a valid transactionId exists
-            basketId: record.basketId ?? 1, // Ensure basketId matches a valid record
-            created_at: new Date('2024-12-30T23:00:00Z'),
+            outputId: record.outputId, // Primary key
+            basketId: record.basketId ?? 1, // Foreign keys in alphabetical order
+            transactionId: testTransactionId,
+            userId: testUserId,
+            vout: testVout, // Unique field(s) in alphabetical order
+            created_at: new Date('2024-12-30T23:00:00Z'), // Timestamps
             updated_at: new Date('2024-12-30T23:05:00Z'),
-            spendable: false, // Example value
-            change: true, // Example value
-            vout: 2, // Example output index
-            satoshis: 3000, // Example satoshi value
-            providedBy: 'test_provider', // Example provider
-            purpose: 'updated_purpose', // Example purpose
-            type: 'updated_type', // Example type
-            txid: 'updated_txid', // Example txid
-            senderIdentityKey: 'updated_sender_key', // Example senderIdentityKey
-            derivationPrefix: 'updated_prefix==', // Example derivationPrefix
-            derivationSuffix: 'updated_suffix==', // Example derivationSuffix
-            customInstructions: 'Updated instructions', // Example custom instructions
-            spentBy: 5, // Example spentBy value
-            sequenceNumber: 10, // Example sequenceNumber
-            spendingDescription: 'Updated spending description', // Example description
-            scriptLength: 150, // Example scriptLength
-            scriptOffset: 5, // Example scriptOffset
-            lockingScript: [0x01, 0x02, 0x03, 0x04] // Example lockingScript
+            change: true, // Other fields in alphabetical order
+            customInstructions: 'Updated instructions',
+            derivationPrefix: 'updated_prefix==',
+            derivationSuffix: 'updated_suffix==',
+            lockingScript: [0x01, 0x02, 0x03, 0x04],
+            providedBy: 'test_provider',
+            purpose: 'updated_purpose',
+            satoshis: 3000,
+            scriptLength: 150,
+            scriptOffset: 5,
+            senderIdentityKey: 'updated_sender_key',
+            sequenceNumber: 10,
+            spendingDescription: 'Updated spending description',
+            spendable: false,
+            spentBy: 3,
+            txid: 'updated_txid',
+            type: 'updated_type',
+            outputDescription: 'outputDescription'
           }
 
           log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
@@ -1900,7 +1909,6 @@ describe('update tests', () => {
           const updateResult = await storage.updateOutput(
             record.outputId, // First argument: outputId
             testValues // Second argument: full Output object
-            //setup.trxToken // Optional third argument: transaction token
           )
           log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
           expect(updateResult).toBe(1)
@@ -1944,38 +1952,405 @@ describe('update tests', () => {
   })
 
   test('9 find OutputTag', async () => {
+    const primaryKey = 'outputTagId' // Use outputTagId as the unique primary key
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findOutputTags({})
+      const records = await storage.findOutputTags({})
+      log('Initial OutputTag records:', records)
+
+      for (const record of records) {
+        if (!record.userId) record.userId = 1 // Assign a valid default userId
+        if (!record.tag) record.tag = `default_tag_${record.outputTagId}` // Assign a unique default tag
+        if (!record.userId || !record.tag) {
+          throw new Error(`Missing required fields for record ${JSON.stringify(record)}`)
+        }
+      }
+
+      for (const record of records) {
+        log(`Testing updates for OutputTag with ${primaryKey}=${record[primaryKey]}`)
+
+        const uniqueTag = `updated_tag_${record.outputTagId}` // Generate a unique tag for each test case
+
+        const testValues: OutputTag = {
+          outputTagId: record.outputTagId, // Primary Key
+          userId: record.userId, // Foreign Key
+          tag: uniqueTag, // Unique field
+          created_at: new Date('2024-12-30T23:00:00Z'), // Timestamp
+          updated_at: new Date('2024-12-30T23:05:00Z'), // Timestamp
+          isDeleted: false // Boolean field
+        }
+
+        log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+        try {
+          // Perform the update
+          const updateResult = await storage.updateOutputTag(
+            record.outputTagId, // First argument: outputTagId
+            testValues // Second argument: full OutputTag object
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findOutputTags({ outputTagId: record.outputTagId })
+          log(`Fetched updated records for outputTagId=${record.outputTagId}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated OutputTag with outputTagId=${record.outputTagId} was not unique or missing.`)
+          log(`Updated OutputTag record for outputTagId=${record.outputTagId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying OutputTag record with outputTagId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('10 find OutputTagMap', async () => {
+    const primaryKey = ['outputTagId', 'outputId'] // Use composite primary key: outputTagId + outputId
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findOutputTagMaps({})
+      const records = await storage.findOutputTagMaps({})
+      log('Initial OutputTagMap records:', records)
+
+      for (const record of records) {
+        // Ensure valid foreign keys
+        if (!record.outputTagId) throw new Error(`Missing outputTagId for record: ${JSON.stringify(record)}`)
+        if (!record.outputId) throw new Error(`Missing outputId for record: ${JSON.stringify(record)}`)
+
+        log(`Testing updates for OutputTagMap with outputTagId=${record.outputTagId} and outputId=${record.outputId}`)
+
+        try {
+          const testValues: OutputTagMap = {
+            outputTagId: record.outputTagId, // Primary Key 1
+            outputId: record.outputId, // Primary Key 2
+            created_at: new Date('2024-12-30T23:00:00Z'), // Timestamp
+            updated_at: new Date('2024-12-30T23:05:00Z'), // Timestamp
+            isDeleted: false // Example value
+          }
+
+          log(`Attempting update with values for outputTagId=${record.outputTagId} and outputId=${record.outputId}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateOutputTagMap(
+            record.outputId, // First key
+            record.outputTagId, // Second key
+            testValues // Update values
+          )
+          log(`Update result for outputTagId=${record.outputTagId} and outputId=${record.outputId}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findOutputTagMaps({ outputTagId: record.outputTagId, outputId: record.outputId })
+          log(`Fetched updated records for outputTagId=${record.outputTagId} and outputId=${record.outputId}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated OutputTagMap with outputTagId=${record.outputTagId} and outputId=${record.outputId} was not unique or missing.`)
+          log(`Updated OutputTagMap record for outputTagId=${record.outputTagId} and outputId=${record.outputId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying OutputTagMap record with outputTagId=${record.outputTagId} and outputId=${record.outputId}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('11 find TxLabel', async () => {
+    const primaryKey = 'txLabelId'
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findTxLabels({})
+      const records = await storage.findTxLabels({})
+      log('Initial TxLabel records:', records)
+
+      for (const record of records) {
+        if (!record.userId) {
+          throw new Error(`Missing required foreign key userId for record ${JSON.stringify(record)}`)
+        }
+      }
+
+      for (const record of records) {
+        log(`Testing updates for TxLabel with ${primaryKey}=${record[primaryKey]}`)
+
+        const uniqueLabel = `unique_label_${record.txLabelId}` // Ensure unique label for testing
+        const testValues: TxLabel = {
+          txLabelId: record.txLabelId,
+          userId: record.userId,
+          label: uniqueLabel,
+          isDeleted: false,
+          created_at: new Date('2024-12-30T23:00:00Z'),
+          updated_at: new Date('2024-12-30T23:05:00Z')
+        }
+
+        const existingLabel = await storage.findTxLabels({ label: testValues.label, userId: testValues.userId })
+        if (existingLabel.length > 0) {
+          log(`Skipping update for duplicate label="${testValues.label}" and userId=${testValues.userId}`)
+          continue
+        }
+
+        log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+        const updateResult = await storage.updateTxLabel(record.txLabelId, testValues)
+        log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+        expect(updateResult).toBe(1)
+
+        const updatedRecords = await storage.findTxLabels({ txLabelId: record.txLabelId })
+        const updatedRow = verifyOne(updatedRecords, `Updated TxLabel with txLabelId=${record.txLabelId} was not unique or missing.`)
+        log(`Updated TxLabel record for txLabelId=${record.txLabelId}:`, updatedRow)
+
+        for (const [key, value] of Object.entries(testValues)) {
+          const actualValue = updatedRow[key]
+          const normalizedActual = normalizeDate(actualValue)
+          const normalizedExpected = normalizeDate(value)
+          if (normalizedActual && normalizedExpected) {
+            expect(normalizedActual).toBe(normalizedExpected)
+            continue
+          }
+          expect(actualValue).toBe(value)
+        }
+      }
     }
   })
 
   test('12 find TxLabelMap', async () => {
+    const primaryKeyTransaction = 'transactionId'
+    const primaryKeyLabel = 'txLabelId'
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findTxLabelMaps({})
+      // Fetch all initial records from the table
+      const records = await storage.findTxLabelMaps({})
+      log('Initial TxLabelMap records:', records)
+
+      // Validate foreign keys
+      for (const record of records) {
+        if (!record.transactionId || !record.txLabelId) {
+          throw new Error(`Missing required foreign keys for record ${JSON.stringify(record)}`)
+        }
+      }
+
+      // Test updates for each record
+      for (const record of records) {
+        log(`Testing updates for TxLabelMap with ${primaryKeyTransaction}=${record[primaryKeyTransaction]} and ${primaryKeyLabel}=${record[primaryKeyLabel]}`)
+
+        const testValues: TxLabelMap = {
+          transactionId: record.transactionId,
+          txLabelId: record.txLabelId,
+          created_at: new Date('2024-12-30T23:00:00Z'),
+          updated_at: new Date('2024-12-30T23:05:00Z'),
+          isDeleted: false // Example value
+        }
+
+        // Check for duplicates to avoid constraint errors
+        const existingRecord = await storage.findTxLabelMaps({
+          transactionId: testValues.transactionId,
+          txLabelId: testValues.txLabelId
+        })
+
+        if (existingRecord.length > 0) {
+          log(`Skipping update for duplicate transactionId=${testValues.transactionId} and txLabelId=${testValues.txLabelId}`)
+          continue
+        }
+
+        try {
+          log(`Attempting update with values:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateTxLabelMap(
+            record.transactionId, // First key
+            record.txLabelId, // Second key
+            testValues // Update values
+          )
+          log(`Update result for transactionId=${record[primaryKeyTransaction]} and txLabelId=${record[primaryKeyLabel]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findTxLabelMaps({
+            transactionId: record.transactionId,
+            txLabelId: record.txLabelId
+          })
+
+          const updatedRow = verifyOne(updatedRecords, `Updated TxLabelMap with transactionId=${record[primaryKeyTransaction]} and txLabelId=${record[primaryKeyLabel]} was not unique or missing.`)
+          log(`Updated TxLabelMap record for transactionId=${record.transactionId} and txLabelId=${record.txLabelId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying TxLabelMap record with transactionId=${record[primaryKeyTransaction]} and txLabelId=${record[primaryKeyLabel]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('13 find WatchmanEvent', async () => {
+    const primaryKey = 'id' // Primary key for the table
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findWatchmanEvents({})
+      const records = await storage.findWatchmanEvents({})
+      log('Initial WatchmanEvent records:', records)
+
+      for (const record of records) {
+        log(`Testing updates for WatchmanEvent with ${primaryKey}=${record[primaryKey]}`)
+
+        try {
+          const testValues: WatchmanEvent = {
+            id: record.id, // Primary key first
+            created_at: new Date('2024-12-30T23:00:00Z'), // Timestamps
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            event: 'updated_event', // Other fields in alphabetical order
+            details: 'Updated details'
+          }
+
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateWatchmanEvent(
+            record.id, // First argument: primary key
+            testValues // Second argument: updated values
+            //setup.trxToken // Optional third argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findWatchmanEvents({ id: record.id })
+          log(`Fetched updated records for id=${record.id}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated WatchmanEvent with id=${record.id} was not unique or missing.`)
+          log(`Updated WatchmanEvent record for id=${record.id}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying WatchmanEvent record with id=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('14 find SyncState', async () => {
+    const primaryKey = 'syncStateId'
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findSyncStates({})
+      const records = await storage.findSyncStates({})
+      log('Initial SyncState records:', records)
+
+      for (const record of records) {
+        if (!record.userId) {
+          throw new Error(`Missing required foreign key userId for record ${JSON.stringify(record)}`)
+        }
+      }
+
+      for (const record of records) {
+        log(`Testing updates for SyncState with ${primaryKey}=${record[primaryKey]}`)
+
+        const testValues: SyncState = {
+          syncStateId: record.syncStateId, // Ensure syncStateId exists
+          userId: record.userId, // Matches userId in the users table
+          refNum: 'test_refNum', // Example unique reference number
+          created_at: new Date('2025-01-01T00:00:00.000Z'),
+          updated_at: new Date('2025-01-01T00:00:00.000Z'),
+          errorLocal: 'Example local error', // Example string
+          errorOther: 'Example other error', // Example string
+          init: false, // Example boolean
+          satoshis: 1000, // Example number
+          status: 'success', // Example status
+          storageIdentityKey: 'test_identity_key', // Example key
+          storageName: 'test_storage', // Example storage name
+          syncMap: '{}', // Example JSON string
+          when: new Date('2025-01-01T02:00:00.000Z') // Example date
+        }
+
+        log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+        const updateResult = await storage.updateSyncState(record.syncStateId, testValues)
+        log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+        expect(updateResult).toBe(1)
+
+        const updatedRecords = await storage.findSyncStates({ syncStateId: record.syncStateId })
+        const updatedRow = verifyOne(updatedRecords, `Updated SyncState with syncStateId=${record.syncStateId} was not unique or missing.`)
+        log(`Updated SyncState record for syncStateId=${record.syncStateId}:`, updatedRow)
+
+        for (const [key, value] of Object.entries(testValues)) {
+          const actualValue = updatedRow[key]
+
+          // Handle dates: Check if actualValue and value can be compared as dates
+          const possibleActualDate = new Date(actualValue)
+          const possibleValueDate = typeof value === 'string' ? new Date(value) : value
+
+          if (!isNaN(possibleActualDate.getTime()) && !isNaN(possibleValueDate?.getTime?.())) {
+            log(`Comparing dates in milliseconds: actualValue="${possibleActualDate.getTime()}", value="${possibleValueDate.getTime()}"`)
+            expect(possibleActualDate.getTime()).toBe(possibleValueDate.getTime())
+            continue
+          }
+
+          // Handle empty objects for undefined or null
+          if ((value === undefined || value === null) && typeof actualValue === 'object' && Object.keys(actualValue).length === 0) {
+            log(`Normalizing empty object for key=${key}`)
+            expect(actualValue).toStrictEqual({})
+            continue
+          }
+
+          log(`key: ${key} => actualValue: ${actualValue}`)
+          expect(actualValue).toBe(value)
+        }
+      }
     }
   })
 })

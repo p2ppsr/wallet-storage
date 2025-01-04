@@ -3,7 +3,7 @@ import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table
 import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
-import { ProvenTx, ProvenTxReq, User, Certificate } from '../../src/storage/schema/tables'
+import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output } from '../../src/storage/schema/tables'
 
 setLogging(true)
 
@@ -702,11 +702,6 @@ describe('update tests', () => {
 
             // Handle primitive types directly
             expect(actualValue).toBe(value)
-          }
-
-          // Test UNIQUE constraint violation
-          const duplicateValues: Partial<User> = {
-            identityKey: `mockUpdatedIdentityKey-${e[primaryKey]}` // Use duplicate identityKey from the same update
           }
         } catch (error: any) {
           console.error(`Error updating or verifying User record with ${primaryKey}=${e[primaryKey]}:`, error.message)
@@ -1570,68 +1565,381 @@ describe('update tests', () => {
     }
   })
 */
-  // test('4 find CertificateField', async () => {
-  //   for (const { storage, setup } of setups) {
-  //     // Fetch certificate fields with a specific field name
-  //     const certificateFields = await storage.findCertificateFields({ fieldName: 'bob' })
+  test('4 find CertificateField', async () => {
+    const primaryKey = 'certificateId' // Primary key for CertificateField
 
-  //     // Ensure there are results to test
-  //     expect(certificateFields.length).toBeGreaterThan(0)
+    for (const { storage, setup } of setups) {
+      const records = await storage.findCertificateFields({})
+      log('Initial CertificateField records:', records)
 
-  //     for (const field of certificateFields) {
-  //       const createdTime = new Date('2024-12-30T23:00:00Z') // Hardcoded creation time
-  //       const updatedTime = new Date('2024-12-30T23:05:00Z') // Hardcoded update time, 5 minutes later
+      for (const record of records) {
+        log(`Testing updates for CertificateField with ${primaryKey}=${record[primaryKey]}`)
 
-  //       // Perform updates on the certificate field
-  //       await storage.updateCertificateField(field.certificateId, field.fieldName, { created_at: createdTime })
-  //       await storage.updateCertificateField(field.certificateId, field.fieldName, { updated_at: updatedTime })
-  //       await storage.updateCertificateField(field.certificateId, field.fieldName, { fieldName: 'updatedFieldName' })
-  //       await storage.updateCertificateField(field.certificateId, field.fieldName, { fieldValue: 'updatedFieldValue' })
+        try {
+          const testValues: CertificateField = {
+            certificateId: record.certificateId,
+            userId: record.userId ?? 1, // Default userId if missing
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            fieldName: record.fieldName || 'defaultFieldName', // Ensure fieldName is a string
+            fieldValue: 'your uncle',
+            masterKey: 'key' // Valid Base64 string for masterKey
+          }
 
-  //       // Update with empty object to test ignored updates
-  //       await storage.updateCertificateField(field.certificateId, field.fieldName, {})
-  //       await storage.updateCertificateField(0, 'invalidFieldName', {}) // Test invalid update
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
 
-  //       // Fetch and verify the updated certificate field
-  //       const updatedFields = await storage.findCertificateFields({
-  //         certificateId: field.certificateId,
-  //         fieldName: 'updatedFieldName'
-  //       })
+          // Perform the update
+          const updateResult = await storage.updateCertificateField(
+            record.certificateId, // First argument: certificateId
+            testValues.fieldName, // Second argument: fieldName
+            testValues // Third argument: updated values
+            //setup.trxToken // Optional fourth argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
 
-  //       // Ensure the updatedFields array contains exactly one result
-  //       expect(updatedFields.length).toBe(0)
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findCertificateFields({
+            certificateId: record.certificateId,
+            fieldName: testValues.fieldName // Include fieldName for uniqueness
+          })
+          log(`Fetched updated records for certificateId=${record.certificateId}, fieldName=${testValues.fieldName}:`, updatedRecords)
 
-  //       const verifiedField = updatedFields[0]
-  //       expect(verifiedField.certificateId).toBe(field.certificateId)
-  //       expect(verifiedField.fieldName).toBe('updatedFieldName')
-  //       //expect(verifiedField.fieldValue).toBe('updatedFieldValue')
-  //       expect(new Date(verifiedField.created_at.getTime())).toStrictEqual(new Date(createdTime.getTime()))
-  //       expect(new Date(verifiedField.updated_at.getTime())).toStrictEqual(new Date(updatedTime.getTime()))
-  //     }
-  //   }
-  // })
+          const updatedRow = verifyOne(updatedRecords, `Updated CertificateField with certificateId=${record.certificateId}, fieldName=${testValues.fieldName} was not unique or missing.`)
+          log(`Updated CertificateField record for certificateId=${record.certificateId}, fieldName=${testValues.fieldName}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying CertificateField record with certificateId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
+    }
+  })
 
   test('5 find OutputBasket', async () => {
+    const primaryKey = 'basketId' // Use basketId as the unique primary key
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findOutputBaskets({}, setup.u1.created_at)
+      const records = await storage.findOutputBaskets({})
+      log('Initial OutputBasket records:', records)
+
+      for (const record of records) {
+        log(`Testing updates for OutputBasket with ${primaryKey}=${record[primaryKey]}`)
+
+        try {
+          const testValues: OutputBasket = {
+            basketId: record.basketId,
+            userId: record.userId ?? 1, // Default userId if missing
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            name: record.name || 'defaultName', // Ensure name is always a string
+            numberOfDesiredUTXOs: 99, // Example value for update
+            minimumDesiredUTXOValue: 5000, // Example value for update
+            isDeleted: false // Example value for update
+          }
+
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateOutputBasket(
+            record.basketId, // First argument: basketId
+            testValues // Second argument: updated values (Partial<OutputBasket>)
+            //setup.trxToken // Optional third argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findOutputBaskets({
+            basketId: record.basketId,
+            name: testValues.name // Include name for uniqueness
+          })
+          log(`Fetched updated records for basketId=${record.basketId}, name=${testValues.name}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated OutputBasket with basketId=${record.basketId}, name=${testValues.name} was not unique or missing.`)
+          log(`Updated OutputBasket record for basketId=${record.basketId}, name=${testValues.name}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying OutputBasket record with basketId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('6 find Transaction', async () => {
+    const primaryKey = 'transactionId' // Use transactionId as the unique primary key
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findTransactions({})
+      const records = await storage.findTransactions({})
+      log('Initial Transaction records:', records)
+
+      for (const record of records) {
+        log(`Testing updates for Transaction with ${primaryKey}=${record[primaryKey]}`)
+
+        try {
+          const testValues: Transaction = {
+            transactionId: record.transactionId,
+            userId: record.userId ?? 1, // Default userId if missing
+            provenTxId: 1, // Example value for update
+            reference: `updated_reference_string_${record.transactionId}==` as sdk.Base64String, // Ensure unique reference value
+            status: 'confirmed' as sdk.TransactionStatus, // Example status
+            txid: `updated_txid_example_${record.transactionId}`, // Ensure unique txid
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            description: 'Updated transaction description', // Example description
+            isOutgoing: false, // Example boolean value
+            lockTime: 600000000, // Example lockTime (interpreted as unix timestamp)
+            satoshis: 20000, // Example satoshi value
+            version: 2 // Example version
+          }
+
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateTransaction(
+            record.transactionId, // First argument: transactionId
+            testValues // Second argument: full Transaction object
+            //setup.trxToken // Optional third argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findTransactions({
+            transactionId: record.transactionId
+          })
+          log(`Fetched updated records for transactionId=${record.transactionId}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated Transaction with transactionId=${record.transactionId} was not unique or missing.`)
+          log(`Updated Transaction record for transactionId=${record.transactionId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying Transaction record with transactionId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 
   test('7 find Commission', async () => {
+    const primaryKey = 'commissionId' // Use commissionId as the unique primary key
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findCommissions({})
+      const records = await storage.findCommissions({})
+      log('Initial Commission records:', records)
+
+      for (const record of records) {
+        log(`Testing updates for Commission with ${primaryKey}=${record[primaryKey]}`)
+
+        try {
+          const testValues: Commission = {
+            commissionId: record.commissionId,
+            userId: record.userId ?? 1, // Default userId if missing
+            transactionId: record.transactionId ?? 1, // Default transactionId if missing
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            satoshis: 300, // Example satoshi value for testing
+            keyOffset: `updated_key_offset_${record.commissionId}`, // Example unique keyOffset
+            isRedeemed: true, // Example boolean value
+            lockingScript: [1, 2, 3, 4] // Example locking script as an array of numbers
+          }
+
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateCommission(
+            record.commissionId, // First argument: commissionId
+            testValues // Second argument: full Commission object
+            //setup.trxToken // Optional third argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findCommissions({
+            commissionId: record.commissionId
+          })
+          log(`Fetched updated records for commissionId=${record.commissionId}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated Commission with commissionId=${record.commissionId} was not unique or missing.`)
+          log(`Updated Commission record for commissionId=${record.commissionId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle unmatched cases (Buffer fallback handling)
+            if (Buffer.isBuffer(actualValue) || Array.isArray(actualValue)) {
+              log('actualValue type is ', typeof actualValue, '=', actualValue)
+              log('value type is ', typeof value, '=', value)
+              expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
+              continue
+            }
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying Commission record with commissionId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
-
   test('8 find Output', async () => {
+    const primaryKey = 'outputId' // Use outputId as the unique primary key
+
     for (const { storage, setup } of setups) {
-      const r = await storage.findOutputs({})
+      const records = await storage.findOutputs({})
+      log('Initial Output records:', records)
+
+      for (const record of records) {
+        if (!record.transactionId) record.transactionId = 1 // Assign a valid default transactionId
+        if (!record.basketId) record.basketId = 1 // Assign a valid default basketId
+        if (!record.userId || !record.transactionId || !record.basketId) {
+          throw new Error(`Missing required foreign keys for record ${JSON.stringify(record)}`)
+        }
+      }
+
+      for (const record of records) {
+        log(`Testing updates for Output with ${primaryKey}=${record[primaryKey]}`)
+
+        // Assign valid foreign keys if missing
+        if (!record.transactionId) {
+          log(`Assigning default transactionId to record ${record.outputId}`)
+          record.transactionId = 1 // Ensure transactionId exists in the `transactions` table
+        }
+        if (!record.basketId) {
+          log(`Assigning default basketId to record ${record.outputId}`)
+          record.basketId = 1 // Ensure basketId exists in the `output_baskets` table
+        }
+        try {
+          const testValues: Output = {
+            outputId: record.outputId,
+            userId: 2, // Matches userId in output_baskets table
+            transactionId: record.transactionId ?? 1, // Ensure a valid transactionId exists
+            basketId: record.basketId ?? 1, // Ensure basketId matches a valid record
+            created_at: new Date('2024-12-30T23:00:00Z'),
+            updated_at: new Date('2024-12-30T23:05:00Z'),
+            spendable: false, // Example value
+            change: true, // Example value
+            vout: 2, // Example output index
+            satoshis: 3000, // Example satoshi value
+            providedBy: 'test_provider', // Example provider
+            purpose: 'updated_purpose', // Example purpose
+            type: 'updated_type', // Example type
+            txid: 'updated_txid', // Example txid
+            senderIdentityKey: 'updated_sender_key', // Example senderIdentityKey
+            derivationPrefix: 'updated_prefix==', // Example derivationPrefix
+            derivationSuffix: 'updated_suffix==', // Example derivationSuffix
+            customInstructions: 'Updated instructions', // Example custom instructions
+            spentBy: 5, // Example spentBy value
+            sequenceNumber: 10, // Example sequenceNumber
+            spendingDescription: 'Updated spending description', // Example description
+            scriptLength: 150, // Example scriptLength
+            scriptOffset: 5, // Example scriptOffset
+            lockingScript: [0x01, 0x02, 0x03, 0x04] // Example lockingScript
+          }
+
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
+
+          // Perform the update
+          const updateResult = await storage.updateOutput(
+            record.outputId, // First argument: outputId
+            testValues // Second argument: full Output object
+            //setup.trxToken // Optional third argument: transaction token
+          )
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
+          expect(updateResult).toBe(1)
+
+          // Fetch and validate the updated record
+          const updatedRecords = await storage.findOutputs({ outputId: record.outputId })
+          log(`Fetched updated records for outputId=${record.outputId}:`, updatedRecords)
+
+          const updatedRow = verifyOne(updatedRecords, `Updated Output with outputId=${record.outputId} was not unique or missing.`)
+          log(`Updated Output record for outputId=${record.outputId}:`, updatedRow)
+
+          // Validate each field
+          for (const [key, value] of Object.entries(testValues)) {
+            const actualValue = updatedRow[key]
+
+            // Handle Date fields by normalizing both sides
+            const normalizedActual = normalizeDate(actualValue)
+            const normalizedExpected = normalizeDate(value)
+            if (normalizedActual && normalizedExpected) {
+              expect(normalizedActual).toBe(normalizedExpected)
+              continue
+            }
+
+            // Handle Buffer-like or array values
+            if (Buffer.isBuffer(actualValue) || Array.isArray(actualValue)) {
+              log('actualValue type is ', typeof actualValue, '=', actualValue)
+              log('value type is ', typeof value, '=', value)
+              expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
+              continue
+            }
+
+            // Handle primitive types directly
+            expect(actualValue).toBe(value)
+          }
+        } catch (error: any) {
+          console.error(`Error updating or verifying Output record with outputId=${record[primaryKey]}:`, error.message)
+          throw error // Re-throw unexpected errors to fail the test
+        }
+      }
     }
   })
 

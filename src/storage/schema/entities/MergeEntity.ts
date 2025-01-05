@@ -35,6 +35,10 @@ export class MergeEntity<API extends sdk.EntityTimeStamp, DE extends EntityBase<
         if (!this.stateArray) return { inserts, updates }
         for (const ei of this.stateArray) {
             this.esm.maxUpdated_at = maxDate(this.esm.maxUpdated_at, ei.updated_at)
+            /**
+             * TODO:
+             * Switch to using syncMap. If the ei id is in the map its an existing merge, else its a new merge.
+             */
             const { found, eo, eiId } = await this.find(storage, userId, ei, syncMap, trx);
             if (found) {
                 if (await eo.mergeExisting(storage, since, ei, syncMap, trx)) {

@@ -272,6 +272,7 @@ export interface SendWithResult {
   status: SendWithResultStatus
 }
 
+
 export interface SignableTransaction {
   tx: AtomicBEEF
   reference: Base64String

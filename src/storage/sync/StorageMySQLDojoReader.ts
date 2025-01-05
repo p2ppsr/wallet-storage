@@ -1,8 +1,23 @@
-import { asString, convertProofToMerklePath, deserializeTscMerkleProofNodes, sdk, validateSecondsSinceEpoch, verifyHexString, verifyId, verifyInteger, verifyOne, verifyOptionalHexString, verifyTruthy } from "../..";
+import * as bsv from '@bsv/sdk'
+import {
+    asArray,
+    asString,
+    convertProofToMerklePath,
+    deserializeTscMerkleProofNodes,
+    randomBytesBase64,
+    sdk,
+    verifyHexString,
+    verifyId,
+    verifyInteger,
+    verifyOne,
+    verifyOptionalHexString,
+    verifyTruthy
+} from "../..";
 import { DBType, StorageKnexOptions, StorageSyncReader, table } from ".."
 
 import { Knex } from "knex";
 import { MerklePath } from "@bsv/sdk";
+import { isHexString } from '../../sdk';
 
 
 export class StorageMySQLDojoReader extends StorageSyncReader {
@@ -149,7 +164,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 transactionId: verifyInteger(d.transactionId),
                 userId: verifyInteger(d.userId),
                 status: verifyTruthy(convertTxStatus(d.status)),
-                reference: verifyTruthy(d.referenceNumber).trim().toLowerCase(),
+                reference: forceToBase64(d.referenceNumber),
                 isOutgoing: !!d.isOutgoing,
                 satoshis: verifyInteger(d.amount),
                 description: verifyTruthy(d.note || ''),
@@ -502,4 +517,10 @@ type DojoSyncStatus = 'success' | 'error' | 'identified' | 'updated' | 'unknown'
 
 function convertSyncStatus(status: DojoSyncStatus) : sdk.SyncStatus {
     return status
+}
+
+function forceToBase64(s?: string | null) : string {
+    if (!s) return randomBytesBase64(12);
+    if (isHexString(s)) return bsv.Utils.toBase64(asArray(s.trim()));
+    return s.trim()
 }

@@ -362,8 +362,19 @@ export abstract class TestUtilsWalletStorage {
         return r
     }
 
+    static async fileExists(file: string) : Promise<boolean> {
+        try {
+            const f = await fsp.open(file, 'r')
+            await f.close()
+            return true
+        } catch (eu: unknown) {
+            return false
+        }
+    }
+
     static async createLegacyWalletSQLiteCopy(databaseName: string): Promise<TestWalletNoSetup> {
         const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
+        //if (await _tu.fileExists(walletFile))
         const walletKnex = _tu.createLocalSQLite(walletFile)
         return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
     }

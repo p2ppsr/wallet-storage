@@ -495,6 +495,14 @@ export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificat
 }
 
 export interface ValidListCertificatesArgs {
+  partial?: {
+    type?: sdk.Base64String
+    serialNumber?: sdk.Base64String
+    certifier?: sdk.PubKeyHex
+    subject?: sdk.PubKeyHex
+    revocationOutpoint?: sdk.OutpointString
+    signature?: sdk.HexString
+  }
   certifiers: sdk.PubKeyHex[]
   types: sdk.Base64String[]
   limit: sdk.PositiveIntegerDefault10Max10000
@@ -513,6 +521,7 @@ export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs) : V
       offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
       privileged: defaultFalse(args.privileged),
       privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
+      partial: undefined,
       userId: undefined,
       log: ''
     }

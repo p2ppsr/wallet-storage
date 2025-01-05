@@ -11,10 +11,22 @@ export async function listCertificatesSdk(
 {
     const paged: sdk.Paged = { limit: vargs.limit, offset: vargs.offset }
 
+    const partial: Partial<table.Certificate> = { userId: vargs.userId, isDeleted: false }
+
+    if (vargs.partial) {
+        const vp = vargs.partial
+        if (vp.type) partial['type'] = partial.type;
+        if (vp.subject) partial['subject'] = partial.subject;
+        if (vp.serialNumber) partial['serialNumber'] = partial.serialNumber;
+        if (vp.certifier) partial['certifier'] = partial.certifier;
+        if (vp.revocationOutpoint) partial['revocationOutpoint'] = partial.revocationOutpoint;
+        if (vp.signature) partial['signature'] = partial.signature;
+    }
+
     const r = await dsk.transaction(async trx => {
-        const certs = await dsk.findCertificates({}, vargs.certifiers, vargs.types, undefined, paged, trx)
+        const certs = await dsk.findCertificates(partial, vargs.certifiers, vargs.types, undefined, paged, trx)
         const certsWithFields = await Promise.all(certs.map(async cert => {
-            const fields = await dsk.findCertificateFields({ certificateId: cert.certificateId, userId: cert.userId }, undefined, undefined, trx)
+            const fields = await dsk.findCertificateFields({ certificateId: cert.certificateId, userId: vargs.userId }, undefined, undefined, trx)
             return {
                 ...cert,
                 fields: Object.fromEntries(fields.map(f => ([f.fieldName, f.fieldValue]))),
@@ -31,7 +43,7 @@ export async function listCertificatesSdk(
                 revocationOutpoint: cwf.revocationOutpoint,
                 signature: cwf.signature,
                 fields: cwf.fields,
-                counterparty: cwf.verifier,
+                verifier: cwf.verifier,
                 keyring: cwf.masterKeyring
             }))
         }

@@ -29,6 +29,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.beef = new BeefParty([this.storageParty, this.userParty])
         this.trustSelf = 'known'
         this.isLogging = this.signer.chain === 'test'
+
+        if (services) {
+            signer.setServices(services)
+        }
     }
 
     startLog(vargs: { log?: string }, name: string) {
@@ -62,6 +66,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return knownTxids
     }
 
+    //////////////////
+    // List Methods
+    //////////////////
+
     async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListActionsResult> {
         const vargs = sdk.validateListActionsArgs(args)
@@ -89,10 +97,6 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    //////////////////
-    // Certificates
-    //////////////////
-
     async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListCertificatesResult> {
         const vargs = sdk.validateListCertificatesArgs(args)
@@ -103,6 +107,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.endLog(vargs, 'listCertificates')
         return r
     }
+
+    //////////////////
+    // Certificates
+    //////////////////
 
     async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AcquireCertificateResult> {
@@ -167,6 +175,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         originator = sdk.validateOriginator(originator)
         this.startLog(vargs, 'discoverByIdentityKey')
 
+        // TODO: Probably does not get dispatched to signer?
         const r = await this.signer.discoverByIdentityKeySdk(vargs, originator)
 
         this.endLog(vargs, 'discoverByIdentityKey')
@@ -179,6 +188,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         originator = sdk.validateOriginator(originator)
         this.startLog(vargs, 'discoverByAttributes')
 
+        // TODO: Probably does not get dispatched to signer?
         const r = await this.signer.discoverByAttributesSdk(vargs, originator)
 
         this.endLog(vargs, 'discoverByAttributes')
@@ -276,24 +286,19 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AuthenticatedResult> {
         await this.signer.authenticate()
-        const r: { authenticated: true; } = {
-            authenticated: true
-        }
-        return r
+        return { authenticated: true }
     }
 
     async getHeight(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.GetHeightResult> {
-        const r = await this.signer.getHeight()
-        return { height: r }
+        const height = await this.getServices().getHeight()
+        return { height }
     }
 
     async getHeaderForHeight(args: sdk.GetHeaderArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.GetHeaderResult> {
-        const header = await this.signer.getHeaderForHeight(args.height)
-        if (!header)
-            throw new sdk.WERR_INVALID_PARAMETER('args.height', `a valid block height. ${args.height} is invalid.`)
-        return { header: Utils.toHex(header) }
+        const serializedHeader = await this.getServices().getHeaderForHeight(args.height)
+        return { header: Utils.toHex(serializedHeader) }
     }
 
     async getNetwork(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)

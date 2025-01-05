@@ -18,6 +18,23 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         return new ProvenTxReq(reqApi)
     }
     
+    static fromTxid(txid: string, rawTx: number[], inputBEEF?: number[]) : ProvenTxReq {
+        const now = new Date()
+        return new ProvenTxReq({
+            provenTxReqId: 0,
+            created_at: now,
+            updated_at: now,
+            txid,
+            inputBEEF,
+            rawTx,
+            status: 'unknown',
+            history: '',
+            notify: '',
+            attempts: 0,
+            notified: false
+        })
+    }
+
     history: ProvenTxReqHistory
     notify: ProvenTxReqNotify
     

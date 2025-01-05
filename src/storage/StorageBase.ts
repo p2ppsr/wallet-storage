@@ -1,4 +1,4 @@
-import { sdk, table, verifyOneOrNone } from "..";
+import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
 import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
 
@@ -25,6 +25,95 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     // WRITE OPERATIONS (state modifying methods)
     //
     /////////////////
+
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
+        const r = await this.transaction(async trx => {
+            const tx = verifyOneOrNone(await this.findTransactions({ userId: vargs.userId, reference: vargs.reference }, undefined, true, undefined, undefined, trx))
+            const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
+            if (!tx || !tx.isOutgoing || -1 < unAbortableStatus.findIndex(s => s === tx.status))
+                throw new sdk.WERR_INVALID_PARAMETER('reference', 'an inprocess, outgoing action that has not been signed and shared to the network.');
+            await this.updateTransactionStatus('failed', tx.transactionId, vargs.userId, vargs.reference, trx)
+            if (tx.txid) {
+                const req = await entity.ProvenTxReq.fromStorageTxid(this, tx.txid, trx)
+                if (req) {
+                    req.addHistoryNote({ what: 'aborted' })
+                    req.status = 'invalid'
+                    await req.updateStorageStatusHistoryOnly(this, trx)
+                }
+            }
+            const r: sdk.AbortActionResult = {
+                aborted: true
+            }
+            return r
+        })
+        return r
+    }
+
+    /**
+     * For all `status` values besides 'failed', just updates the transaction records status property.
+     * 
+     * For 'status' of 'failed', attempts to make outputs previously allocated as inputs to this transaction usable again.
+     * 
+     * @throws ERR_DOJO_COMPLETED_TX if current status is 'completed' and new status is not 'completed.
+     * @throws ERR_DOJO_PROVEN_TX if transaction has proof or provenTxId and new status is not 'completed'. 
+     * 
+     * @param status 
+     * @param transactionId 
+     * @param userId 
+     * @param reference 
+     * @param trx 
+     */
+    async updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
+    : Promise<void>
+    {
+        if (!transactionId && !(userId && reference)) throw new sdk.WERR_MISSING_PARAMETER('either transactionId or userId and reference')
+
+        await this.transaction(async trx => {
+
+            const where: Partial<table.Transaction> = {}
+            if (transactionId) where.transactionId = transactionId
+            if (userId) where.userId = userId
+            if (reference) where.reference = reference
+
+            const tx = verifyOne(await this.findTransactions(where, undefined, true, undefined, undefined, trx))
+
+            //if (tx.status === status)
+                // no change required. Assume inputs and outputs spendable and spentBy are valid for status.
+                //return
+
+            // Once completed, this method cannot be used to "uncomplete" transaction.
+            if (status !== 'completed' && tx.status === 'completed' || tx.provenTxId) throw new sdk.WERR_INVALID_OPERATION('The status of a "completed" transaction cannot be changed.')
+            // It is not possible to un-fail a transaction. Information is lost and not recoverable. 
+            if (status !== 'failed' && tx.status === 'failed') throw new sdk.WERR_INVALID_OPERATION(`A "failed" transaction may not be un-failed by this method.`)
+
+            switch (status) {
+                case 'failed': {
+                    // Attempt to make outputs previously allocated as inputs to this transaction usable again.
+                    // Only clear input's spentBy and reset spendable = true if it references this transaction
+                    const t = new entity.Transaction(tx)
+                    const inputs = await t.getInputs(this, trx)
+                    for (const input of inputs) {
+                        // input is a prior output belonging to userId that reference this transaction either by `spentBy`
+                        // or by txid and vout.
+                        await this.updateOutput(verifyId(input.outputId), { spendable: true, spentBy: undefined }, trx)
+                    }
+                } break;
+                case 'nosend':
+                case 'unsigned':
+                case 'unprocessed':
+                case 'sending':
+                case 'unproven': 
+                case 'completed':
+                    break;
+                default:
+                    throw new sdk.WERR_INVALID_PARAMETER('status', `not be ${status}`)
+            }
+
+            await this.updateTransaction(tx.transactionId, { status }, trx)
+
+        }, trx)
+    }
+
 
     abstract createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult>
     abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>

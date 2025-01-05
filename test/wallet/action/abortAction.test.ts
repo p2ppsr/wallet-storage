@@ -35,15 +35,9 @@ describe('abortAction tests', () => {
         }
     })
 
-    test('1 abort noSend', async () => {
+    test('1 abort reference 49f878d8405589', async () => {
         for (const { wallet } of ctxs) {
-            let noSendChange: string[] | undefined
-            const root = '02135476'
-            const kp = _tu.getKeyPair(root.repeat(8));
-
-            const r = await _tu.createNoSendP2PKHTestOutpoint(kp.address, 42, noSendChange, wallet)
-
-            await wallet.abortAction({ reference: r.cr.signableTransaction!.reference })
+            await wallet.abortAction({ reference: 'Sfh42EBViQ==' })
         }
     })
 })

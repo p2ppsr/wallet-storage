@@ -137,6 +137,16 @@ function validateHexString(s: string, name: string, min?: number, max?: number):
   return s
 }
 
+export function isHexString(s: string) : boolean {
+  s = s.trim()
+  if (s.length % 2 === 1)
+    return false
+  const hexRegex = /^[0-9A-Fa-f]+$/;
+  if (!hexRegex.test(s))
+    return false
+  return true
+}
+
 export interface ValidCreateActionInput {
   outpoint: OutPoint
   inputDescription: sdk.DescriptionString5to50Bytes

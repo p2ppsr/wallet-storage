@@ -77,8 +77,15 @@ export class WalletSigner implements sdk.WalletSigner {
         const r = await this.storage.listOutputsSdk(vargs, originator)
         return r
     }
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult> {
+        await this.verifyStorageAvailable()
+        vargs.userId = this._user!.userId
+        const r = await this.storage.abortActionSdk(vargs, originator)
+        return r
+    }
     async createActionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult> {
         await this.verifyStorageAvailable()
+        vargs.userId = this._user!.userId
         const r = await createActionSdk(this, vargs, originator)
         return r
     }
@@ -92,10 +99,6 @@ export class WalletSigner implements sdk.WalletSigner {
 
 
     async signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> {
-        await this.verifyStorageAvailable()
-        throw new Error("Method not implemented.");
-    }
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult> {
         await this.verifyStorageAvailable()
         throw new Error("Method not implemented.");
     }

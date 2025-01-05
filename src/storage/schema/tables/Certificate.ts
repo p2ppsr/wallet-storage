@@ -1,4 +1,4 @@
-import { sdk } from "../../.."
+import { sdk, table } from "../../.."
 
 export interface Certificate extends sdk.EntityTimeStamp {
    created_at: Date
@@ -15,4 +15,7 @@ export interface Certificate extends sdk.EntityTimeStamp {
    isDeleted: boolean
 }
 
+export interface CertificateX extends table.Certificate {
+   fields?: table.CertificateField[]
+}
 

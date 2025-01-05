@@ -21,7 +21,7 @@ export interface WalletStorage extends sdk.StorageSyncReader {
    createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult>
    processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
 
-   insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken): Promise<number>
+   insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number>
    insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken): Promise<void>
    insertCommission(commission: table.Commission, trx?: sdk.TrxToken): Promise<number>
    insertOutput(output: table.Output, trx?: sdk.TrxToken): Promise<number>

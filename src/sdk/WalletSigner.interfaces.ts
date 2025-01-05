@@ -28,9 +28,7 @@ export interface WalletSigner {
   discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
   discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
 
-  getHeight(): Promise<number>
   getChain(): Promise<sdk.Chain>
-  getHeaderForHeight(height: number): Promise<number[] | undefined>
 }
 
 export interface KeyPair {

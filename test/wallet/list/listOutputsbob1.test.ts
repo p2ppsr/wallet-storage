@@ -102,7 +102,7 @@ describe('listOutputs Tests', () => {
       includeTags: true,
       includeLabels: true,
       includeCustomInstructions: true,
-      limit: 100
+      limit: 1000
     }
     const r = await wallet.listOutputs(args)
     console.log('Outputs received in original test:', r.outputs)

@@ -3,7 +3,7 @@ import * as bsv from '@bsv/sdk'
 import { sdk } from '../../../src'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
-const noLog = true
+const noLog = false
 
 describe('listOutputs test', () => {
   jest.setTimeout(99999999)
@@ -95,7 +95,8 @@ describe('listOutputs test', () => {
         let log = `\n${testName()}\n`
         const args: sdk.ListOutputsArgs = {
           basket: 'default',
-          include: 'locking scripts'
+          include: 'locking scripts',
+          limit: 100
         }
         const r = await wallet.listOutputs(args)
         log += logResult(r)
@@ -159,6 +160,30 @@ describe('listOutputs test', () => {
       }
     }
   })
+
+  test('001_default', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'babbage_app_projectbabbage.com,babbage_basket_access'
+        }
+        const r = await wallet.listOutputs(args)
+        log += logResult(r)
+        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBe(10)
+        expect(r.BEEF).toBeUndefined()
+        for (const o of r.outputs) {
+          expect(o.customInstructions).toBeUndefined()
+          expect(o.lockingScript).toBeUndefined()
+          expect(o.labels).toBeUndefined()
+          expect(o.tags).toBeUndefined()
+        }
+        if (!noLog) console.log(log)
+      }
+    }
+  })
+
   /*
     test('3_label babbage_protocol_perm', async () => {
 

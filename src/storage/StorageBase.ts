@@ -4,6 +4,7 @@ import { StorageSyncReader } from './StorageSyncReader'
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
+    _services?: sdk.WalletServices
 
     static createStorageBaseOptions(chain: sdk.Chain): StorageBaseOptions {
         const options: StorageBaseOptions = {
@@ -14,6 +15,13 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
     constructor(options: StorageBaseOptions) {
         super(options)
+    }
+
+    setServices(v: sdk.WalletServices) { this._services = v }
+    getServices() : sdk.WalletServices {
+        if (!this._services)
+            throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
+        return this._services
     }
 
     abstract dropAllData(): Promise<void>
@@ -47,6 +55,193 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
             return r
         })
         return r
+    }
+
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<sdk.InternalizeActionResult> {
+        throw new sdk.WERR_NOT_IMPLEMENTED()
+    }
+
+    /**
+     * Checks if txid is a known valid ProvenTx and returns it if found.
+     * Next checks if txid is a current ProvenTxReq and returns that if found.
+     * If `newReq` is provided and an existing ProvenTxReq isn't found,
+     * use `newReq` to create a new ProvenTxReq.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param txid 
+     * @param newReq 
+     * @param trx 
+     * @returns 
+     */
+    async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken)
+    : Promise<sdk.StorageProvenOrReq>
+    {
+        if (newReq && txid !== newReq.txid)
+            throw new sdk.WERR_INVALID_PARAMETER('newReq', `same txid`)
+
+        const r: sdk.StorageProvenOrReq = { proven: undefined, req: undefined }
+
+        r.proven = verifyOneOrNone(await this.findProvenTxs({ txid }, undefined, undefined, trx))
+        if (r.proven) return r
+
+        for (let retry = 0; ; retry++) {
+            try {
+                r.req = verifyOneOrNone(await this.findProvenTxReqs({ txid }, undefined, undefined, undefined, undefined, trx))
+                if (r.req || !newReq) break;
+                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return r
+    }
+
+    /**
+     * Attempts to find transaction record with matching txid and userId as in newTx.
+     * If found, returns existing record.
+     * If not found, inserts the new transaction and returns it with new transactionId.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param newTx 
+     * @param trx 
+     * @returns 
+     */
+    async findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken)
+    : Promise<{ tx: table.Transaction, isNew: boolean}>
+    {
+        let tx: table.Transaction | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                tx = verifyOneOrNone(await this.findTransactions({userId: newTx.userId, txid: newTx.txid }, undefined, false, undefined, undefined, trx))
+                if (tx) break;
+                newTx.transactionId = await this.insertTransaction(newTx, trx)
+                isNew = true
+                tx = newTx
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { tx, isNew }
+    }
+
+
+    async findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken) : Promise<table.OutputBasket> {
+        const partial = { name, userId }
+        for (let retry = 0;; retry++) {
+            try {
+                const now = new Date()
+                let basket = verifyOneOrNone(await this.findOutputBaskets(partial, undefined, undefined, trx))
+                if (!basket) {
+                    basket = { ...partial, minimumDesiredUTXOValue: 0, numberOfDesiredUTXOs: 0, basketId: 0,  created_at: now, updated_at: now, isDeleted: false }
+                    basket.basketId = await this.insertOutputBasket(basket, trx)
+                }
+                if (basket.isDeleted) {
+                    await this.updateOutputBasket(verifyId(basket.basketId), { isDeleted: false })
+                }
+                return basket
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertTxLabel(userId: number, label: string, trx?: sdk.TrxToken) : Promise<table.TxLabel> {
+        const partial = { label, userId }
+        for(let retry = 0;; retry++) {
+                try {
+                    const now = new Date()
+                    let txLabel = verifyOneOrNone(await this.findTxLabels(partial, undefined, undefined, trx))
+                    if (!txLabel) {
+                        txLabel = { ...partial, txLabelId: 0,  created_at: now, updated_at: now, isDeleted: false }
+                        txLabel.txLabelId = await this.insertTxLabel(txLabel, trx)
+                    }
+                    if (txLabel.isDeleted) {
+                        await this.updateTxLabel(verifyId(txLabel.txLabelId), { isDeleted: false })
+                    }
+                    return txLabel
+                } catch (eu: unknown) {
+                    if (retry > 0) throw eu;
+                }
+            }
+    }
+
+    async findOrInsertTxLabelMap(transactionId: number, txLabelId: number, trx?: sdk.TrxToken) : Promise<table.TxLabelMap> {
+        const partial = { transactionId, txLabelId }
+        for(let retry = 0;; retry++) {
+            try {
+                    const now = new Date()
+                let txLabelMap = verifyOneOrNone(await this.findTxLabelMaps(partial, undefined, undefined, undefined, trx))
+                if (!txLabelMap) {
+                    txLabelMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
+                    await this.insertTxLabelMap(txLabelMap, trx)
+                }
+                if (txLabelMap.isDeleted) {
+                    await this.updateTxLabelMap(transactionId, txLabelId, { isDeleted: false })
+                }
+                return txLabelMap
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertOutputTag(userId: number, tag: string, trx?: sdk.TrxToken): Promise<table.OutputTag> {
+        const partial = { tag, userId }
+        for (let retry = 0; ; retry++) {
+            try {
+                const now = new Date()
+                let outputTag = verifyOneOrNone(await this.findOutputTags(partial, undefined, undefined, trx))
+                if (!outputTag) {
+                    outputTag = { ...partial, outputTagId: 0, created_at: now, updated_at: now, isDeleted: false }
+                    outputTag.outputTagId = await this.insertOutputTag(outputTag, trx)
+                }
+                if (outputTag.isDeleted) {
+                    await this.updateOutputTag(verifyId(outputTag.outputTagId), { isDeleted: false })
+                }
+                return outputTag
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertOutputTagMap(outputId: number, outputTagId: number, trx?: sdk.TrxToken): Promise<table.OutputTagMap> {
+        const partial = { outputId, outputTagId }
+        for (let retry = 0; ; retry++) {
+            try {
+                const now = new Date()
+                let outputTagMap = verifyOneOrNone(await this.findOutputTagMaps(partial, undefined, undefined, undefined, trx))
+                if (!outputTagMap) {
+                    outputTagMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
+                    await this.insertOutputTagMap(outputTagMap, trx)
+                }
+                if (outputTagMap.isDeleted) {
+                    await this.updateOutputTagMap(outputId, outputTagId, { isDeleted: false })
+                }
+                return outputTagMap
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken) : Promise<void> {
+        await this.transaction(async trx => {
+            const o = verifyOne(await this.findOutputs(partial, true, undefined, undefined, trx))
+            const outputTag = await this.findOrInsertOutputTag(o.userId, tag, trx)
+            await this.findOrInsertOutputTagMap(verifyId(o.outputId), verifyId(outputTag.outputTagId), trx)
+        }, trx)
     }
 
     /**

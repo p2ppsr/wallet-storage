@@ -40,7 +40,7 @@ export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.Vali
   const { ab, tx, txid } = await validateAtomicBeef();
   const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
 
-  const dargs: DojoInternalizeActionArgs = {
+  const sargs: sdk.StorageInternalizeActionArgs = {
     ...vargs,
     commonDerivationPrefix: undefined
   }
@@ -49,17 +49,17 @@ export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.Vali
     if (o.outputIndex < 0 || o.outputIndex >= tx.outputs.length)
       throw new sdk.WERR_INVALID_PARAMETER('outputIndex', `a valid output index in range 0 to ${tx.outputs.length - 1}`);
     switch (o.protocol) {
-      case 'basket insertion': setupBasketInsertionForOutput(o, dargs); break;
-      case 'wallet payment': setupWalletPaymentForOutput(o, dargs); break;
+      case 'basket insertion': setupBasketInsertionForOutput(o, sargs); break;
+      case 'wallet payment': setupWalletPaymentForOutput(o, sargs); break;
       default: throw new sdk.WERR_INTERNAL(`unexpected protocol ${o.protocol}`)
     }
   }
 
-  const r: sdk.InternalizeActionResult = await ninja.dojo.internalizeActionSdk(dargs, originator)
+  const r: sdk.InternalizeActionResult = await signer.storage.internalizeActionSdk(sargs, originator)
 
   return r
 
-  function setupWalletPaymentForOutput(o: sdk.InternalizeOutput, dargs: DojoInternalizeActionArgs) {
+  function setupWalletPaymentForOutput(o: sdk.InternalizeOutput, dargs: sdk.StorageInternalizeActionArgs) {
     const p = o.paymentRemittance
     const output = tx.outputs[o.outputIndex]
     if (!p) throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `valid for protocol ${o.protocol}`);
@@ -69,23 +69,23 @@ export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.Vali
     const keyID = `${dargs.commonDerivationPrefix} ${p.derivationSuffix}`
     const forSelf = false
 
-    const privKey = ninja.keyDeriver!.derivePrivateKey(brc29ProtocolID, keyID, p.senderIdentityKey)
-    const expectedLockScript = new P2PKH().lock(privKey.toAddress())
+    const privKey = signer.keyDeriver!.derivePrivateKey(brc29ProtocolID, keyID, p.senderIdentityKey)
+    const expectedLockScript = new bsv.P2PKH().lock(privKey.toAddress())
     if (output.lockingScript.toHex() !== expectedLockScript.toHex())
       throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `locked by script conforming to BRC-29`);
 
 
   }
 
-  function setupBasketInsertionForOutput(o: sdk.InternalizeOutput, dargs: DojoInternalizeActionArgs) {
+  function setupBasketInsertionForOutput(o: sdk.InternalizeOutput, dargs: sdk.StorageInternalizeActionArgs) {
     /*
     No additional validations...
     */
   }
 
   async function validateAtomicBeef() {
-    const ab = Beef.fromBinary(vargs.tx);
-    const txValid = await ab.verify(ninja.dojo, false);
+    const ab = bsv.Beef.fromBinary(vargs.tx);
+    const txValid = await ab.verify(await signer.getServices().getChainTracker(), false);
     if (!txValid || !ab.atomicTxid)
       throw new sdk.WERR_INVALID_PARAMETER('tx', 'valid AtomicBEEF');
     const txid = ab.atomicTxid;

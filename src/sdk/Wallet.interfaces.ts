@@ -817,7 +817,7 @@ export interface RelinquishCertificateResult {
 }
 
 export interface AuthenticatedResult {
-  authenticated: true
+  authenticated: boolean
 }
 
 export interface GetHeightResult {

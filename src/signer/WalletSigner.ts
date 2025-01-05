@@ -1,8 +1,7 @@
 import { Transaction } from "@bsv/sdk";
-import { sdk, table, verifyOne, verifyOneOrNone, WalletStorage } from "..";
+import { sdk, table, verifyOne, verifyOneOrNone, WalletServices, WalletStorage } from "..";
 import { createActionSdk } from "./methods/createActionSdk";
 import { getDecorators } from "typescript";
-import { signActionSdk } from "./methods/signActionSdk";
 import { internalizeActionSdk } from "./methods/internalizeActionSdk";
 import { relinquishOutputSdk } from "./methods/relinquishOutputSdk";
 import { proveCertificateSdk } from "./methods/proveCertificateSdk";
@@ -10,10 +9,11 @@ import { relinquishCertificateSdk } from "./methods/relinquishCertificateSdk";
 import { acquireDirectCertificateSdk } from "./methods/acquireDirectCertificateSdk";
 
 export class WalletSigner implements sdk.WalletSigner {
-    chain: sdk.Chain;
-    keyDeriver: sdk.KeyDeriverApi;
-    storage: sdk.WalletStorage;
-    storageIdentity: sdk.StorageIdentity;
+    chain: sdk.Chain
+    keyDeriver: sdk.KeyDeriverApi
+    storage: sdk.WalletStorage
+    storageIdentity: sdk.StorageIdentity
+    _services?: sdk.WalletServices
     _isAuthenticated: boolean
     _isStorageAvailable: boolean
     _user?: table.User
@@ -32,6 +32,13 @@ export class WalletSigner implements sdk.WalletSigner {
         this._isStorageAvailable = storage.isAvailable()
 
         this.pendingSignActions = {}
+    }
+
+    setServices(v: sdk.WalletServices) { this._services = v }
+    getServices() : sdk.WalletServices {
+        if (!this._services)
+            throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
+        return this._services
     }
 
     getClientChangeKeyPair(): sdk.KeyPair {
@@ -112,8 +119,9 @@ export class WalletSigner implements sdk.WalletSigner {
 
     async signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> {
         vargs.userId = await this.getUserId()
-        const r = await signActionSdk(this, vargs, originator)
-        return r
+        throw new sdk.WERR_NOT_IMPLEMENTED()
+        //const r = await signActionSdk(this, vargs, originator)
+        //return r
     }
     async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> {
         vargs.userId = await this.getUserId()

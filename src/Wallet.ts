@@ -29,6 +29,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.beef = new BeefParty([this.storageParty, this.userParty])
         this.trustSelf = 'known'
         this.isLogging = this.signer.chain === 'test'
+
+        if (services) {
+            signer.setServices(services)
+        }
     }
 
     startLog(vargs: { log?: string }, name: string) {
@@ -282,10 +286,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AuthenticatedResult> {
         await this.signer.authenticate()
-        const r: { authenticated: true; } = {
-            authenticated: true
-        }
-        return r
+        return { authenticated: true }
     }
 
     async getHeight(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)

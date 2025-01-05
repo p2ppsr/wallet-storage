@@ -4,7 +4,7 @@ import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
 import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, WatchmanEvent, SyncState } from '../../src/storage/schema/tables'
-import { SyncMap } from '../../src/storage/schema/entities'
+import { OutputBasket, SyncMap } from '../../src/storage/schema/entities'
 
 setLogging(true)
 
@@ -1660,11 +1660,19 @@ describe('update tests', () => {
           log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
 
           // Perform the update
-          const updateResult = await storage.updateOutputBasket(
-            record.basketId, // First argument: basketId
-            testValues // Second argument: updated values (Partial<OutputBasket>)
-            //setup.trxToken // Optional third argument: transaction token
-          )
+          const basket: Partial<OutputBasket> = {
+            created_at: new Date(),
+            updated_at: new Date(),
+            basketId: undefined as any,
+            userId: 0,
+            name: '',
+            numberOfDesiredUTXOs: 0,
+            minimumDesiredUTXOValue: 0,
+            isDeleted: false
+          }
+          const updateResult = await storage.updateOutputBasket({
+            basketId: undefined
+          })
           log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
           expect(updateResult).toBe(1)
 

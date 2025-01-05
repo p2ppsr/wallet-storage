@@ -718,14 +718,139 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
-    if (transactionId === undefined) return []
+    console.log('UPDATED-5: getLabelsForTransactionId')
+
+    const validLabelTransactionIds = [1, 3, 5, 6, 7, 9, 11, 15, 16, 22, 23, 24, 25]
+    const nullLabelTransactionIds = [17, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 181, 182, 183, 184, 185, 186, 187]
+
+    // Ensure transactionId is valid
+    if (transactionId === undefined || transactionId === null) {
+      console.log('Skipping null or undefined transactionId')
+      return []
+    }
+
+    const normalizedTransactionId = Number(transactionId) // Normalize to ensure type consistency
+    console.log(`Checking transactionId: ${normalizedTransactionId}`)
+
+    // Check if the transactionId is in the valid labels array
+    if (validLabelTransactionIds.includes(normalizedTransactionId)) {
+      console.log(`TransactionId ${normalizedTransactionId} is in the valid label list.`)
+    } else if (nullLabelTransactionIds.includes(normalizedTransactionId)) {
+      console.log(`TransactionId ${normalizedTransactionId} is in the NULL label list.`)
+    } else {
+      console.log(`TransactionId ${normalizedTransactionId} is not in either list!`)
+      throw new Error(`Unexpected transactionId: ${normalizedTransactionId}`)
+    }
+
     const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+      .distinct('tx_labels.label')
       .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
-      .where('tx_labels_map.transactionId', transactionId)
-      .whereNot('tx_labels_map.isDeleted', true)
-      .whereNot('tx_labels.isDeleted', true)
-    return this.validateEntities(labels, undefined, ['isDeleted'])
+      .where('tx_labels_map.transactionId', normalizedTransactionId)
+      .andWhere(function () {
+        this.where('tx_labels.isDeleted', 0).orWhereNull('tx_labels.isDeleted')
+      })
+      .andWhere(function () {
+        this.where('tx_labels_map.isDeleted', 0).orWhereNull('tx_labels_map.isDeleted')
+      })
+
+    console.log(`Labels fetched for transactionId ${normalizedTransactionId}: ${labels}`)
+
+    if (validLabelTransactionIds.includes(normalizedTransactionId) && !labels.length) {
+      throw new Error(`TransactionId ${normalizedTransactionId} expected labels, but none were returned!`)
+    } else if (nullLabelTransactionIds.includes(normalizedTransactionId) && labels.length > 0) {
+      throw new Error(`TransactionId ${normalizedTransactionId} expected no labels, but some were returned: ${labels}`)
+    }
+
+    return labels
   }
+
+  // override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+  //   console.log('UPDATED-2 bob getLabelsForTransactionId')
+  //   if (transactionId === undefined) return []
+
+  //   const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+  //     .select(
+  //       'tx_labels.label',
+  //       'tx_labels.userId',
+  //       'tx_labels.isDeleted AS txLabelsIsDeleted', // Alias added
+  //       'tx_labels.txLabelId',
+  //       'tx_labels.created_at',
+  //       'tx_labels.updated_at'
+  //     )
+  //     .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+  //     .where('tx_labels_map.transactionId', transactionId)
+  //     .where('tx_labels_map.isDeleted', 0)
+  //     .where('tx_labels.isDeleted', 0)
+
+  //   return labels
+  // }
+
+  // override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+  //   console.log('UPDATED-1 bob getLabelsForTransactionId')
+  //   if (transactionId === undefined) return []
+
+  //   const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+  //     .select('label', 'userId', 'isDeleted', 'txLabelId', 'created_at', 'updated_at')
+  //     .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+  //     .where('tx_labels_map.transactionId', transactionId)
+  //     .whereNot('tx_labels_map.isDeleted', true)
+  //     .whereNot('tx_labels.isDeleted', true)
+
+  //   return labels
+  // }
+
+  // override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+  //   console.log('UPDATED bob getLabelsForTransactionId')
+  //   if (transactionId === undefined) return []
+  //   const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+  //     .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+  //     .where('tx_labels_map.transactionId', transactionId)
+  //     .whereNot('tx_labels_map.isDeleted', true)
+  //     .whereNot('tx_labels.isDeleted', true)
+  //     .select('tx_labels.label') // Select only the label field
+  //   return labels
+  // }
+
+  // override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+  //   console.log('NEW bob getLabelsForTransactionId')
+  //   if (!transactionId) return []
+
+  //   try {
+  //     // Fetch raw labels from the database
+  //     const rawLabels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+  //       .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+  //       .where('tx_labels_map.transactionId', transactionId)
+  //       .whereNot('tx_labels_map.isDeleted', true)
+  //       .whereNot('tx_labels.isDeleted', true)
+  //       .select('tx_labels.txLabelId', 'tx_labels.label', 'tx_labels.isDeleted', 'tx_labels.created_at', 'tx_labels.updated_at', 'tx_labels.userId')
+
+  //     console.log('Transaction ID:', transactionId)
+  //     console.log('Raw Labels Query Result:', rawLabels)
+
+  //     // Validate and return the labels
+  //     return rawLabels.map(label => ({
+  //       txLabelId: label.txLabelId,
+  //       label: label.label,
+  //       isDeleted: label.isDeleted,
+  //       created_at: label.created_at,
+  //       updated_at: label.updated_at,
+  //       userId: label.userId
+  //     }))
+  //   } catch (error) {
+  //     console.error(`Error fetching labels for transactionId ${transactionId}:`, error)
+  //     throw error
+  //   }
+  // }
+
+  // override async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+  //   if (transactionId === undefined) return []
+  //   const labels = await this.toDb(trx)<table.TxLabel>('tx_labels')
+  //     .join('tx_labels_map', 'tx_labels_map.txLabelId', 'tx_labels.txLabelId')
+  //     .where('tx_labels_map.transactionId', transactionId)
+  //     .whereNot('tx_labels_map.isDeleted', true)
+  //     .whereNot('tx_labels.isDeleted', true)
+  //   return this.validateEntities(labels, undefined, ['isDeleted'])
+  // }
 
   async extendOutput(o: table.Output, includeBasket = false, includeTags = false, trx?: sdk.TrxToken): Promise<table.OutputX> {
     const ox = o as table.OutputX

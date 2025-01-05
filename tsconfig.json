@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
+    "rootDir": ".", // Include both src and test directories
+    "outDir": "./out",
     "target": "es2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
-    "outDir": "out",
     "allowJs": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -13,18 +14,9 @@
     "noImplicitAny": false,
     "declaration": true,
     "declarationMap": true,
-    "rootDir": ".",
     "composite": true,
     "noImplicitOverride": true
   },
-  "include": [ "src/**/*", "test/**/*" ],
-  "exclude": ["node_modules", "jest.config.ts", "out"],
-  "references": [
-    { "path": "../babbage-sdk-ts" },
-    { "path": "../cwi-base" },
-    { "path": "../ninja-base" },
-    { "path": "../dojo-base" },
-    { "path": "../dojo-knex" },
-    { "path": "../dojo-core" }
-  ]
+  "include": ["src/**/*", "test/**/*"], // Include test files
+  "exclude": ["node_modules", "out"]
 }

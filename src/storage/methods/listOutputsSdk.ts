@@ -76,6 +76,8 @@ export async function listOutputsSdk(
     const noTags = tagIds.length === 0
     const includeSpent = false
 
+    const txStatusOk = `(select status as tstatus from transactions where transactions.transactionId = outputs.transactionId) in ('completed', 'unproven', 'nosend')`
+
     const makeWithTagsQueries = () => {
         let cteqOptions = ''
         if (basketId) cteqOptions += ` AND o.basketId = ${basketId}`
@@ -88,7 +90,7 @@ export async function listOutputsSdk(
                     AND m.outputTagId IN (${tagIds.join(',')}) 
                     ) AS tc
             FROM outputs AS o
-            WHERE o.userId = ${userId} ${cteqOptions}
+            WHERE o.userId = ${userId} ${cteqOptions} AND ${txStatusOk}
             `);
 
         const q = k.with('otc', cteq)
@@ -107,16 +109,17 @@ export async function listOutputsSdk(
         const where: Partial<table.Output> = { userId }
         if (basketId) where.basketId = basketId
         if (!includeSpent) where.spendable = true
-        const q = k('outputs').where(where)
+        const q = k('outputs').where(where).whereRaw(txStatusOk)
         const qcount = q.clone().count('outputId as total')
         return { q, qcount }
     }
 
     const { q, qcount } = noTags
         ? makeWithoutTagsQueries()
-        : makeWithTagsQueries()
+        : makeWithTagsQueries();
 
-    q.limit(limit).offset(offset).orderBy('outputId', 'desc')
+    // Sort order when limit and offset are possible must be ascending for determinism.
+    q.limit(limit).offset(offset).orderBy('outputId', 'asc')
 
     const outputs: table.Output[] = await q
 

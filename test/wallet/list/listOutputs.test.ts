@@ -129,9 +129,21 @@ describe('listOutputs test', () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
+        // export interface ListOutputsArgs {
+        //     basket: BasketStringUnder300Bytes
+        //     tags?: OutputTagStringUnder300Bytes[]
+        //     tagQueryMode?: 'all' | 'any'
+        //     include?: 'locking scripts' | 'entire transactions'
+        //     includeCustomInstructions?: BooleanDefaultFalse
+        //     includeTags?: BooleanDefaultFalse
+        //     includeLabels?: BooleanDefaultFalse
+        //     limit?: PositiveIntegerDefault10Max10000
+        //     offset?: PositiveIntegerOrZero
+        //     seekPermission?: BooleanDefaultTrue
+        //   }
         const args: sdk.ListOutputsArgs = {
-          basket: 'basket',
-          tags: ['babbage_action_originator staging-todo.babbage.systems'],
+          basket: 'babbage-protocol-permission',
+          tags: ['babbage_action_originator projectbabbage.com'],
           includeTags: true
         }
         const r = await wallet.listOutputs(args)
@@ -166,7 +178,7 @@ describe('listOutputs test', () => {
       {
         let log = `\n${testName()}\n`
         const args: sdk.ListOutputsArgs = {
-          basket: 'babbage_app_projectbabbage.com,babbage_basket_access'
+          basket: 'babbage_app_staging-todo.babbage.systems'
         }
         const r = await wallet.listOutputs(args)
         log += logResult(r)

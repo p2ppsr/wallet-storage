@@ -4,7 +4,7 @@ import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { act } from 'react'
 import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, WatchmanEvent, SyncState } from '../../src/storage/schema/tables'
-import { OutputBasket, SyncMap } from '../../src/storage/schema/entities'
+import { SyncMap } from '../../src/storage/schema/entities'
 
 setLogging(true)
 
@@ -56,12 +56,12 @@ describe('update tests', () => {
       const referenceTime = new Date() // Capture time before updates
 
       // Fetch all proven transactions
-      const r = await storage.findProvenTxs({})
-      for (const e of r) {
+      const records = await storage.findProvenTxs({})
+      for (const record of records) {
         try {
           // TBD optoinal params?
           const testValues: ProvenTx = {
-            provenTxId: e.provenTxId,
+            provenTxId: record.provenTxId,
             txid: 'mockTxid',
             created_at: new Date('2024-12-30T23:00:00Z'),
             updated_at: new Date('2024-12-30T23:05:00Z'),
@@ -74,10 +74,10 @@ describe('update tests', () => {
           }
 
           // Update the entry with test values
-          await updateTable(storage.updateProvenTx.bind(storage), e[primaryKey], testValues)
+          await updateTable(storage.updateProvenTx.bind(storage), record[primaryKey], testValues)
 
           // Verify that the updated entry matches the test values
-          const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+          const updatedTx = verifyOne(await storage.findProvenTxs({ [primaryKey]: record[primaryKey] }))
           verifyValues(updatedTx, testValues, referenceTime)
 
           // Test each field for valid and invalid updates
@@ -89,42 +89,42 @@ describe('update tests', () => {
 
             if (typeof value === 'string') {
               const validString = `valid${key}`
-              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validString })
+              const r1 = await storage.updateProvenTx(record[primaryKey], { [key]: validString })
               expect(r1).toBe(1)
 
-              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: record[primaryKey] }))
               expect(updatedRow[key]).toBe(validString)
             }
 
             if (typeof value === 'number') {
               const validNumber = value + 1
-              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validNumber })
+              const r1 = await storage.updateProvenTx(record[primaryKey], { [key]: validNumber })
               expect(r1).toBe(1)
 
-              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: record[primaryKey] }))
               expect(updatedRow[key]).toBe(validNumber)
             }
 
             if (value instanceof Date) {
               const validDate = new Date('2024-12-31T00:00:00Z')
-              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validDate })
+              const r1 = await storage.updateProvenTx(record[primaryKey], { [key]: validDate })
               expect(r1).toBe(1)
 
-              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: record[primaryKey] }))
               expect(new Date(updatedRow[key]).toISOString()).toBe(validDate.toISOString())
             }
 
             if (Array.isArray(value)) {
               const validArray = value.map(v => v + 1)
-              const r1 = await storage.updateProvenTx(e[primaryKey], { [key]: validArray })
+              const r1 = await storage.updateProvenTx(record[primaryKey], { [key]: validArray })
               expect(r1).toBe(1)
 
-              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: e[primaryKey] }))
+              const updatedRow = verifyOne(await storage.findProvenTxs({ [primaryKey]: record[primaryKey] }))
               expect(updatedRow[key]).toEqual(validArray)
             }
           }
         } catch (error: any) {
-          console.error(`Error updating or verifying ProvenTx record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          console.error(`Error updating or verifying ProvenTx record with ${primaryKey}=${record[primaryKey]}:`, error.message)
           throw error // Re-throw unexpected errors to fail the test
         }
       }
@@ -161,13 +161,13 @@ describe('update tests', () => {
       for (const { description, updates } of scenarios) {
         const referenceTime = new Date() // Capture time before updates
 
-        const r = await storage.findProvenTxs({})
-        for (const e of r) {
+        const records = await storage.findProvenTxs({})
+        for (const record of records) {
           // Update fields based on the scenario
-          await storage.updateProvenTx(e.provenTxId, { created_at: updates.created_at })
-          await storage.updateProvenTx(e.provenTxId, { updated_at: updates.updated_at })
+          await storage.updateProvenTx(record.provenTxId, { created_at: updates.created_at })
+          await storage.updateProvenTx(record.provenTxId, { updated_at: updates.updated_at })
 
-          const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
+          const t = verifyOne(await storage.findProvenTxs({ provenTxId: record.provenTxId }))
 
           // Log the scenario for better test output
           log(`Testing scenario: ${description}`)
@@ -379,12 +379,12 @@ describe('update tests', () => {
     const primaryKey = schemaMetadata.provenTxReqs.primaryKey
 
     for (const { storage, setup } of setups) {
-      const r = await storage.findProvenTxReqs({})
+      const records = await storage.findProvenTxReqs({})
 
-      for (const e of r) {
+      for (const record of records) {
         try {
           const testValues: ProvenTxReq = {
-            provenTxReqId: e.provenTxReqId,
+            provenTxReqId: record.provenTxReqId,
             provenTxId: 1,
             batch: `batch-001`,
             status: 'completed',
@@ -400,11 +400,11 @@ describe('update tests', () => {
           }
 
           // Update all fields in one go
-          const r1 = await storage.updateProvenTxReq(e[primaryKey], testValues)
+          const r1 = await storage.updateProvenTxReq(record[primaryKey], testValues)
           expect(r1).toBe(1) // Expect one row updated
 
           // Fetch the updated row for validation
-          const updatedRow = verifyOne(await storage.findProvenTxReqs({ [primaryKey]: e[primaryKey] }))
+          const updatedRow = verifyOne(await storage.findProvenTxReqs({ [primaryKey]: record[primaryKey] }))
           for (const [key, value] of Object.entries(testValues)) {
             const actualValue = updatedRow[key]
 
@@ -442,7 +442,7 @@ describe('update tests', () => {
             expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
           }
         } catch (error: any) {
-          console.error(`Error updating or verifying ProvenTxReq record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          console.error(`Error updating or verifying ProvenTxReq record with ${primaryKey}=${record[primaryKey]}:`, error.message)
           throw error // Re-throw unexpected errors to fail the test
         }
       }
@@ -477,13 +477,13 @@ describe('update tests', () => {
 
       for (const { description, updates } of scenarios) {
         const referenceTime = new Date() // Capture time before updates
-        const r = await storage.findProvenTxReqs({})
+        const records = await storage.findProvenTxReqs({})
 
-        for (const e of r) {
-          await storage.updateProvenTxReq(e.provenTxReqId, { created_at: updates.created_at })
-          await storage.updateProvenTxReq(e.provenTxReqId, { updated_at: updates.updated_at })
+        for (const record of records) {
+          await storage.updateProvenTxReq(record.provenTxReqId, { created_at: updates.created_at })
+          await storage.updateProvenTxReq(record.provenTxReqId, { updated_at: updates.updated_at })
 
-          const t = verifyOne(await storage.findProvenTxReqs({ provenTxReqId: e.provenTxReqId }))
+          const t = verifyOne(await storage.findProvenTxReqs({ provenTxReqId: record.provenTxReqId }))
           expect(validateUpdateTime(t.created_at, updates.created_at, referenceTime)).toBe(true)
           expect(validateUpdateTime(t.updated_at, updates.updated_at, referenceTime)).toBe(true)
         }
@@ -667,30 +667,30 @@ describe('update tests', () => {
     const primaryKey = 'userId' // Define primary key for the User table
 
     for (const { storage, setup } of setups) {
-      const r = await storage.findUsers({})
-      log('Initial User records:', r)
+      const records = await storage.findUsers({})
+      log('Initial User records:', records)
 
-      for (const e of r) {
-        log(`Testing updates for User with ${primaryKey}=${e[primaryKey]}`)
+      for (const record of records) {
+        log(`Testing updates for User with ${primaryKey}=${record[primaryKey]}`)
 
         try {
           const testValues: User = {
-            userId: e.userId,
-            identityKey: `mockUpdatedIdentityKey-${e[primaryKey]}`,
+            userId: record.userId,
+            identityKey: `mockUpdatedIdentityKey-${record[primaryKey]}`,
             created_at: new Date('2024-12-30T23:00:00Z'),
             updated_at: new Date('2024-12-30T23:05:00Z')
           }
 
-          log(`Attempting update with values for ${primaryKey}=${e[primaryKey]}:`, testValues)
+          log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
 
           // Perform the update
-          const updateResult = await storage.updateUser(e[primaryKey], testValues)
-          log(`Update result for ${primaryKey}=${e[primaryKey]}:`, updateResult)
+          const updateResult = await storage.updateUser(record[primaryKey], testValues)
+          log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
           expect(updateResult).toBe(1)
 
           // Fetch and validate the updated record
-          const updatedRow = verifyOne(await storage.findUsers({ [primaryKey]: e[primaryKey] }))
-          log(`Updated User record for ${primaryKey}=${e[primaryKey]}:`, updatedRow)
+          const updatedRow = verifyOne(await storage.findUsers({ [primaryKey]: record[primaryKey] }))
+          log(`Updated User record for ${primaryKey}=${record[primaryKey]}:`, updatedRow)
 
           // Validate each field
           for (const [key, value] of Object.entries(testValues)) {
@@ -708,7 +708,7 @@ describe('update tests', () => {
             expect(actualValue).toBe(value)
           }
         } catch (error: any) {
-          console.error(`Error updating or verifying User record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          console.error(`Error updating or verifying User record with ${primaryKey}=${record[primaryKey]}:`, error.message)
           throw error // Re-throw unexpected errors to fail the test
         }
       }
@@ -744,13 +744,13 @@ describe('update tests', () => {
       for (const { description, updates } of scenarios) {
         const referenceTime = new Date() // Capture time before updates
 
-        const r = await storage.findUsers({})
-        for (const e of r) {
+        const records = await storage.findUsers({})
+        for (const record of records) {
           // Update fields based on the scenario
-          await storage.updateUser(e.userId, { created_at: updates.created_at })
-          await storage.updateUser(e.userId, { updated_at: updates.updated_at })
+          await storage.updateUser(record.userId, { created_at: updates.created_at })
+          await storage.updateUser(record.userId, { updated_at: updates.updated_at })
 
-          const t = verifyOne(await storage.findUsers({ userId: e.userId }))
+          const t = verifyOne(await storage.findUsers({ userId: record.userId }))
 
           // Log the scenario for better test output
           log(`Testing scenario: ${description}`)
@@ -901,19 +901,19 @@ describe('update tests', () => {
     for (const { storage, setup } of setups) {
       const primaryKey = schemaMetadata.certificates.primaryKey
 
-      const r = await storage.findCertificates({})
-      log('Initial Certificate records:', r)
+      const records = await storage.findCertificates({})
+      log('Initial Certificate records:', records)
 
-      for (const e of r) {
-        log(`Testing updates for Certificate with ${primaryKey}=${e[primaryKey]}`)
+      for (const record of records) {
+        log(`Testing updates for Certificate with ${primaryKey}=${record[primaryKey]}`)
 
         try {
           const testValues: Certificate = {
-            certificateId: e.certificateId,
+            certificateId: record.certificateId,
             userId: 1,
-            certifier: `mockCertifier${e.certificateId}`,
-            serialNumber: `mockSerialNumber${e.certificateId}`,
-            type: `mockType${e.certificateId}`,
+            certifier: `mockCertifier${record.certificateId}`,
+            serialNumber: `mockSerialNumber${record.certificateId}`,
+            type: `mockType${record.certificateId}`,
             created_at: new Date('2024-12-30T23:00:00Z'),
             updated_at: new Date('2024-12-30T23:05:00Z'),
             isDeleted: false,
@@ -923,11 +923,11 @@ describe('update tests', () => {
           }
 
           // Update all fields in one go
-          const r1 = await storage.updateCertificate(e[primaryKey], testValues)
+          const r1 = await storage.updateCertificate(record[primaryKey], testValues)
           expect(r1).toBe(1) // Expect one row updated
 
           // Fetch the updated row for validation
-          const updatedRow = verifyOne(await storage.findCertificates({ [primaryKey]: e[primaryKey] }))
+          const updatedRow = verifyOne(await storage.findCertificates({ [primaryKey]: record[primaryKey] }))
           for (const [key, value] of Object.entries(testValues)) {
             const actualValue = updatedRow[key]
 
@@ -965,7 +965,7 @@ describe('update tests', () => {
             expect(JSON.stringify({ type: 'Buffer', data: actualValue })).toStrictEqual(JSON.stringify(value))
           }
         } catch (error: any) {
-          console.error(`Error updating or verifying Certificate record with ${primaryKey}=${e[primaryKey]}:`, error.message)
+          console.error(`Error updating or verifying Certificate record with ${primaryKey}=${record[primaryKey]}:`, error.message)
           throw error // Re-throw unexpected errors to fail the test
         }
       }
@@ -1001,13 +1001,13 @@ describe('update tests', () => {
       for (const { description, updates } of scenarios) {
         const referenceTime = new Date() // Capture time before updates
 
-        const r = await storage.findCertificates({})
-        for (const e of r) {
+        const records = await storage.findCertificates({})
+        for (const record of records) {
           // Update fields based on the scenario
-          await storage.updateUser(e.certificateId, { created_at: updates.created_at })
-          await storage.updateUser(e.certificateId, { updated_at: updates.updated_at })
+          await storage.updateUser(record.certificateId, { created_at: updates.created_at })
+          await storage.updateUser(record.certificateId, { updated_at: updates.updated_at })
 
-          const t = verifyOne(await storage.findCertificates({ certificateId: e.certificateId }))
+          const t = verifyOne(await storage.findCertificates({ certificateId: record.certificateId }))
 
           // Log the scenario for better test output
           log(`Testing scenario: ${description}`)
@@ -1670,9 +1670,7 @@ describe('update tests', () => {
             minimumDesiredUTXOValue: 0,
             isDeleted: false
           }
-          const updateResult = await storage.updateOutputBasket({
-            basketId: undefined
-          })
+          const updateResult = await storage.updateOutputBasket(record.basketId, basket)
           log(`Update result for ${primaryKey}=${record[primaryKey]}:`, updateResult)
           expect(updateResult).toBe(1)
 

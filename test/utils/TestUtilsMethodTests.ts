@@ -1,4 +1,3 @@
-import { getHeight, getNetwork } from '@babbage/sdk-ts';
 import { sdk } from '../../src';
 import { Wallet } from '../../src/Wallet';
 import { jest } from '@jest/globals';
@@ -25,6 +24,7 @@ export const log = (message: string, ...optionalParams: any[]): void => {
  */
 export const mockWalletSigner = (): any => ({
     isAuthenticated: jest.fn().mockReturnValue(true),
+    authenticate: jest.fn(),
     storageIdentity: { storageIdentityKey: 'mockStorageKey' },
     getClientChangeKeyPair: jest.fn().mockReturnValue({ publicKey: 'mockPublicKey' }),
     chain: 'test',

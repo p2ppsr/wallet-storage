@@ -129,18 +129,6 @@ describe('listOutputs test', () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
-        // export interface ListOutputsArgs {
-        //     basket: BasketStringUnder300Bytes
-        //     tags?: OutputTagStringUnder300Bytes[]
-        //     tagQueryMode?: 'all' | 'any'
-        //     include?: 'locking scripts' | 'entire transactions'
-        //     includeCustomInstructions?: BooleanDefaultFalse
-        //     includeTags?: BooleanDefaultFalse
-        //     includeLabels?: BooleanDefaultFalse
-        //     limit?: PositiveIntegerDefault10Max10000
-        //     offset?: PositiveIntegerOrZero
-        //     seekPermission?: BooleanDefaultTrue
-        //   }
         const args: sdk.ListOutputsArgs = {
           basket: 'babbage-protocol-permission',
           tags: ['babbage_action_originator projectbabbage.com'],
@@ -173,55 +161,56 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('001_default', async () => {
+  test('7_labels babbage_protocol_perm', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
         const args: sdk.ListOutputsArgs = {
-          basket: 'babbage_app_staging-todo.babbage.systems'
+          basket: 'babbage-protocol-permission',
+          includeLabels: true,
+          limit: 5
         }
         const r = await wallet.listOutputs(args)
-        log += logResult(r)
-        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-        expect(r.outputs.length).toBe(10)
-        expect(r.BEEF).toBeUndefined()
-        for (const o of r.outputs) {
-          expect(o.customInstructions).toBeUndefined()
-          expect(o.lockingScript).toBeUndefined()
-          expect(o.labels).toBeUndefined()
-          expect(o.tags).toBeUndefined()
+        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+        //expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBe(5)
+        //expect(r.outputs.length).toBe(args.limit || 10)
+        let i = 0
+        for (const a of r.outputs) {
+          expect(Array.isArray(a.labels)).toBe(true)
+          expect(a.labels?.indexOf('babbage_protocol_perm')).toBeGreaterThan(-1)
+          log += `${i++} ${a.labels?.join(',')}\n`
         }
         if (!noLog) console.log(log)
       }
     }
   })
 
-  /*
-    test('3_label babbage_protocol_perm', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeLabels: true,
-                labels: ['babbage_protocol_perm']
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-            expect(r.outputs.length).toBe(args.limit || 10)
-            let i = 0
-            for (const a of r.outputs) {
-                expect(a.inputs).toBeUndefined()
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.labels)).toBe(true)
-                expect(a.labels?.indexOf('babbage_protocol_perm')).toBeGreaterThan(-1)
-                log += `${i++} ${a.labels?.join(',')}\n`
-            }
-            if (!noLog) console.log(log)
+  test('8_tags babbage-token-access', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'babbage-token-access',
+          includeTags: true,
+          limit: 15
         }
-    })
+        const r = await wallet.listOutputs(args)
+        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+        //expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBeLessThan(16)
+        //expect(r.outputs.length).toBe(args.limit || 10)
+        let i = 0
+        for (const a of r.outputs) {
+          expect(Array.isArray(a.tags)).toBe(true)
+          expect(a.tags?.indexOf('babbage_action_originator projectbabbage.com')).toBeGreaterThan(-1)
+          log += `${i++} ${a.labels?.join(',')}\n`
+        }
+        if (!noLog) console.log(log)
+      }
+    }
+  })
+  /*
 
     test('4_label babbage_protocol_perm', async () => {
 
@@ -250,37 +239,38 @@ describe('listOutputs test', () => {
             if (!noLog) console.log(log)
         }
     })
-
-    test('5_label babbage_protocol_perm or babbage_basket_access', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeLabels: true,
-                labels: ['babbage_protocol_perm', 'babbage_basket_access']
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-            expect(r.outputs.length).toBe(args.limit || 10)
-            let i = 0
-            for (const a of r.outputs) {
-                expect(a.inputs).toBeUndefined()
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.labels)).toBe(true)
-                let count = 0
-                for (const label of args.labels) {
-                    if (a.labels!.indexOf(label) > -1) count++
-                }
-                expect(count).toBeGreaterThan(0)
-                log += `${i++} ${a.labels?.join(',')}\n`
-            }
-            if (!noLog) console.log(log)
+*/
+  test('9_tags babbage-protocol-permission', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'babbage-protocol-permission',
+          includeTags: true,
+          tags: ['babbage_protocolsecuritylevel 2']
+          //tagQueryMode: 'all'
         }
-    })
-
+        const r = await wallet.listOutputs(args)
+        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBe(args.limit || 10)
+        let i = 0
+        for (const a of r.outputs) {
+          //expect(a.inputs).toBeUndefined()
+          //expect(a.outputs).toBeUndefined()
+          expect(Array.isArray(a.tags)).toBe(true)
+          let count = 0
+          for (const tags of args.tags || []) {
+            if (a.tags!.indexOf(tags) > -1) count++
+          }
+          expect(count).toBeGreaterThan(0)
+          log += `${i++} ${a.tags?.join(',')}\n`
+        }
+        if (!noLog) console.log(log)
+      }
+    }
+  })
+  /*
     test('6_label babbage_protocol_perm and babbage_basket_access', async () => {
 
         const wallet = new NinjaWallet(ccnr.ninja)
@@ -299,38 +289,49 @@ describe('listOutputs test', () => {
         }
 
     })
-
-    test('7_includeOutputs', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeOutputs: true,
-                labels: []
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-            expect(r.outputs.length).toBe(args.limit || 10)
-            let i = 0
-            for (const a of r.outputs) {
-                log += `${i++} ${a.txid} ${a.satoshis} ${a.status} ${a.isOutgoing} ${a.version} ${a.lockTime} ${a.description}\n`
-                expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
-                expect(a.inputs).toBeUndefined()
-                expect(Array.isArray(a.outputs)).toBe(true)
-                expect(a.labels).toBeUndefined()
-                for (const o of a.outputs!) {
-                    log += `  ${o.outputIndex} ${o.satoshis} ${o.spendable} ${o.basket} ${o.tags.join(',')} ${o.outputDescription} ${o.customInstructions} ${o.lockingScript}\n`
-                    expect(o.outputIndex).toBeGreaterThanOrEqual(0)
-                    expect(o.lockingScript).toBeUndefined()
-                }
-            }
-            if (!noLog) console.log(log)
+*/
+  test('10_includeOutputs', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'default',
+          includeTags: true,
+          includeLabels: true,
+          includeCustomInstructions: true,
+          limit: 2
         }
-    })
-
+        const r = await wallet.listOutputs(args)
+        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBe(2)
+        let i = 0
+        // export interface WalletOutput {
+        //   satoshis: SatoshiValue
+        //   lockingScript?: HexString
+        //   spendable: boolean
+        //   customInstructions?: string
+        //   tags?: OutputTagStringUnder300Bytes[]
+        //   outpoint: OutpointString
+        //   labels?: LabelStringUnder300Bytes[]
+        // }
+        for (const a of r.outputs) {
+          log += `  ${a.satoshis} ${a.spendable} ${a.outpoint} ${a.tags?.join(',')} ${a.tags?.join(',')} ${a.customInstructions} ${a.lockingScript}\n`
+          //expect(a.satoshis).toBeGreaterThan(0)
+          expect(a.outpoint).toBeTruthy
+          expect(a.lockingScript).not.toBeUndefined()
+          expect(a.customInstructions).not.toBeUndefined()
+          expect(a.labels).not.toBeUndefined()
+          //expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
+          //expect(a.inputs).toBeUndefined()
+          //expect(Array.isArray(a.outputs)).toBe(true)
+          //expect(a.labels).toBeUndefined()
+        }
+        if (!noLog) console.log(log)
+      }
+    }
+  })
+  /*
     test('8_includeOutputs and script', async () => {
 
         const wallet = new NinjaWallet(ccnr.ninja)

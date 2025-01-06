@@ -32,7 +32,7 @@ describe('update tests', () => {
         }
     })
 
-    test('0 find ProvenTx', async () => {
+    test('0 update ProvenTx', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findProvenTxs({ partial: {} })
             const time = new Date('2001-01-02T12:00:00.000Z')
@@ -47,86 +47,86 @@ describe('update tests', () => {
         }
     })
 
-    test('1 find ProvenTxReq', async () => {
+    test('1 update ProvenTxReq', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findProvenTxReqs({ partial: {} })
         }
     })
 
-    test('2 find User', async () => {
+    test('2 update User', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findUsers({ partial: {} })
         }
 
     })
 
-    test('3 find Certificate', async () => {
+    test('3 update Certificate', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findCertificates({ partial: {}, certifiers: [setup.u1cert1.certifier] })
         }
     })
 
-    test('4 find CertificateField', async () => {
+    test('4 update CertificateField', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findCertificateFields({ partial: { fieldName: "bob" } })
         }
     })
 
-    test('5 find OutputBasket', async () => {
+    test('5 update OutputBasket', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findOutputBaskets({ partial: {}, since: setup.u1.created_at })
         }
     })
 
-    test('6 find Transaction', async () => {
+    test('6 update Transaction', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findTransactions({ partial: {} })
         }
     })
 
-    test('7 find Commission', async () => {
+    test('7 update Commission', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findCommissions({ partial: {} })
         }
     })
 
-    test('8 find Output', async () => {
+    test('8 update Output', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findOutputs({ partial: {} })
         }
     })
 
-    test('9 find OutputTag', async () => {
+    test('9 update OutputTag', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findOutputTags({ partial: {} })
         }
     })
 
-    test('10 find OutputTagMap', async () => {
+    test('10 update OutputTagMap', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findOutputTagMaps({ partial: {} })
         }
     })
     
-    test('11 find TxLabel', async () => {
+    test('11 update TxLabel', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findTxLabels({ partial: {} })
         }
     })
 
-    test('12 find TxLabelMap', async () => {
+    test('12 update TxLabelMap', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findTxLabelMaps({ partial: {} })
         }
     })
 
-    test('13 find WatchmanEvent', async () => {
+    test('13 update WatchmanEvent', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findWatchmanEvents({ partial: {} })
         }
     })
 
-    test('14 find SyncState', async () => {
+    test('14 update SyncState', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findSyncStates({ partial: {} })
         }

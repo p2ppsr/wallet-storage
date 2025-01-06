@@ -336,7 +336,7 @@ export abstract class TestUtilsWalletStorage {
         const identityKey = rootKey.toPublicKey().toString()
         const keyDeriver = new sdk.KeyDeriver(rootKey)
         const chain = args.chain
-        const activeStorage = new StorageKnex({ chain, knex: args.knex })
+        const activeStorage = new StorageKnex({ chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
         if (args.dropAll) await activeStorage.dropAllData()
         await activeStorage.migrate(args.databaseName)
         await activeStorage.makeAvailable()
@@ -401,14 +401,14 @@ export abstract class TestUtilsWalletStorage {
         const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe"
         const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
         const keyDeriver = new sdk.KeyDeriver(rootKey)
-        const activeStorage = new StorageKnex({ chain, knex: walletKnex })
+        const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
         if (useReader) await activeStorage.dropAllData()
         await activeStorage.migrate(databaseName)
         await activeStorage.makeAvailable()
         const storage = new WalletStorage(activeStorage)
         if (useReader) {
             const readerKnex = _tu.createLocalSQLite(readerFile)
-            const reader = new StorageKnex({ chain, knex: readerKnex })
+            const reader = new StorageKnex({ chain, knex: readerKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
             await storage.SyncFromReader(identityKey, reader)
             await reader.destroy()
         }

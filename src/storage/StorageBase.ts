@@ -1,20 +1,39 @@
+import * as bsv from '@bsv/sdk'
 import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { createTransactinoSdk } from "./methods/createTransactionSdk";
 import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
+import { getBeefForTransaction } from './methods/getBeefForTransaction';
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
     _services?: sdk.WalletServices
+    feeModel: sdk.StorageFeeModel
+    commissionSatoshis: number
+    commissionPubKeyHex?: sdk.PubKeyHex
+    maxRecursionDepth?: number
+
+    static defaultOptions() {
+        return {
+            feeModel: <sdk.StorageFeeModel>{ model: 'sat/kb', value: 1 },
+            commissionSatoshis: 0,
+            commissionPubKeyHex: undefined
+        }
+    }
 
     static createStorageBaseOptions(chain: sdk.Chain): StorageBaseOptions {
         const options: StorageBaseOptions = {
-            chain
+            ...StorageBase.defaultOptions(),
+            chain,
         }
         return options
     }
 
     constructor(options: StorageBaseOptions) {
         super(options)
+        this.feeModel = options.feeModel
+        this.commissionPubKeyHex = options.commissionPubKeyHex
+        this.commissionSatoshis = options.commissionSatoshis
     }
 
     setServices(v: sdk.WalletServices) { this._services = v }
@@ -309,8 +328,13 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         }, trx)
     }
 
+    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
+        return await createTransactinoSdk(this, vargs, originator)
+    }
 
-    abstract createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult>
+
+
+    abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
     abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
@@ -381,6 +405,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+    abstract countChangeInputs( userId: number, basketId: number, excludeSending: boolean): Promise<number>
 
     async findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
         return verifyOneOrNone(await this.findUsers({ identityKey: key }, undefined, undefined, trx))
@@ -426,8 +451,88 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
         return await listCertificatesSdk(this, vargs, originator)
     }
+
+    async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken) : Promise<boolean> {
+        const { proven, rawTx } = await this.getProvenOrRawTx(txid, trx)
+        return proven != undefined || rawTx != undefined
+    }
+
+    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef> {
+        const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
+        if (!beef)
+            throw new sdk.WERR_INVALID_PARAMETER('txid', `${txid} is not known to storage.`)
+        return beef
+    }
+
+    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef | undefined> {
+
+        const beef = mergeToBeef || new bsv.Beef()
+
+        const r = await this.getProvenOrRawTx(txid, trx)
+        if (r.proven) {
+            if (trustSelf === 'known')
+                beef.mergeTxidOnly(txid)
+            else {
+                beef.mergeRawTx(r.proven.rawTx)
+                const mp = new entity.ProvenTx(r.proven).getMerklePath()
+                beef.mergeBump(mp)
+                return beef
+            }
+        }
+
+        if (r.rawTx && r.inputBEEF) {
+            if (trustSelf === 'known')
+                beef.mergeTxidOnly(txid)
+            else {
+                beef.mergeRawTx(r.rawTx)
+                beef.mergeBeef(r.inputBEEF)
+                const tx = bsv.Transaction.fromBinary(r.rawTx)
+                for (const input of tx.inputs) {
+                    const btx = beef.findTxid(input.sourceTXID!)
+                    if (!btx) {
+                        if (knownTxids && knownTxids.indexOf(input.sourceTXID!) > -1)
+                            beef.mergeTxidOnly(input.sourceTXID!)
+                        else
+                            await this.getValidBeefForKnownTxid(input.sourceTXID!, beef, trustSelf, knownTxids, trx)
+                    }
+                }
+                return beef
+            }
+        }
+
+        return undefined
+    }
+
+   async getBeefForTransaction(txid: string, options: sdk.StorageGetBeefOptions) : Promise<bsv.Beef> {
+        return await getBeefForTransaction(this, txid, options)
+   }
+
 }
 
 export interface StorageBaseOptions {
     chain: sdk.Chain
+    feeModel: sdk.StorageFeeModel
+    /**
+     * Transactions created by this Storage can charge a fee per transaction.
+     * A value of zero disables commission fees.
+     */
+    commissionSatoshis: number
+    /**
+     * If commissionSatoshis is greater than zero, must be a valid public key hex string.
+     * The actual locking script for each commission will use a public key derived
+     * from this key by information stored in the commissions table.
+     */
+    commissionPubKeyHex?: sdk.PubKeyHex
+}
+
+export function validateStorageFeeModel (v?: sdk.StorageFeeModel): sdk.StorageFeeModel {
+  const r: sdk.StorageFeeModel = {
+    model: 'sat/kb',
+    value: 1
+  }
+  if (typeof v === 'object') {
+    if (v.model !== 'sat/kb') throw new sdk.WERR_INVALID_PARAMETER('StorageFeeModel.model', `"sat/kb"`)
+    if (typeof v.value === 'number') { r.value = v.value }
+  }
+  return r
 }

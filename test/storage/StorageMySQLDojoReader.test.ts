@@ -16,11 +16,11 @@ describe('StorageMySQLDojoReader tests', () => {
     beforeAll(async () => {
         const connection = JSON.parse((chain === 'test' ? process.env.TEST_DOJO_CONNECTION : process.env.MAIN_DOJO_CONNECTION) || '')
         const readerKnex = _tu.createMySQLFromConnection(connection)
-        reader = new StorageMySQLDojoReader({ chain, knex: readerKnex })
+        reader = new StorageMySQLDojoReader({...StorageKnex.defaultOptions(), chain, knex: readerKnex })
 
         const writerKnex = !env.noMySQL ? _tu.createLocalMySQL('stagingdojotone') :
         _tu.createLocalSQLite(await _tu.newTmpFile('stagingdojotone', false, false, true))
-        writer = new StorageKnex({ chain, knex: writerKnex })
+        writer = new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: writerKnex })
         await writer.dropAllData()
         await writer.migrate('stagingdojotone')
     })

@@ -7,7 +7,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
     whenLastAccess?: Date
     get dbtype(): DBType | undefined { return this.settings?.dbtype }
 
-    constructor(options: StorageBaseOptions) {
+    constructor(options: sdk.StorageSyncReaderOptions) {
         this.chain = options.chain
     }
 

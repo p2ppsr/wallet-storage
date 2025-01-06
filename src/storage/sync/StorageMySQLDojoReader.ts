@@ -19,11 +19,19 @@ import { Knex } from "knex";
 import { MerklePath } from "@bsv/sdk";
 import { isHexString } from '../../sdk';
 
+export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOptions {
+    chain: sdk.Chain
+    /**
+     * Knex database interface initialized with valid connection configuration.
+     */
+    knex: Knex
+}
+
 
 export class StorageMySQLDojoReader extends StorageSyncReader {
     knex: Knex
 
-    constructor(options: StorageKnexOptions) {
+    constructor(options: StorageMySQLDojoReaderOptions) {
         super(options)
         if (!options.knex) throw new sdk.WERR_INVALID_PARAMETER('options.knex', `valid`)
         this.knex = options.knex

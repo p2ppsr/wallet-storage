@@ -12,11 +12,11 @@ describe('update tests', () => {
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('updatetest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
-        storages.push(new StorageKnex({ chain, knex: knexSQLite }))
+        storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
         if (!env.noMySQL) {
             const knexMySQL = _tu.createLocalMySQL('updatetest')
-            storages.push(new StorageKnex({ chain, knex: knexMySQL }))
+            storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
         }
 
         for (const storage of storages) {

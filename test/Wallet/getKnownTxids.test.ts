@@ -1,34 +1,16 @@
-import { Wallet } from '../../src/Wallet';
+import { setupTestWallet } from '../utils/TestUtilsMethodTests';
 
 describe('Wallet Utility Tests (Unit)', () => {
-    let wallet: Wallet;
+    let wallet: any;
     let mockMergeTxidOnly: jest.Mock;
     let mockSortTxs: jest.Mock;
 
     beforeEach(() => {
-        const mockSigner = {
-            isAuthenticated: jest.fn().mockReturnValue(true),
-            storageIdentity: { storageIdentityKey: 'mockStorageKey' },
-            getClientChangeKeyPair: jest.fn().mockReturnValue({ publicKey: 'mockPublicKey' }),
-            chain: 'test',
-        };
+        const { wallet: testWallet, mockSigner, mockKeyDeriver } = setupTestWallet();
 
-        const mockKeyDeriver = {
-            rootKey: {
-                deriveChild: jest.fn(),
-                toPublicKey: jest.fn(() => ({ toString: jest.fn().mockReturnValue('mockIdentityKey') })),
-            },
-            identityKey: 'mockIdentityKey',
-            derivePublicKey: jest.fn(),
-            derivePrivateKey: jest.fn(),
-            deriveSymmetricKey: jest.fn(),
-            revealCounterpartySecret: jest.fn(),
-            revealSpecificSecret: jest.fn(),
-        };
+        wallet = testWallet;
 
-        wallet = new Wallet(mockSigner as any, mockKeyDeriver as any);
-
-        // Mock methods on `beef`
+        // Mock `mergeTxidOnly` and `sortTxs`
         mockMergeTxidOnly = jest.fn();
         mockSortTxs = jest.fn();
 

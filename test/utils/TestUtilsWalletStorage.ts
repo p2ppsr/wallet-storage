@@ -202,6 +202,10 @@ export abstract class TestUtilsWalletStorage {
         return dstPath
     }
 
+    static async copyFile(srcPath: string, dstPath: string): Promise<void> {
+        await fsp.copyFile(srcPath, dstPath)
+    }
+
     static async existingDataFile(filename: string): Promise<string> {
         const folder = './test/data/'
         return folder + filename
@@ -372,11 +376,11 @@ export abstract class TestUtilsWalletStorage {
         }
     }
 
+        //if (await _tu.fileExists(walletFile))
     static async createLegacyWalletSQLiteCopy(databaseName: string): Promise<TestWalletNoSetup> {
         const walletFile = await _tu.newTmpFile(`${databaseName}.sqlite`, false, false, true)
-        //if (await _tu.fileExists(walletFile))
         const walletKnex = _tu.createLocalSQLite(walletFile)
-        return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
+        return await _tu.createLegacyWalletCopy(databaseName, walletKnex, walletFile)
     }
 
     static async createLegacyWalletMySQLCopy(databaseName: string): Promise<TestWalletNoSetup> {
@@ -384,22 +388,30 @@ export abstract class TestUtilsWalletStorage {
         return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
     }
 
-    static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>): Promise<TestWalletNoSetup> {
-        const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
-        const readerKnex = _tu.createLocalSQLite(readerFile)
+    static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>, tryCopyToPath?: string): Promise<TestWalletNoSetup> {
         const chain: sdk.Chain = 'test'
-        const reader = new StorageKnex({ chain, knex: readerKnex })
+        const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
+        let useReader = true
+        if (tryCopyToPath) {
+            await _tu.copyFile(readerFile, tryCopyToPath)
+            console.log('USING FILE COPY INSTEAD OF SOURCE DB SYNC')
+            useReader = false
+        }
         const rootKeyHex = "153a3df216" + "686f55b253991c" + "7039da1f648" + "ffc5bfe93d6ac2c25ac" + "2d4070918d"
         const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe"
         const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
         const keyDeriver = new sdk.KeyDeriver(rootKey)
         const activeStorage = new StorageKnex({ chain, knex: walletKnex })
-        await activeStorage.dropAllData()
+        if (useReader) await activeStorage.dropAllData()
         await activeStorage.migrate(databaseName)
         await activeStorage.makeAvailable()
         const storage = new WalletStorage(activeStorage)
-        await storage.SyncFromReader(identityKey, reader)
-        await reader.destroy()
+        if (useReader) {
+            const readerKnex = _tu.createLocalSQLite(readerFile)
+            const reader = new StorageKnex({ chain, knex: readerKnex })
+            await storage.SyncFromReader(identityKey, reader)
+            await reader.destroy()
+        }
         const signer = new WalletSigner(chain, keyDeriver, storage)
         await signer.authenticate(undefined, false)
         const services = new WalletServices(chain)

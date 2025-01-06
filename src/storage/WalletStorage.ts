@@ -270,50 +270,50 @@ export class WalletStorage implements sdk.WalletStorage {
         return await this.getActive().listCertificatesSdk(vargs, originator)
    }
 
-    async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.CertificateField[]> {
-        return await this.getActive().findCertificateFields(partial, since, paged, trx)
+    async findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]> {
+        return await this.getActive().findCertificateFields(args)
     }
-    async findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Certificate[]> {
-        return await this.getActive().findCertificates(partial, certifiers, types, since, paged, trx)
+    async findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
+        return await this.getActive().findCertificates(args)
     }
-    async findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Commission[]> {
-        return await this.getActive().findCommissions(partial, since, paged, trx)
+    async findCommissions(args: sdk.FindCommissionsArgs): Promise<table.Commission[]> {
+        return await this.getActive().findCommissions(args)
     }
-    async findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputBasket[]> {
-        return await this.getActive().findOutputBaskets(partial, since, paged, trx)
+    async findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
+        return await this.getActive().findOutputBaskets(args)
     }
-    async findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Output[]> {
-        return await this.getActive().findOutputs(partial, noScript, since, paged, trx)
+    async findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]> {
+        return await this.getActive().findOutputs(args)
     }
-    async findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
-        return await this.getActive().findOutputTagMaps(partial, tagIds, since, paged, trx)
+    async findOutputTagMaps(args: sdk.FindOutputTagMapsArgs): Promise<table.OutputTagMap[]> {
+        return await this.getActive().findOutputTagMaps(args)
     }
-    async findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTag[]> {
-        return await this.getActive().findOutputTags(partial, since, paged, trx)
+    async findOutputTags(args: sdk.FindOutputTagsArgs): Promise<table.OutputTag[]> {
+        return await this.getActive().findOutputTags(args)
     }
-    async findProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
-        return await this.getActive().findProvenTxReqs(partial, status, txids, since, paged, trx)
+    async findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]> {
+        return await this.getActive().findProvenTxReqs(args)
     }
-    async findProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
-        return await this.getActive().findProvenTxs(partial, since, paged, trx)
+    async findProvenTxs(args: sdk.FindProvenTxsArgs): Promise<table.ProvenTx[]> {
+        return await this.getActive().findProvenTxs(args)
     }
-    async findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
-        return await this.getActive().findSyncStates(partial, since, paged, trx)
+    async findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]> {
+        return await this.getActive().findSyncStates(args)
     }
-    async findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.Transaction[]> {
-        return await this.getActive().findTransactions(partial, status, noRawTx, since, paged, trx)
+    async findTransactions(args: sdk.FindTransactionsArgs): Promise<table.Transaction[]> {
+        return await this.getActive().findTransactions(args)
     }
-    async findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
-        return await this.getActive().findTxLabelMaps(partial, labelIds, since, paged, trx)
+    async findTxLabelMaps(args: sdk.FindTxLabelMapsArgs): Promise<table.TxLabelMap[]> {
+        return await this.getActive().findTxLabelMaps(args)
     }
-    async findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
-        return await this.getActive().findTxLabels(partial, since, paged, trx)
+    async findTxLabels(args: sdk.FindTxLabelsArgs): Promise<table.TxLabel[]> {
+        return await this.getActive().findTxLabels(args)
     }
-    async findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.User[]> {
-        return await this.getActive().findUsers(partial, since, paged, trx)
+    async findUsers(args: sdk.FindUsersArgs): Promise<table.User[]> {
+        return await this.getActive().findUsers(args)
     }
-    async findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]> {
-        return await this.getActive().findWatchmanEvents(partial, since, paged, trx)
+    async findWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<table.WatchmanEvent[]> {
+        return await this.getActive().findWatchmanEvents(args)
     }
 
     async findUserByIdentityKey(key: string, trx?: sdk.TrxToken): Promise<table.User | undefined> {

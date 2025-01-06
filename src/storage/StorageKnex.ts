@@ -36,7 +36,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         const k = this.toDb(trx)
         const r: sdk.ProvenOrRawTx = { proven: undefined, rawTx: undefined, inputBEEF: undefined }
 
-        r.proven = verifyOneOrNone(await this.findProvenTxs({'txid': txid }))
+        r.proven = verifyOneOrNone(await this.findProvenTxs({ partial: {'txid': txid } }))
         if (!r.proven) {
             const reqRawTx = verifyOneOrNone(await k('proven_tx_reqs')
                 .where( 'txid', txid )

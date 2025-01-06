@@ -56,6 +56,8 @@ export async function listOutputsSdk(
     }
 
     const isQueryModeAll = vargs.tagQueryMode === 'all'
+    if (isQueryModeAll && tagIds.length < vargs.tags.length)
+        return r
 
     const columns: string[] = [
         'outputId',

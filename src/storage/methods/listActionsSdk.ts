@@ -34,6 +34,8 @@ export async function listActionsSdk(
     }
 
     const isQueryModeAll = vargs.labelQueryMode === 'all'
+    if (isQueryModeAll && labelIds.length < vargs.labels.length)
+        return r
 
     if (labelIds.length === 0 || isQueryModeAll && labelIds.length < vargs.labels.length)
         // No actions will match if a required label doesn't exist yet...

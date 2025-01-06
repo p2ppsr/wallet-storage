@@ -411,7 +411,7 @@ describe('listOutputs test', () => {
 
     })
 */
-  test('10_includeOutputs', async () => {
+  test('10_customInstructions_lockingScript etc.', async () => {
     for (const { wallet } of ctxs) {
       {
         const storage = ctxs[0].activeStorage as StorageKnex
@@ -440,19 +440,16 @@ describe('listOutputs test', () => {
         //   labels?: LabelStringUnder300Bytes[]
         // }
         for (const a of r.outputs) {
-          log += `  ${a.customInstructions} ${a.lockingScript}\n`
+          log += `  ci: ${a.customInstructions} \n ls: ${a.lockingScript}\n o: ${a.outpoint} \n`
           //log += `  ${a.satoshis} ${a.spendable} ${a.outpoint} ${a.tags?.join(',')} ${a.labels?.join(',')} ${a.customInstructions} ${a.lockingScript}\n`
           if (!noLog) console.log(log)
           expect(a.satoshis).toBeGreaterThan(0)
-          //expect(a.outpoint).toBeTruthy()
-          expect(a.lockingScript).not.toBeUndefined()
-          expect(a.customInstructions).not.toBeUndefined()
+          expect(a.outpoint).toBeTruthy()
+          expect(a.lockingScript).toBeTruthy()
+          if (i === 0) expect(a.customInstructions).toBeTruthy()
           expect(Array.isArray(a.labels)).toBe(true)
           expect(Array.isArray(a.tags)).toBe(true)
-          //expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
-          //expect(a.inputs).toBeUndefined()
-          //expect(Array.isArray(a.outputs)).toBe(true)
-          //expect(a.labels).toBeUndefined()
+          i++
         }
         if (!noLog) console.log(log)
       }

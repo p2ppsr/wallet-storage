@@ -365,7 +365,7 @@ describe('listOutputs test', () => {
       const args: sdk.ListOutputsArgs = {
         basket: 'babbage-token-access',
         includeTags: true,
-        tags: ['babbage_basket', 'todo tokens', 'babbage_action_originator projectbabbage.com', 'babbage_originator localhost:8088'], // Match all actual output tags
+        tags: ['babbage_basket todo tokens', 'babbage_action_originator projectbabbage.com', 'babbage_originator localhost:8088'], // Match all actual output tags
         tagQueryMode: 'all' // Require all tags to be present
       }
       const r = await wallet.listOutputs(args)

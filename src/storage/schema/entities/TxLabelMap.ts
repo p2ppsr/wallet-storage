@@ -51,7 +51,7 @@ export class TxLabelMap extends EntityBase<table.TxLabelMap> {
     : Promise<{ found: boolean, eo: entity.TxLabelMap, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
         const txLabelId = syncMap.txLabel.idMap[ei.txLabelId]
-        const ef = verifyOneOrNone(await storage.findTxLabelMaps({ transactionId, txLabelId }, undefined, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findTxLabelMaps({ partial: { transactionId, txLabelId }, trx }))
         return {
             found: !!ef,
             eo: new entity.TxLabelMap(ef || { ...ei }),

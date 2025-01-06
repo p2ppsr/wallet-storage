@@ -3,7 +3,7 @@ import { StorageKnex, table } from ".."
 import { asString, sdk, verifyOne } from "../.."
 
 export async function listActionsSdk(
-    dsk: StorageKnex,
+    storage: StorageKnex,
     vargs: sdk.ValidListActionsArgs,
     originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
 )
@@ -12,7 +12,7 @@ export async function listActionsSdk(
     const limit = vargs.limit
     const offset = vargs.offset
 
-    const k = dsk.toDb(undefined)
+    const k = storage.toDb(undefined)
 
     const r: sdk.ListActionsResult = {
         totalActions: 0,
@@ -111,13 +111,13 @@ export async function listActionsSdk(
         //    i++
             const action = r.actions[i]
             if (vargs.includeLabels) {
-                action.labels = (await dsk.getLabelsForTransactionId(tx.transactionId)).map(l => l.label)
+                action.labels = (await storage.getLabelsForTransactionId(tx.transactionId)).map(l => l.label)
             }
             if (vargs.includeOutputs) {
-                const outputs: table.OutputX[] = await dsk.findOutputs({ transactionId: tx.transactionId }, !vargs.includeOutputLockingScripts)
+                const outputs: table.OutputX[] = await storage.findOutputs({ partial: { transactionId: tx.transactionId }, noScript: !vargs.includeOutputLockingScripts })
                 action.outputs = []
                 for (const o of outputs) {
-                    await dsk.extendOutput(o, true, true)
+                    await storage.extendOutput(o, true, true)
                     const wo: sdk.WalletActionOutput = {
                         satoshis: o.satoshis || 0,
                         spendable: !!o.spendable,
@@ -132,16 +132,16 @@ export async function listActionsSdk(
                 }
             }
             if (vargs.includeInputs) {
-                const inputs: table.OutputX[] = await dsk.findOutputs({ spentBy: tx.transactionId }, !vargs.includeInputSourceLockingScripts, undefined, undefined, undefined)
+                const inputs: table.OutputX[] = await storage.findOutputs({ partial: { spentBy: tx.transactionId }, noScript: !vargs.includeInputSourceLockingScripts })
                 action.inputs = []
                 if (inputs.length > 0) {
-                    const rawTx = await dsk.getRawTxOfKnownValidTransaction(tx.txid)
+                    const rawTx = await storage.getRawTxOfKnownValidTransaction(tx.txid)
                     let bsvTx: bsv.Transaction | undefined = undefined
                     if (rawTx) {
                         bsvTx = bsv.Transaction.fromBinary(rawTx)
                     }
                     for (const o of inputs) {
-                        await dsk.extendOutput(o, true, true)
+                        await storage.extendOutput(o, true, true)
                         const input = bsvTx?.inputs.find(v =>
                             v.sourceTXID === o.txid
                             && v.sourceOutputIndex === o.vout

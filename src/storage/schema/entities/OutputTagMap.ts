@@ -51,7 +51,7 @@ export class OutputTagMap extends EntityBase<table.OutputTagMap> {
     : Promise<{ found: boolean, eo: entity.OutputTagMap, eiId: number }> {
         const outputId = syncMap.output.idMap[ei.outputId]
         const outputTagId = syncMap.outputTag.idMap[ei.outputTagId]
-        const ef = verifyOneOrNone(await storage.findOutputTagMaps({ outputId, outputTagId }, undefined, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findOutputTagMaps({ partial: { outputId, outputTagId }, trx }))
         return {
             found: !!ef,
             eo: new entity.OutputTagMap(ef || { ...ei }),

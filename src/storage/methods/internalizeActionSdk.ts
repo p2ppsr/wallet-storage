@@ -153,16 +153,16 @@ class InternalizeActionContext {
       }
     }
 
-    this.changeBasket = verifyOne(await this.storage.findOutputBaskets({ userId: this.userId, name: 'default' }))
+    this.changeBasket = verifyOne(await this.storage.findOutputBaskets({ partial: { userId: this.userId, name: 'default' } }))
     this.baskets = {}
 
-    this.etx = verifyOneOrNone(await this.storage.findTransactions({ userId: this.userId, txid: this.txid }))
+    this.etx = verifyOneOrNone(await this.storage.findTransactions({ partial: { userId: this.userId, txid: this.txid } }))
     if (this.etx && !(this.etx.status == 'completed' || this.etx.status === 'unproven' || this.etx.status === 'nosend'))
         throw new sdk.WERR_INVALID_PARAMETER('tx', `target transaction of internalizeAction has invalid status ${this.etx.status}.`);
     this.isMerge = !!this.etx
 
     if (this.isMerge) {
-      this.eos = await this.storage.findOutputs({ userId: this.userId, txid: this.txid }) // It is possible for a transaction to have no outputs, or less outputs in storage than in the transaction itself.
+      this.eos = await this.storage.findOutputs({ partial: { userId: this.userId, txid: this.txid } }) // It is possible for a transaction to have no outputs, or less outputs in storage than in the transaction itself.
       for (const eo of this.eos) {
         const bi = this.basketInsertions.find(b => b.vout === eo.vout)
         const wp = this.walletPayments.find(b => b.vout === eo.vout)

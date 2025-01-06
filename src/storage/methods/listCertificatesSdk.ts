@@ -24,9 +24,9 @@ export async function listCertificatesSdk(
     }
 
     const r = await dsk.transaction(async trx => {
-        const certs = await dsk.findCertificates(partial, vargs.certifiers, vargs.types, undefined, paged, trx)
+        const certs = await dsk.findCertificates({ partial, certifiers: vargs.certifiers, types: vargs.types, paged, trx })
         const certsWithFields = await Promise.all(certs.map(async cert => {
-            const fields = await dsk.findCertificateFields({ certificateId: cert.certificateId, userId: vargs.userId }, undefined, undefined, trx)
+            const fields = await dsk.findCertificateFields({ partial: { certificateId: cert.certificateId, userId: vargs.userId }, trx })
             return {
                 ...cert,
                 fields: Object.fromEntries(fields.map(f => ([f.fieldName, f.fieldValue]))),
@@ -50,7 +50,7 @@ export async function listCertificatesSdk(
         if (r.certificates.length < paged.limit)
             r.totalCertificates = r.certificates.length
         else {
-            r.totalCertificates = await dsk.countCertificates({}, vargs.certifiers, vargs.types, undefined, trx)
+            r.totalCertificates = await dsk.countCertificates({ partial: {}, certifiers: vargs.certifiers, types: vargs.types, trx })
         }
         return r
     })

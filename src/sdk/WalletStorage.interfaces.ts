@@ -123,21 +123,21 @@ export interface WalletStorage extends sdk.StorageSyncReader {
    findUserById(id: number, trx?: sdk.TrxToken) : Promise<table.User| undefined>
    findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined>
 
-   countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countCommissions(partial: Partial<table.Commission>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countOutputs(partial: Partial<table.Output>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countOutputTags(partial: Partial<table.OutputTag>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countSyncStates(partial: Partial<table.SyncState>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-   countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+    countCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<number>
+    countCertificates(args: sdk.FindCertificatesArgs) : Promise<number>
+    countCommissions(args: sdk.FindCommissionsArgs) : Promise<number>
+    countOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<number>
+    countOutputs(args: sdk.FindOutputsArgs) : Promise<number>
+    countOutputTagMaps(args: sdk.FindOutputTagMapsArgs) : Promise<number>
+    countOutputTags(args: sdk.FindOutputTagsArgs) : Promise<number>
+    countProvenTxReqs(args: sdk.FindProvenTxReqsArgs) : Promise<number>
+    countProvenTxs(args: sdk.FindProvenTxsArgs): Promise<number> 
+    countSyncStates(args: sdk.FindSyncStatesArgs): Promise<number>
+    countTransactions(args: sdk.FindTransactionsArgs) : Promise<number>
+    countTxLabelMaps(args: sdk.FindTxLabelMapsArgs) : Promise<number>
+    countTxLabels(args: sdk.FindTxLabelsArgs) : Promise<number>
+    countUsers(args: sdk.FindUsersArgs) : Promise<number>
+    countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number>
 }
 
 /**
@@ -273,6 +273,13 @@ export interface StorageSyncReaderOptions {
 }
 
 export interface FindSincePagedArgs {
+   since?: Date
+   paged?: sdk.Paged
+   trx?: sdk.TrxToken
+}
+
+export interface FindPartialSincePagedArgs<T extends object> {
+   partial: Partial<T>
    since?: Date
    paged?: sdk.Paged
    trx?: sdk.TrxToken

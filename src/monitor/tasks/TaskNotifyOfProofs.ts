@@ -34,7 +34,7 @@ export class TaskNotifyOfProofs extends WalletMonitorTask {
         let offset = 0;
         for (; ;) {
             let log = '';
-            const reqs = await this.storage.findProvenTxReqs({ notified: false }, sdk.ProvenTxReqTerminalStatus, undefined, undefined, { limit, offset });
+            const reqs = await this.storage.findProvenTxReqs({ partial: { notified: false }, status: sdk.ProvenTxReqTerminalStatus, paged: { limit, offset } });
             if (reqs.length === 0) break;
             log += `NotifyOfProofs: ${reqs.length} reqs with notified false\n`;
             const r = await this.monitor.notifyOfProvenTx(reqs, 2);

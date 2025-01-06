@@ -390,21 +390,22 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract findTxLabelMaps(args: sdk.FindTxLabelMapsArgs ): Promise<table.TxLabelMap[]>
     abstract findWatchmanEvents(args: sdk.FindWatchmanEventsArgs ): Promise<table.WatchmanEvent[]>
 
-    abstract countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countCommissions(partial: Partial<table.Commission>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputs(partial: Partial<table.Output>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputTags(partial: Partial<table.OutputTag>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countSyncStates(partial: Partial<table.SyncState>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+    abstract countCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<number>
+    abstract countCertificates(args: sdk.FindCertificatesArgs) : Promise<number>
+    abstract countCommissions(args: sdk.FindCommissionsArgs) : Promise<number>
+    abstract countOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<number>
+    abstract countOutputs(args: sdk.FindOutputsArgs) : Promise<number>
+    abstract countOutputTagMaps(args: sdk.FindOutputTagMapsArgs) : Promise<number>
+    abstract countOutputTags(args: sdk.FindOutputTagsArgs) : Promise<number>
+    abstract countProvenTxReqs(args: sdk.FindProvenTxReqsArgs) : Promise<number>
+    abstract countProvenTxs(args: sdk.FindProvenTxsArgs): Promise<number> 
+    abstract countSyncStates(args: sdk.FindSyncStatesArgs): Promise<number>
+    abstract countTransactions(args: sdk.FindTransactionsArgs) : Promise<number>
+    abstract countTxLabelMaps(args: sdk.FindTxLabelMapsArgs) : Promise<number>
+    abstract countTxLabels(args: sdk.FindTxLabelsArgs) : Promise<number>
+    abstract countUsers(args: sdk.FindUsersArgs) : Promise<number>
+    abstract countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number>
+
     abstract countChangeInputs( userId: number, basketId: number, excludeSending: boolean): Promise<number>
 
     async findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined> {

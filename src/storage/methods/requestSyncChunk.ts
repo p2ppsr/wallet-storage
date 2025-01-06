@@ -7,7 +7,7 @@ export async function requestSyncChunk(storage: sdk.StorageSyncReader, args: sdk
     let i = 0
     let done = false
 
-    const user = verifyOne(await storage.findUsers({ identityKey: args.identityKey }))
+    const user = verifyOne(await storage.findUsers({ partial: { identityKey: args.identityKey } }))
 
     const addItems = async (a: ChunkerArgs) => {
         if (i >= args.offsets.length) { done = true; return }
@@ -38,23 +38,23 @@ export async function requestSyncChunk(storage: sdk.StorageSyncReader, args: sdk
         },
         {
             name: 'outputBasket', maxDivider: 1, preAdd: () => { r.outputBaskets = [] }, addItem: (i: table.OutputBasket) => { r.outputBaskets!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputBaskets({ userId }, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputBaskets({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'outputTag', maxDivider: 1, preAdd: () => { r.outputTags = [] }, addItem: (i: table.OutputTag) => { r.outputTags!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputTags({ userId }, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputTags({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'txLabel', maxDivider: 1, preAdd: () => { r.txLabels = [] }, addItem: (i: table.TxLabel) => { r.txLabels!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findTxLabels({ userId }, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findTxLabels({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'transaction', maxDivider: 25, preAdd: () => { r.transactions = [] }, addItem: (i: table.Transaction) => { r.transactions!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findTransactions({ userId }, undefined, false, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findTransactions({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'output', maxDivider: 25, preAdd: () => { r.outputs = [] }, addItem: (i: table.Output) => { r.outputs!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputs({ userId }, false, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findOutputs({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'txLabelMap', maxDivider: 1, preAdd: () => { r.txLabelMaps = [] }, addItem: (i: table.TxLabelMap) => { r.txLabelMaps!.push(i) },
@@ -66,15 +66,15 @@ export async function requestSyncChunk(storage: sdk.StorageSyncReader, args: sdk
         },
         {
             name: 'certificate', maxDivider: 25, preAdd: () => { r.certificates = [] }, addItem: (i: table.Certificate) => { r.certificates!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCertificates({ userId }, undefined, undefined, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCertificates({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'certificateField', maxDivider: 25, preAdd: () => { r.certificateFields = [] }, addItem: (i: table.CertificateField) => { r.certificateFields!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCertificateFields({ userId }, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCertificateFields({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'commission', maxDivider: 25, preAdd: () => { r.commissions = [] }, addItem: (i: table.Commission) => { r.commissions!.push(i) },
-            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCommissions({ userId }, since, { limit, offset }) }
+            findItems: async (storage: sdk.StorageSyncReader, userId: number, since: Date | undefined, limit: number, offset: number) => { return await storage.findCommissions({ partial: { userId }, since, paged: { limit, offset } }) }
         },
         {
             name: 'provenTxReq', maxDivider: 100, preAdd: () => { r.provenTxReqs = [] }, addItem: (i: table.ProvenTxReq) => { r.provenTxReqs!.push(i) },

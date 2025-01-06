@@ -27,7 +27,7 @@ describe('Wallet constructor tests', () => {
         for (const { storage, userId, wallet } of ctxs) {
 
             {
-                const labels = await storage.findTxLabels({ userId })
+                const labels = await storage.findTxLabels({ partial: { userId } })
                 const label = labels[0].label
                 const r = await wallet.listActions({
                     labels: [label]
@@ -36,7 +36,7 @@ describe('Wallet constructor tests', () => {
             }
 
             {
-                const baskets = await storage.findOutputBaskets({ userId })
+                const baskets = await storage.findOutputBaskets({ partial: { userId } })
                 const basket = baskets[0].name
                 const r = await wallet.listOutputs({
                     basket

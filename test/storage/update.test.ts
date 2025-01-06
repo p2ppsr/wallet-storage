@@ -34,11 +34,11 @@ describe('update tests', () => {
 
     test('0 find ProvenTx', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findProvenTxs({})
+            const r = await storage.findProvenTxs({ partial: {} })
             const time = new Date('2001-01-02T12:00:00.000Z')
             for (const e of r) {
                 await storage.updateProvenTx(e.provenTxId, { blockHash: 'fred', updated_at: time })
-                const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
+                const t = verifyOne(await storage.findProvenTxs({ partial: { provenTxId: e.provenTxId } }))
                 expect(t.provenTxId).toBe(e.provenTxId)
                 expect(t.blockHash).toBe('fred')
                 //console.log(`updated_at set to ${time} but read as ${t.updated_at}`)
@@ -49,86 +49,86 @@ describe('update tests', () => {
 
     test('1 find ProvenTxReq', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findProvenTxReqs({})
+            const r = await storage.findProvenTxReqs({ partial: {} })
         }
     })
 
     test('2 find User', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findUsers({})
+            const r = await storage.findUsers({ partial: {} })
         }
 
     })
 
     test('3 find Certificate', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findCertificates({}, [setup.u1cert1.certifier])
+            const r = await storage.findCertificates({ partial: {}, certifiers: [setup.u1cert1.certifier] })
         }
     })
 
     test('4 find CertificateField', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findCertificateFields({ fieldName: "bob" })
+            const r = await storage.findCertificateFields({ partial: { fieldName: "bob" } })
         }
     })
 
     test('5 find OutputBasket', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findOutputBaskets({}, setup.u1.created_at)
+            const r = await storage.findOutputBaskets({ partial: {}, since: setup.u1.created_at })
         }
     })
 
     test('6 find Transaction', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findTransactions({})
+            const r = await storage.findTransactions({ partial: {} })
         }
     })
 
     test('7 find Commission', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findCommissions({})
+            const r = await storage.findCommissions({ partial: {} })
         }
     })
 
     test('8 find Output', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findOutputs({})
+            const r = await storage.findOutputs({ partial: {} })
         }
     })
 
     test('9 find OutputTag', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findOutputTags({})
+            const r = await storage.findOutputTags({ partial: {} })
         }
     })
 
     test('10 find OutputTagMap', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findOutputTagMaps({})
+            const r = await storage.findOutputTagMaps({ partial: {} })
         }
     })
     
     test('11 find TxLabel', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findTxLabels({})
+            const r = await storage.findTxLabels({ partial: {} })
         }
     })
 
     test('12 find TxLabelMap', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findTxLabelMaps({})
+            const r = await storage.findTxLabelMaps({ partial: {} })
         }
     })
 
     test('13 find WatchmanEvent', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findWatchmanEvents({})
+            const r = await storage.findWatchmanEvents({ partial: {} })
         }
     })
 
     test('14 find SyncState', async () => {
         for (const { storage, setup } of setups) {
-            const r = await storage.findSyncStates({})
+            const r = await storage.findSyncStates({ partial: {} })
         }
     })
 })

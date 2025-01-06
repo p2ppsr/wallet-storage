@@ -28,7 +28,7 @@ export class TaskFailAbandoned extends WalletMonitorTask {
         for (; ;) {
             const now = new Date();
             const abandoned = new Date(now.getTime() - this.monitor.options.abandonedMsecs);
-            const txsAll = await this.storage.findTransactions({}, ['unprocessed', 'unsigned'], undefined, undefined, { limit, offset });
+            const txsAll = await this.storage.findTransactions({ partial: {}, status: ['unprocessed', 'unsigned'], paged: { limit, offset } });
             const txs = txsAll.filter(t => t.updated_at && t.updated_at < abandoned);
             for (const tx of txs) {
                 console.log(`FailAbandoned: update tx ${tx.transactionId} status to 'failed'`);

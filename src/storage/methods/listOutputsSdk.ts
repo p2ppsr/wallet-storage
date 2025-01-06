@@ -36,7 +36,7 @@ export async function listOutputsSdk(
     let basketId: number | undefined = undefined
     const basketsById: Record<number, table.OutputBasket> = {}
     if (vargs.basket) {
-        const basket = verifyOne(await dsk.findOutputBaskets({ userId, name: vargs.basket }, undefined, undefined, trx))
+        const basket = verifyOne(await dsk.findOutputBaskets({ partial: { userId, name: vargs.basket }, trx }))
         basketId = basket.basketId!
         basketsById[basketId!] = basket
     }

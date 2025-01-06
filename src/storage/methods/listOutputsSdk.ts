@@ -77,6 +77,7 @@ export async function listOutputsSdk(
     const includeSpent = false
 
     const txStatusOk = `(select status as tstatus from transactions where transactions.transactionId = outputs.transactionId) in ('completed', 'unproven', 'nosend')`
+    const txStatusOkCteq = `(select status as tstatus from transactions where transactions.transactionId = o.transactionId) in ('completed', 'unproven', 'nosend')`
 
     const makeWithTagsQueries = () => {
         let cteqOptions = ''
@@ -90,7 +91,7 @@ export async function listOutputsSdk(
                     AND m.outputTagId IN (${tagIds.join(',')}) 
                     ) AS tc
             FROM outputs AS o
-            WHERE o.userId = ${userId} ${cteqOptions} AND ${txStatusOk}
+            WHERE o.userId = ${userId} ${cteqOptions} AND ${txStatusOkCteq}
             `);
 
         const q = k.with('otc', cteq)

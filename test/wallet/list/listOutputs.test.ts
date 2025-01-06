@@ -6,126 +6,6 @@ import { WalletOutput } from '../../../src/sdk'
 
 const noLog = false
 
-async function prepareDatabaseCustomInstrctions(storage: StorageKnex) {
-  const db = storage.toDb()
-
-  // Update the outputs table with basketId = 4 and customInstructions
-  await db('outputs').whereIn('outputId', [1, 2, 3]).update({ basketId: 4 })
-
-  await db('outputs')
-    .where('basketId', 4)
-    .whereIn('outputId', [1, 2, 3])
-    .update({
-      customInstructions: db.raw(`
-        CASE
-          WHEN outputId = 1 THEN 'Short instructions A'
-          WHEN outputId = 2 THEN 'Short instructions B'
-          WHEN outputId = 3 THEN 'Short instructions C'
-        END
-      `)
-    })
-}
-
-async function cleanDatabase(storage: StorageKnex) {
-  try {
-    // Ensure the storage object and its methods are valid
-    if (!storage || typeof storage.toDb !== 'function') {
-      throw new Error('Invalid storage object or missing toDb method.')
-    }
-
-    // Get the database connection
-    const db = storage.toDb()
-
-    // Log to verify the database connection is established
-    console.log('Database connection established for cleaning.')
-
-    // Remove the updates for basketId = 4 and reset customInstructions
-    const affectedRows = await db('outputs').where('basketId', 4).whereIn('outputId', [1, 2, 3]).update({ basketId: null, customInstructions: null })
-
-    console.log(`Cleaned database: ${affectedRows} rows updated.`)
-  } catch (error) {
-    console.error('Error cleaning database:', error)
-    throw error // Re-throw the error to let the test handle it
-  }
-}
-
-describe('listOutputs prepare DB with missing custom instructions', () => {
-  let storage: StorageKnex
-  const ctxs: TestWalletNoSetup[] = []
-
-  beforeAll(async () => {
-    jest.setTimeout(1200000) // Increase timeout for the test suite
-
-    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('listOutputsTests'))
-    storage = ctxs[0].activeStorage as StorageKnex
-
-    await prepareDatabaseCustomInstrctions(storage)
-  }, 1200000)
-
-  afterAll(async () => {
-    await cleanDatabase(storage)
-  })
-
-  test('Verify custom instructions for basketId = 4', async () => {
-    const db = storage.toDb()
-    const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
-
-    console.log('Results from outputs table:', results)
-
-    expect(results).toEqual([
-      { outputId: 1, basketId: 4, customInstructions: 'Short instructions A' },
-      { outputId: 2, basketId: 4, customInstructions: 'Short instructions B' },
-      { outputId: 3, basketId: 4, customInstructions: 'Short instructions C' }
-    ])
-  }, 600000)
-
-  test('Verify removal of custom instructions and basketId', async () => {
-    const db = storage.toDb()
-
-    // Clean the database
-    await cleanDatabase(storage)
-
-    // Verify that the rows were reset
-    const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
-
-    console.log('Results after cleanup:', results)
-
-    // Expect basketId and customInstructions to be null
-    expect(results).toEqual([
-      { outputId: 1, basketId: null, customInstructions: null },
-      { outputId: 2, basketId: null, customInstructions: null },
-      { outputId: 3, basketId: null, customInstructions: null }
-    ])
-  }, 600000)
-})
-
-describe('listOutputs Tests', () => {
-  let storage: StorageKnex
-  const ctxs: TestWalletNoSetup[] = []
-
-  beforeAll(async () => {
-    jest.setTimeout(1200000) // Increase timeout for the test suite
-
-    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('listOutputsTests'))
-    storage = ctxs[0].activeStorage as StorageKnex
-
-    await prepareDatabaseCustomInstrctions(storage)
-  }, 1200000)
-
-  test('Verify custom instructions for basketId = 4', async () => {
-    const db = storage.toDb()
-    const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
-
-    console.log('Results from outputs table:', results)
-
-    expect(results).toEqual([
-      { outputId: 1, basketId: 4, customInstructions: 'Short instructions A' },
-      { outputId: 2, basketId: 4, customInstructions: 'Short instructions B' },
-      { outputId: 3, basketId: 4, customInstructions: 'Short instructions C' }
-    ])
-  }, 600000)
-})
-
 describe('listOutputs test', () => {
   jest.setTimeout(99999999)
 
@@ -246,7 +126,21 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('5_tags', async () => {
+  test('5_non-existent basket', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'non-existent-basket',
+          tags: ['babbage_action_originator projectbabbage.com'],
+          includeTags: true
+        }
+        await expectToThrowWERR(sdk.WERR_BAD_REQUEST, async () => await wallet.listOutputs(args))
+      }
+    }
+  })
+
+  test('6_tags', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -266,7 +160,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('6_BEEF', async () => {
+  test('7_BEEF', async () => {
     for (const { wallet, services } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -283,7 +177,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('7_labels babbage_protocol_perm', async () => {
+  test('8_labels for babbage_protocol_perm', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -306,7 +200,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('8_tags babbage-token-access any', async () => {
+  test('9_tags for babbage-token-access any and limit', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -317,9 +211,9 @@ describe('listOutputs test', () => {
         }
         const r = await wallet.listOutputs(args)
         log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-        //expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
         expect(r.outputs.length).toBeLessThan(16)
-        //expect(r.outputs.length).toBe(args.limit || 10)
+        expect(r.outputs.length).toBe(15)
         let i = 0
         for (const a of r.outputs) {
           expect(Array.isArray(a.tags)).toBe(true)
@@ -331,7 +225,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('9_tags babbage-protocol-permission any', async () => {
+  test('10_tags babbage-protocol-permission any default limit', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -359,7 +253,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('10a_tags babbage-token-access all', async () => {
+  test('11_tags babbage-token-access all', async () => {
     for (const { wallet } of ctxs) {
       let log = `\n${testName()}\n`
       const args: sdk.ListOutputsArgs = {
@@ -371,17 +265,16 @@ describe('listOutputs test', () => {
       const r = await wallet.listOutputs(args)
 
       log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-      //if (!noLog) console.log(log)
       expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
 
       r.outputs.forEach((o, index) => {
         log += `totalOutputs=${0} outputs=${r.outputs.length}\n`
-        expect(Array.isArray(o.tags)).toBe(true) // Ensure tags are an array
+        expect(Array.isArray(o.tags)).toBe(true)
         const missingTags = args.tags?.filter(tag => !o.tags?.includes(tag)) || []
-        // if (missingTags.length > 0) {
-        //   console.error(`Output ${index} is missing tags:`, missingTags)
-        // }
-        // expect(missingTags.length).toBe(0) // No tags should be missing
+        if (missingTags.length > 0) {
+          console.error(`Output ${index} is missing tags:`, missingTags)
+        }
+        expect(missingTags.length).toBe(0)
         log += `${index} ${o.tags?.join(',')}\n`
       })
 
@@ -389,36 +282,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('10_tags babbage-protocol-permission all', async () => {
-    for (const { wallet } of ctxs) {
-      {
-        let log = `\n${testName()}\n`
-        const args: sdk.ListOutputsArgs = {
-          basket: 'babbage-protocol-permission',
-          includeTags: true,
-          tags: ['babbage_protocolsecuritylevel 2'],
-          tagQueryMode: 'all'
-        }
-        const r = await wallet.listOutputs(args)
-        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-        expect(r.outputs.length).toBe(args.limit || 10)
-        let i = 0
-        for (const a of r.outputs) {
-          expect(Array.isArray(a.tags)).toBe(true)
-          let count = 0
-          for (const tags of args.tags || []) {
-            if (a.tags!.indexOf(tags) > -1) count++
-          }
-          expect(count).toBeGreaterThan(0)
-          log += `${i++} ${a.tags?.join(',')}\n`
-        }
-        if (!noLog) console.log(log)
-      }
-    }
-  })
-
-  test('11_customInstructions_lockingScript etc.', async () => {
+  test('12_customInstructions and lockingScript etc.', async () => {
     for (const { wallet } of ctxs) {
       {
         const storage = ctxs[0].activeStorage as StorageKnex
@@ -455,3 +319,96 @@ describe('listOutputs test', () => {
     }
   })
 })
+
+describe('listOutputs prepare DB with missing custom instructions', () => {
+  let storage: StorageKnex
+  const ctxs: TestWalletNoSetup[] = []
+
+  beforeAll(async () => {
+    jest.setTimeout(1200000) // Increase timeout for the test suite
+
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('listOutputsTests'))
+    storage = ctxs[0].activeStorage as StorageKnex
+
+    await prepareDatabaseCustomInstrctions(storage)
+  })
+
+  afterAll(async () => {
+    await cleanDatabase(storage)
+  })
+
+  test('Verify custom instructions for basketId = 4', async () => {
+    const db = storage.toDb()
+    const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
+
+    console.log('Results from outputs table:', results)
+
+    expect(results).toEqual([
+      { outputId: 1, basketId: 4, customInstructions: 'Short instructions A' },
+      { outputId: 2, basketId: 4, customInstructions: 'Short instructions B' },
+      { outputId: 3, basketId: 4, customInstructions: 'Short instructions C' }
+    ])
+  })
+
+  test('Verify removal of custom instructions and basketId', async () => {
+    const db = storage.toDb()
+
+    // Clean the database
+    await cleanDatabase(storage)
+
+    // Verify that the rows were reset
+    const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
+
+    console.log('Results after cleanup:', results)
+
+    // Expect basketId and customInstructions to be null
+    expect(results).toEqual([
+      { outputId: 1, basketId: null, customInstructions: null },
+      { outputId: 2, basketId: null, customInstructions: null },
+      { outputId: 3, basketId: null, customInstructions: null }
+    ])
+  })
+})
+
+async function prepareDatabaseCustomInstrctions(storage: StorageKnex) {
+  const db = storage.toDb()
+
+  // Update the outputs table with basketId = 4 and customInstructions
+  await db('outputs').whereIn('outputId', [1, 2, 3]).update({ basketId: 4 })
+
+  await db('outputs')
+    .where('basketId', 4)
+    .whereIn('outputId', [1, 2, 3])
+    .update({
+      customInstructions: db.raw(`
+        CASE
+          WHEN outputId = 1 THEN 'Short instructions A'
+          WHEN outputId = 2 THEN 'Short instructions B'
+          WHEN outputId = 3 THEN 'Short instructions C'
+        END
+      `)
+    })
+}
+
+async function cleanDatabase(storage: StorageKnex) {
+  try {
+    // Ensure the storage object and its methods are valid
+    if (!storage || typeof storage.toDb !== 'function') {
+      throw new Error('Invalid storage object or missing toDb method.')
+    }
+
+    // Get the database connection
+    const db = storage.toDb()
+
+    // Log to verify the database connection is established
+    console.log('Database connection established for cleaning.')
+
+    // Remove the updates for basketId = 4 and reset customInstructions
+    const affectedRows = await db('outputs').where('basketId', 4).whereIn('outputId', [1, 2, 3]).update({ basketId: null, customInstructions: null })
+
+    console.log(`Cleaned database: ${affectedRows} rows updated.`)
+  } catch (error) {
+    console.error('Error cleaning database:', error)
+    throw error // Re-throw the error to let the test handle it
+  }
+}

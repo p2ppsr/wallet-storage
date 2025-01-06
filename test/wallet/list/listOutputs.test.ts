@@ -2,6 +2,7 @@
 import * as bsv from '@bsv/sdk'
 import { sdk, StorageKnex } from '../../../src'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
+import { WalletOutput } from '../../../src/sdk'
 
 const noLog = false
 
@@ -307,7 +308,7 @@ describe('listOutputs test', () => {
     }
   })
 
-  test('8_tags babbage-token-access', async () => {
+  test('8_tags babbage-token-access any', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -331,37 +332,8 @@ describe('listOutputs test', () => {
       }
     }
   })
-  /*
 
-    test('4_label babbage_protocol_perm', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeLabels: true,
-                labels: ['babbage_protocol_perm']
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
-            expect(r.outputs.length).toBe(args.limit || 10)
-            let i = 0
-            for (const a of r.outputs) {
-                expect(a.inputs).toBeUndefined()
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.labels)).toBe(true)
-                for (const label of args.labels) {
-                    expect(a.labels?.indexOf(label)).toBeGreaterThan(-1)
-                }
-                log += `${i++} ${a.labels?.join(',')}\n`
-            }
-            if (!noLog) console.log(log)
-        }
-    })
-*/
-  test('9_tags babbage-protocol-permission', async () => {
+  test('9_tags babbage-protocol-permission any', async () => {
     for (const { wallet } of ctxs) {
       {
         let log = `\n${testName()}\n`
@@ -369,7 +341,6 @@ describe('listOutputs test', () => {
           basket: 'babbage-protocol-permission',
           includeTags: true,
           tags: ['babbage_protocolsecuritylevel 2']
-          //tagQueryMode: 'all'
         }
         const r = await wallet.listOutputs(args)
         log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
@@ -377,8 +348,6 @@ describe('listOutputs test', () => {
         expect(r.outputs.length).toBe(args.limit || 10)
         let i = 0
         for (const a of r.outputs) {
-          //expect(a.inputs).toBeUndefined()
-          //expect(a.outputs).toBeUndefined()
           expect(Array.isArray(a.tags)).toBe(true)
           let count = 0
           for (const tags of args.tags || []) {
@@ -391,27 +360,37 @@ describe('listOutputs test', () => {
       }
     }
   })
-  /*
-    test('6_label babbage_protocol_perm and babbage_basket_access', async () => {
 
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeLabels: true,
-                labels: ['babbage_protocol_perm', 'babbage_basket_access'],
-                labelQueryMode: 'all'
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            expect(r.totalOutputs).toBe(0)
-            if (!noLog) console.log(log)
+  test('10_tags babbage-protocol-permission all', async () => {
+    for (const { wallet } of ctxs) {
+      {
+        let log = `\n${testName()}\n`
+        const args: sdk.ListOutputsArgs = {
+          basket: 'babbage-protocol-permission',
+          includeTags: true,
+          tags: ['babbage_protocolsecuritylevel 2'],
+          tagQueryMode: 'all'
         }
+        const r = await wallet.listOutputs(args)
+        log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+        expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+        expect(r.outputs.length).toBe(args.limit || 10)
+        let i = 0
+        for (const a of r.outputs) {
+          expect(Array.isArray(a.tags)).toBe(true)
+          let count = 0
+          for (const tags of args.tags || []) {
+            if (a.tags!.indexOf(tags) > -1) count++
+          }
+          expect(count).toBeGreaterThan(0)
+          log += `${i++} ${a.tags?.join(',')}\n`
+        }
+        if (!noLog) console.log(log)
+      }
+    }
+  })
 
-    })
-*/
-  test('10_customInstructions_lockingScript etc.', async () => {
+  test('11_customInstructions_lockingScript etc.', async () => {
     for (const { wallet } of ctxs) {
       {
         const storage = ctxs[0].activeStorage as StorageKnex
@@ -430,22 +409,14 @@ describe('listOutputs test', () => {
         expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
         expect(r.outputs.length).toBe(2)
         let i = 0
-        // export interface WalletOutput {
-        //   satoshis: SatoshiValue
-        //   lockingScript?: HexString
-        //   spendable: boolean
-        //   customInstructions?: string
-        //   tags?: OutputTagStringUnder300Bytes[]
-        //   outpoint: OutpointString
-        //   labels?: LabelStringUnder300Bytes[]
-        // }
         for (const a of r.outputs) {
-          log += `  ci: ${a.customInstructions} \n ls: ${a.lockingScript}\n o: ${a.outpoint} \n`
-          //log += `  ${a.satoshis} ${a.spendable} ${a.outpoint} ${a.tags?.join(',')} ${a.labels?.join(',')} ${a.customInstructions} ${a.lockingScript}\n`
+          log += `  ${a.satoshis} ${a.spendable} ${a.outpoint} ${a.tags?.join(',')} ${a.labels?.join(',')} ${a.customInstructions} ${a.lockingScript}\n`
           if (!noLog) console.log(log)
           expect(a.satoshis).toBeGreaterThan(0)
           expect(a.outpoint).toBeTruthy()
+          expect(a.spendable).toBe(true)
           expect(a.lockingScript).toBeTruthy()
+          expect(a.lockingScript?.length).toBeGreaterThan(0)
           if (i === 0) expect(a.customInstructions).toBeTruthy()
           expect(Array.isArray(a.labels)).toBe(true)
           expect(Array.isArray(a.tags)).toBe(true)
@@ -455,122 +426,4 @@ describe('listOutputs test', () => {
       }
     }
   })
-  /*
-    test('8_includeOutputs and script', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeOutputs: true,
-                includeOutputLockingScripts: true,
-                labels: []
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            let i = 0
-            for (const a of r.outputs) {
-                log += `${i++} ${a.txid} ${a.satoshis} ${a.status} ${a.isOutgoing} ${a.version} ${a.lockTime} ${a.description}\n`
-                for (const o of a.outputs!) {
-                    log += `  ${o.outputIndex} script length ${o.lockingScript?.length}\n`
-                    expect(o.lockingScript?.length).toBeGreaterThan(0)
-                }
-            }
-            if (!noLog) console.log(log)
-        }
-
-    })
-
-    test('9_includeInputs', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeInputs: true,
-                labels: []
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            let i = 0
-            for (const a of r.outputs) {
-                log += `${i++} ${a.txid} ${a.satoshis} ${a.status} ${a.isOutgoing} ${a.version} ${a.lockTime} ${a.description}\n`
-                expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.inputs)).toBe(true)
-                expect(a.labels).toBeUndefined()
-                for (const i of a.inputs!) {
-                    log += `  ${i.sourceOutpoint} ${i.sourceSatoshis} ${i.sequenceNumber} ${i.inputDescription}\n`
-                    expect(i.sourceLockingScript).toBeUndefined()
-                    expect(i.unlockingScript).toBeUndefined()
-                }
-            }
-            if (!noLog) console.log(log)
-        }
-    })
-
-    test('10_includeInputs and unlock', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeInputs: true,
-                includeInputUnlockingScripts: true,
-                labels: []
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            let i = 0
-            for (const a of r.outputs) {
-                log += `${i++} ${a.txid} ${a.satoshis} ${a.status} ${a.isOutgoing} ${a.version} ${a.lockTime} ${a.description}\n`
-                expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.inputs)).toBe(true)
-                expect(a.labels).toBeUndefined()
-                for (const i of a.inputs!) {
-                    log += `  ${i.sourceOutpoint}\n`
-                    log += `    ${i.unlockingScript?.length} ${i.unlockingScript}\n`
-                    expect(i.sourceLockingScript).toBeUndefined()
-                    expect(i.unlockingScript?.length).toBeGreaterThan(0)
-                }
-            }
-            if (!noLog) console.log(log)
-        }
-    })
-
-    test('11_includeInputs and lock', async () => {
-
-        const wallet = new NinjaWallet(ccnr.ninja)
-
-        {
-            let log = `\n${testName()}\n`
-            const args: sdk.ListOutputsArgs = {
-                includeInputs: true,
-                includeInputSourceLockingScripts: true,
-                labels: []
-            }
-            const r = await wallet.listOutputs(args)
-            log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-            let i = 0
-            for (const a of r.outputs) {
-                log += `${i++} ${a.txid} ${a.satoshis} ${a.status} ${a.isOutgoing} ${a.version} ${a.lockTime} ${a.description}\n`
-                expect(a.isOutgoing === true || a.isOutgoing === false).toBe(true)
-                expect(a.outputs).toBeUndefined()
-                expect(Array.isArray(a.inputs)).toBe(true)
-                expect(a.labels).toBeUndefined()
-                for (const i of a.inputs!) {
-                    log += `  ${i.sourceOutpoint}\n`
-                    log += `    ${i.sourceLockingScript?.length} ${i.sourceLockingScript}\n`
-                    expect(i.sourceLockingScript?.length).toBeGreaterThan(0)
-                    expect(i.unlockingScript).toBeUndefined()
-                }
-            }
-            if (!noLog) console.log(log)
-        }
-    })
-*/
 })

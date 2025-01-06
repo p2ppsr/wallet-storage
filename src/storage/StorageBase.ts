@@ -1,22 +1,51 @@
-import { sdk, table } from "..";
+import * as bsv from '@bsv/sdk'
+import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { createTransactinoSdk } from "./methods/createTransactionSdk";
+import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
+import { getBeefForTransaction } from './methods/getBeefForTransaction';
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
+    _services?: sdk.WalletServices
+    feeModel: sdk.StorageFeeModel
+    commissionSatoshis: number
+    commissionPubKeyHex?: sdk.PubKeyHex
+    maxRecursionDepth?: number
+
+    static defaultOptions() {
+        return {
+            feeModel: <sdk.StorageFeeModel>{ model: 'sat/kb', value: 1 },
+            commissionSatoshis: 0,
+            commissionPubKeyHex: undefined
+        }
+    }
 
     static createStorageBaseOptions(chain: sdk.Chain): StorageBaseOptions {
         const options: StorageBaseOptions = {
-            chain
+            ...StorageBase.defaultOptions(),
+            chain,
         }
         return options
     }
 
     constructor(options: StorageBaseOptions) {
         super(options)
+        this.feeModel = options.feeModel
+        this.commissionPubKeyHex = options.commissionPubKeyHex
+        this.commissionSatoshis = options.commissionSatoshis
+    }
+
+    setServices(v: sdk.WalletServices) { this._services = v }
+    getServices() : sdk.WalletServices {
+        if (!this._services)
+            throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
+        return this._services
     }
 
     abstract dropAllData(): Promise<void>
     abstract migrate(storageName: string): Promise<string>
+    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
     /////////////////
     //
@@ -24,7 +53,288 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     //
     /////////////////
 
-    abstract createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult>
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
+        const r = await this.transaction(async trx => {
+            const tx = verifyOneOrNone(await this.findTransactions({ userId: vargs.userId, reference: vargs.reference }, undefined, true, undefined, undefined, trx))
+            const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
+            if (!tx || !tx.isOutgoing || -1 < unAbortableStatus.findIndex(s => s === tx.status))
+                throw new sdk.WERR_INVALID_PARAMETER('reference', 'an inprocess, outgoing action that has not been signed and shared to the network.');
+            await this.updateTransactionStatus('failed', tx.transactionId, vargs.userId, vargs.reference, trx)
+            if (tx.txid) {
+                const req = await entity.ProvenTxReq.fromStorageTxid(this, tx.txid, trx)
+                if (req) {
+                    req.addHistoryNote({ what: 'aborted' })
+                    req.status = 'invalid'
+                    await req.updateStorageStatusHistoryOnly(this, trx)
+                }
+            }
+            const r: sdk.AbortActionResult = {
+                aborted: true
+            }
+            return r
+        })
+        return r
+    }
+
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<sdk.InternalizeActionResult> {
+        throw new sdk.WERR_NOT_IMPLEMENTED()
+    }
+
+    /**
+     * Checks if txid is a known valid ProvenTx and returns it if found.
+     * Next checks if txid is a current ProvenTxReq and returns that if found.
+     * If `newReq` is provided and an existing ProvenTxReq isn't found,
+     * use `newReq` to create a new ProvenTxReq.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param txid 
+     * @param newReq 
+     * @param trx 
+     * @returns 
+     */
+    async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken)
+    : Promise<sdk.StorageProvenOrReq>
+    {
+        if (newReq && txid !== newReq.txid)
+            throw new sdk.WERR_INVALID_PARAMETER('newReq', `same txid`)
+
+        const r: sdk.StorageProvenOrReq = { proven: undefined, req: undefined }
+
+        r.proven = verifyOneOrNone(await this.findProvenTxs({ txid }, undefined, undefined, trx))
+        if (r.proven) return r
+
+        for (let retry = 0; ; retry++) {
+            try {
+                r.req = verifyOneOrNone(await this.findProvenTxReqs({ txid }, undefined, undefined, undefined, undefined, trx))
+                if (r.req || !newReq) break;
+                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return r
+    }
+
+    /**
+     * Attempts to find transaction record with matching txid and userId as in newTx.
+     * If found, returns existing record.
+     * If not found, inserts the new transaction and returns it with new transactionId.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param newTx 
+     * @param trx 
+     * @returns 
+     */
+    async findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken)
+    : Promise<{ tx: table.Transaction, isNew: boolean}>
+    {
+        let tx: table.Transaction | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                tx = verifyOneOrNone(await this.findTransactions({userId: newTx.userId, txid: newTx.txid }, undefined, false, undefined, undefined, trx))
+                if (tx) break;
+                newTx.transactionId = await this.insertTransaction(newTx, trx)
+                isNew = true
+                tx = newTx
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { tx, isNew }
+    }
+
+
+    async findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken) : Promise<table.OutputBasket> {
+        const partial = { name, userId }
+        for (let retry = 0;; retry++) {
+            try {
+                const now = new Date()
+                let basket = verifyOneOrNone(await this.findOutputBaskets(partial, undefined, undefined, trx))
+                if (!basket) {
+                    basket = { ...partial, minimumDesiredUTXOValue: 0, numberOfDesiredUTXOs: 0, basketId: 0,  created_at: now, updated_at: now, isDeleted: false }
+                    basket.basketId = await this.insertOutputBasket(basket, trx)
+                }
+                if (basket.isDeleted) {
+                    await this.updateOutputBasket(verifyId(basket.basketId), { isDeleted: false })
+                }
+                return basket
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertTxLabel(userId: number, label: string, trx?: sdk.TrxToken) : Promise<table.TxLabel> {
+        const partial = { label, userId }
+        for(let retry = 0;; retry++) {
+                try {
+                    const now = new Date()
+                    let txLabel = verifyOneOrNone(await this.findTxLabels(partial, undefined, undefined, trx))
+                    if (!txLabel) {
+                        txLabel = { ...partial, txLabelId: 0,  created_at: now, updated_at: now, isDeleted: false }
+                        txLabel.txLabelId = await this.insertTxLabel(txLabel, trx)
+                    }
+                    if (txLabel.isDeleted) {
+                        await this.updateTxLabel(verifyId(txLabel.txLabelId), { isDeleted: false })
+                    }
+                    return txLabel
+                } catch (eu: unknown) {
+                    if (retry > 0) throw eu;
+                }
+            }
+    }
+
+    async findOrInsertTxLabelMap(transactionId: number, txLabelId: number, trx?: sdk.TrxToken) : Promise<table.TxLabelMap> {
+        const partial = { transactionId, txLabelId }
+        for(let retry = 0;; retry++) {
+            try {
+                    const now = new Date()
+                let txLabelMap = verifyOneOrNone(await this.findTxLabelMaps(partial, undefined, undefined, undefined, trx))
+                if (!txLabelMap) {
+                    txLabelMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
+                    await this.insertTxLabelMap(txLabelMap, trx)
+                }
+                if (txLabelMap.isDeleted) {
+                    await this.updateTxLabelMap(transactionId, txLabelId, { isDeleted: false })
+                }
+                return txLabelMap
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertOutputTag(userId: number, tag: string, trx?: sdk.TrxToken): Promise<table.OutputTag> {
+        const partial = { tag, userId }
+        for (let retry = 0; ; retry++) {
+            try {
+                const now = new Date()
+                let outputTag = verifyOneOrNone(await this.findOutputTags(partial, undefined, undefined, trx))
+                if (!outputTag) {
+                    outputTag = { ...partial, outputTagId: 0, created_at: now, updated_at: now, isDeleted: false }
+                    outputTag.outputTagId = await this.insertOutputTag(outputTag, trx)
+                }
+                if (outputTag.isDeleted) {
+                    await this.updateOutputTag(verifyId(outputTag.outputTagId), { isDeleted: false })
+                }
+                return outputTag
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async findOrInsertOutputTagMap(outputId: number, outputTagId: number, trx?: sdk.TrxToken): Promise<table.OutputTagMap> {
+        const partial = { outputId, outputTagId }
+        for (let retry = 0; ; retry++) {
+            try {
+                const now = new Date()
+                let outputTagMap = verifyOneOrNone(await this.findOutputTagMaps(partial, undefined, undefined, undefined, trx))
+                if (!outputTagMap) {
+                    outputTagMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
+                    await this.insertOutputTagMap(outputTagMap, trx)
+                }
+                if (outputTagMap.isDeleted) {
+                    await this.updateOutputTagMap(outputId, outputTagId, { isDeleted: false })
+                }
+                return outputTagMap
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+    }
+
+    async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken) : Promise<void> {
+        await this.transaction(async trx => {
+            const o = verifyOne(await this.findOutputs(partial, true, undefined, undefined, trx))
+            const outputTag = await this.findOrInsertOutputTag(o.userId, tag, trx)
+            await this.findOrInsertOutputTagMap(verifyId(o.outputId), verifyId(outputTag.outputTagId), trx)
+        }, trx)
+    }
+
+    /**
+     * For all `status` values besides 'failed', just updates the transaction records status property.
+     * 
+     * For 'status' of 'failed', attempts to make outputs previously allocated as inputs to this transaction usable again.
+     * 
+     * @throws ERR_DOJO_COMPLETED_TX if current status is 'completed' and new status is not 'completed.
+     * @throws ERR_DOJO_PROVEN_TX if transaction has proof or provenTxId and new status is not 'completed'. 
+     * 
+     * @param status 
+     * @param transactionId 
+     * @param userId 
+     * @param reference 
+     * @param trx 
+     */
+    async updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
+    : Promise<void>
+    {
+        if (!transactionId && !(userId && reference)) throw new sdk.WERR_MISSING_PARAMETER('either transactionId or userId and reference')
+
+        await this.transaction(async trx => {
+
+            const where: Partial<table.Transaction> = {}
+            if (transactionId) where.transactionId = transactionId
+            if (userId) where.userId = userId
+            if (reference) where.reference = reference
+
+            const tx = verifyOne(await this.findTransactions(where, undefined, true, undefined, undefined, trx))
+
+            //if (tx.status === status)
+                // no change required. Assume inputs and outputs spendable and spentBy are valid for status.
+                //return
+
+            // Once completed, this method cannot be used to "uncomplete" transaction.
+            if (status !== 'completed' && tx.status === 'completed' || tx.provenTxId) throw new sdk.WERR_INVALID_OPERATION('The status of a "completed" transaction cannot be changed.')
+            // It is not possible to un-fail a transaction. Information is lost and not recoverable. 
+            if (status !== 'failed' && tx.status === 'failed') throw new sdk.WERR_INVALID_OPERATION(`A "failed" transaction may not be un-failed by this method.`)
+
+            switch (status) {
+                case 'failed': {
+                    // Attempt to make outputs previously allocated as inputs to this transaction usable again.
+                    // Only clear input's spentBy and reset spendable = true if it references this transaction
+                    const t = new entity.Transaction(tx)
+                    const inputs = await t.getInputs(this, trx)
+                    for (const input of inputs) {
+                        // input is a prior output belonging to userId that reference this transaction either by `spentBy`
+                        // or by txid and vout.
+                        await this.updateOutput(verifyId(input.outputId), { spendable: true, spentBy: undefined }, trx)
+                    }
+                } break;
+                case 'nosend':
+                case 'unsigned':
+                case 'unprocessed':
+                case 'sending':
+                case 'unproven': 
+                case 'completed':
+                    break;
+                default:
+                    throw new sdk.WERR_INVALID_PARAMETER('status', `not be ${status}`)
+            }
+
+            await this.updateTransaction(tx.transactionId, { status }, trx)
+
+        }, trx)
+    }
+
+    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
+        return await createTransactinoSdk(this, vargs, originator)
+    }
+
+
+
+    abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
     abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
@@ -68,6 +378,9 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
     abstract getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken): Promise<number[] | undefined>
 
+    abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
+    abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
+
     abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
     abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
 
@@ -92,8 +405,134 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
     abstract countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+    abstract countChangeInputs( userId: number, basketId: number, excludeSending: boolean): Promise<number>
+
+    async findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
+        return verifyOneOrNone(await this.findUsers({ identityKey: key }, undefined, undefined, trx))
+    }
+
+    async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
+        return verifyOneOrNone(await this.findCertificates({ certificateId: id }, undefined, undefined, undefined, undefined, trx))
+    }
+    async findCommissionById(id: number, trx?: sdk.TrxToken) : Promise<table.Commission| undefined> {
+        return verifyOneOrNone(await this.findCommissions({ commissionId: id }, undefined, undefined, trx))
+    }
+    async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean) : Promise<table.Output| undefined> {
+        return verifyOneOrNone(await this.findOutputs({ outputId: id }, noScript, undefined, undefined, trx))
+    }
+    async findOutputBasketById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputBasket| undefined> {
+        return verifyOneOrNone(await this.findOutputBaskets({ basketId: id }, undefined, undefined, trx))
+    }
+    async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx| undefined> {
+        return verifyOneOrNone(await this.findProvenTxs({ provenTxId: id }, undefined, undefined, trx))
+    }
+    async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq| undefined> {
+        return verifyOneOrNone(await this.findProvenTxReqs({ provenTxReqId: id }, undefined, undefined, undefined, undefined, trx))
+    }
+    async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState| undefined> {
+        return verifyOneOrNone(await this.findSyncStates({ syncStateId: id }, undefined, undefined, trx))
+    }
+    async findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean) : Promise<table.Transaction| undefined> {
+        return verifyOneOrNone(await this.findTransactions({ transactionId: id }, undefined, noRawTx, undefined, undefined, trx))
+    }
+    async findTxLabelById(id: number, trx?: sdk.TrxToken) : Promise<table.TxLabel| undefined> {
+        return verifyOneOrNone(await this.findTxLabels({ txLabelId: id }, undefined, undefined, trx))
+    }
+    async findOutputTagById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputTag| undefined> {
+        return verifyOneOrNone(await this.findOutputTags({ outputTagId: id }, undefined, undefined, trx))
+    }
+    async findUserById(id: number, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
+        return verifyOneOrNone(await this.findUsers({ userId: id }, undefined, undefined, trx))
+    }
+    async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined> {
+        return verifyOneOrNone(await this.findWatchmanEvents({ id }, undefined, undefined, trx))
+    }
+
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await listCertificatesSdk(this, vargs, originator)
+    }
+
+    async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken) : Promise<boolean> {
+        const { proven, rawTx } = await this.getProvenOrRawTx(txid, trx)
+        return proven != undefined || rawTx != undefined
+    }
+
+    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef> {
+        const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
+        if (!beef)
+            throw new sdk.WERR_INVALID_PARAMETER('txid', `${txid} is not known to storage.`)
+        return beef
+    }
+
+    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef | undefined> {
+
+        const beef = mergeToBeef || new bsv.Beef()
+
+        const r = await this.getProvenOrRawTx(txid, trx)
+        if (r.proven) {
+            if (trustSelf === 'known')
+                beef.mergeTxidOnly(txid)
+            else {
+                beef.mergeRawTx(r.proven.rawTx)
+                const mp = new entity.ProvenTx(r.proven).getMerklePath()
+                beef.mergeBump(mp)
+                return beef
+            }
+        }
+
+        if (r.rawTx && r.inputBEEF) {
+            if (trustSelf === 'known')
+                beef.mergeTxidOnly(txid)
+            else {
+                beef.mergeRawTx(r.rawTx)
+                beef.mergeBeef(r.inputBEEF)
+                const tx = bsv.Transaction.fromBinary(r.rawTx)
+                for (const input of tx.inputs) {
+                    const btx = beef.findTxid(input.sourceTXID!)
+                    if (!btx) {
+                        if (knownTxids && knownTxids.indexOf(input.sourceTXID!) > -1)
+                            beef.mergeTxidOnly(input.sourceTXID!)
+                        else
+                            await this.getValidBeefForKnownTxid(input.sourceTXID!, beef, trustSelf, knownTxids, trx)
+                    }
+                }
+                return beef
+            }
+        }
+
+        return undefined
+    }
+
+   async getBeefForTransaction(txid: string, options: sdk.StorageGetBeefOptions) : Promise<bsv.Beef> {
+        return await getBeefForTransaction(this, txid, options)
+   }
+
 }
 
 export interface StorageBaseOptions {
     chain: sdk.Chain
+    feeModel: sdk.StorageFeeModel
+    /**
+     * Transactions created by this Storage can charge a fee per transaction.
+     * A value of zero disables commission fees.
+     */
+    commissionSatoshis: number
+    /**
+     * If commissionSatoshis is greater than zero, must be a valid public key hex string.
+     * The actual locking script for each commission will use a public key derived
+     * from this key by information stored in the commissions table.
+     */
+    commissionPubKeyHex?: sdk.PubKeyHex
+}
+
+export function validateStorageFeeModel (v?: sdk.StorageFeeModel): sdk.StorageFeeModel {
+  const r: sdk.StorageFeeModel = {
+    model: 'sat/kb',
+    value: 1
+  }
+  if (typeof v === 'object') {
+    if (v.model !== 'sat/kb') throw new sdk.WERR_INVALID_PARAMETER('StorageFeeModel.model', `"sat/kb"`)
+    if (typeof v.value === 'number') { r.value = v.value }
+  }
+  return r
 }

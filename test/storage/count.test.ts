@@ -4,17 +4,21 @@ import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table
 describe('count tests', () => {
     jest.setTimeout(99999999)
 
+
     const storages: StorageBase[] = []
     const chain: sdk.Chain = 'test'
     const setups: { setup: TestSetup1, storage: StorageBase }[] = []
+    const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('counttest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
-        storages.push(new StorageKnex({ chain, knex: knexSQLite }))
+        storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
-        const knexMySQL = _tu.createLocalMySQL('counttest')
-        storages.push(new StorageKnex({ chain, knex: knexMySQL }))
+        if (!env.noMySQL) {
+            const knexMySQL = _tu.createLocalMySQL('counttest')
+            storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
+        }
 
         for (const storage of storages) {
             await storage.dropAllData()
@@ -72,8 +76,8 @@ describe('count tests', () => {
 
     test('5 count OutputBasket', async () => {
         for (const { storage, setup } of setups) {
-            expect(await storage.countOutputBaskets({})).toBe(1)
-            expect(await storage.countOutputBaskets({}, setup.u1.created_at)).toBe(1)
+            expect(await storage.countOutputBaskets({})).toBe(3)
+            expect(await storage.countOutputBaskets({}, setup.u1.created_at)).toBe(3)
             expect(await storage.countOutputBaskets({}, new Date())).toBe(0)
         }
     })

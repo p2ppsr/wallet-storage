@@ -76,7 +76,7 @@ export class Certificate extends EntityBase<table.Certificate> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.Certificate, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Certificate, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findCertificates({ serialNumber: ei.serialNumber, userId }, undefined, undefined, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findCertificates({ serialNumber: ei.serialNumber, certifier: ei.certifier, userId }, undefined, undefined, undefined, undefined, trx))
         return {
             found: !!ef,
             eo: new entity.Certificate(ef || { ...ei }),

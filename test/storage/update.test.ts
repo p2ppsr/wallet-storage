@@ -7,14 +7,17 @@ describe('update tests', () => {
     const storages: StorageBase[] = []
     const chain: sdk.Chain = 'test'
     const setups: { setup: TestSetup1, storage: StorageBase }[] = []
+    const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('updatetest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
-        storages.push(new StorageKnex({ chain, knex: knexSQLite }))
+        storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
-        const knexMySQL = _tu.createLocalMySQL('updatetest')
-        storages.push(new StorageKnex({ chain, knex: knexMySQL }))
+        if (!env.noMySQL) {
+            const knexMySQL = _tu.createLocalMySQL('updatetest')
+            storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
+        }
 
         for (const storage of storages) {
             await storage.dropAllData()
@@ -32,11 +35,14 @@ describe('update tests', () => {
     test('0 find ProvenTx', async () => {
         for (const { storage, setup } of setups) {
             const r = await storage.findProvenTxs({})
+            const time = new Date('2001-01-02T12:00:00.000Z')
             for (const e of r) {
-                await storage.updateProvenTx(e.provenTxId, { blockHash: 'fred'})
+                await storage.updateProvenTx(e.provenTxId, { blockHash: 'fred', updated_at: time })
                 const t = verifyOne(await storage.findProvenTxs({ provenTxId: e.provenTxId }))
                 expect(t.provenTxId).toBe(e.provenTxId)
                 expect(t.blockHash).toBe('fred')
+                //console.log(`updated_at set to ${time} but read as ${t.updated_at}`)
+                expect(t.updated_at.getTime()).toBe(time.getTime())
             }
         }
     })

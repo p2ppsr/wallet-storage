@@ -2,6 +2,13 @@ import { sdk, table } from "..";
 
 export interface StorageSyncReader {
 
+   isAvailable(): boolean
+   makeAvailable(): Promise<void>
+   /**
+    * Valid if isAvailable() returns true which requires makeAvailable() to complete successfully.
+    */
+   settings?: table.Settings
+
    destroy(): Promise<void>
 
    /////////////////

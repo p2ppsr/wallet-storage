@@ -272,6 +272,7 @@ export interface SendWithResult {
   status: SendWithResultStatus
 }
 
+
 export interface SignableTransaction {
   tx: AtomicBEEF
   reference: Base64String
@@ -769,9 +770,14 @@ export interface ListCertificatesArgs {
   privilegedReason?: DescriptionString5to50Bytes
 }
 
+export interface CertificateResult extends WalletCertificate {
+  keyring: Record<CertificateFieldNameUnder50Bytes, Base64String>
+  verifier?: string
+}
+
 export interface ListCertificatesResult {
   totalCertificates: PositiveIntegerOrZero
-  certificates: WalletCertificate[]
+  certificates: CertificateResult[]
 }
 
 /**
@@ -807,7 +813,7 @@ export interface RelinquishCertificateArgs {
 }
 
 export interface RelinquishCertificateResult {
-  relinquished: boolean
+  relinquished: true
 }
 
 export interface AuthenticatedResult {

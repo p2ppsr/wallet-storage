@@ -7,14 +7,17 @@ describe('find tests', () => {
     const storages: StorageBase[] = []
     const chain: sdk.Chain = 'test'
     const setups: { setup: TestSetup1, storage: StorageBase }[] = []
+    const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
         const localSQLiteFile = await _tu.newTmpFile('findtest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
-        storages.push(new StorageKnex({ chain, knex: knexSQLite }))
+        storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
-        const knexMySQL = _tu.createLocalMySQL('findtest')
-        storages.push(new StorageKnex({ chain, knex: knexMySQL }))
+        if (!env.noMySQL) {
+            const knexMySQL = _tu.createLocalMySQL('findtest')
+            storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
+        }
 
         for (const storage of storages) {
             await storage.dropAllData()
@@ -72,8 +75,8 @@ describe('find tests', () => {
 
     test('5 find OutputBasket', async () => {
         for (const { storage, setup } of setups) {
-            expect((await storage.findOutputBaskets({})).length).toBe(1)
-            expect((await storage.findOutputBaskets({}, setup.u1.created_at)).length).toBe(1)
+            expect((await storage.findOutputBaskets({})).length).toBe(3)
+            expect((await storage.findOutputBaskets({}, setup.u1.created_at)).length).toBe(3)
             expect((await storage.findOutputBaskets({}, new Date())).length).toBe(0)
         }
     })

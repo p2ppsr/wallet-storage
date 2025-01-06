@@ -1,8 +1,10 @@
 import { Beef, BeefParty, Utils, PrivateKey } from "@bsv/sdk";
-import { sdk, stampLog, toWalletNetwork } from '.'
+import { sdk, stampLog, toWalletNetwork, WalletMonitor } from '.'
 
 export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     signer: sdk.WalletSigner
+    services?: sdk.WalletServices
+    monitor?: WalletMonitor
 
     beef: BeefParty
     trustSelf?: sdk.TrustSelf
@@ -10,7 +12,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     userParty: string
     isLogging: boolean
 
-    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi) {
+    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: WalletMonitor) {
         if (!signer.isAuthenticated())
             throw new sdk.WERR_INVALID_PARAMETER('signer', 'valid and authenticated')
         if (!keyDeriver)
@@ -19,11 +21,18 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.signer = signer
         // Give signer access to our keyDeriver
         this.signer.keyDeriver = keyDeriver
+        this.services = services
+        this.monitor = monitor
+
         this.storageParty = signer.storageIdentity!.storageIdentityKey
         this.userParty = signer.getClientChangeKeyPair().publicKey
         this.beef = new BeefParty([this.storageParty, this.userParty])
         this.trustSelf = 'known'
         this.isLogging = this.signer.chain === 'test'
+
+        if (services) {
+            signer.setServices(services)
+        }
     }
 
     startLog(vargs: { log?: string }, name: string) {
@@ -37,6 +46,12 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         //console.log(stampLogFormat(vargs.log))
     }
 
+    getServices() : sdk.WalletServices {
+        if (!this.services)
+            throw new sdk.WERR_INVALID_PARAMETER('services', 'valid in constructor arguments to be retreived here.')
+        return this.services
+    }
+    
     /**
      * @returns the full list of txids whose validity this wallet claims to know.
      * 
@@ -50,6 +65,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         const knownTxids = r.valid.concat(r.txidOnly)
         return knownTxids
     }
+
+    //////////////////
+    // List Methods
+    //////////////////
 
     async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListActionsResult> {
@@ -78,10 +97,6 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    //////////////////
-    // Certificates
-    //////////////////
-
     async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListCertificatesResult> {
         const vargs = sdk.validateListCertificatesArgs(args)
@@ -92,6 +107,10 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.endLog(vargs, 'listCertificates')
         return r
     }
+
+    //////////////////
+    // Certificates
+    //////////////////
 
     async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AcquireCertificateResult> {
@@ -156,6 +175,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         originator = sdk.validateOriginator(originator)
         this.startLog(vargs, 'discoverByIdentityKey')
 
+        // TODO: Probably does not get dispatched to signer?
         const r = await this.signer.discoverByIdentityKeySdk(vargs, originator)
 
         this.endLog(vargs, 'discoverByIdentityKey')
@@ -168,6 +188,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         originator = sdk.validateOriginator(originator)
         this.startLog(vargs, 'discoverByAttributes')
 
+        // TODO: Probably does not get dispatched to signer?
         const r = await this.signer.discoverByAttributesSdk(vargs, originator)
 
         this.endLog(vargs, 'discoverByAttributes')
@@ -265,24 +286,19 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AuthenticatedResult> {
         await this.signer.authenticate()
-        const r: { authenticated: true; } = {
-            authenticated: true
-        }
-        return r
+        return { authenticated: true }
     }
 
     async getHeight(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.GetHeightResult> {
-        const r = await this.signer.getHeight()
-        return { height: r }
+        const height = await this.getServices().getHeight()
+        return { height }
     }
 
     async getHeaderForHeight(args: sdk.GetHeaderArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.GetHeaderResult> {
-        const header = await this.signer.getHeaderForHeight(args.height)
-        if (!header)
-            throw new sdk.WERR_INVALID_PARAMETER('args.height', `a valid block height. ${args.height} is invalid.`)
-        return { header: Utils.toHex(header) }
+        const serializedHeader = await this.getServices().getHeaderForHeight(args.height)
+        return { header: Utils.toHex(serializedHeader) }
     }
 
     async getNetwork(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)

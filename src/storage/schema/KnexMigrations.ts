@@ -45,6 +45,25 @@ export class KnexMigrations implements MigrationSource<string> {
     setupMigrations(chain: string, storageName: string, maxOutputScriptLength: number): Record<string, Migration> {
 
         const migrations: Record<string, Migration> = {}
+/*
+
+        This is sample code for when next migration must be added...
+
+        this.migrations['2024-12-15-001 add batch column to proven-tx-reqs'] = {
+            async up(knex) {
+                await knex.schema.alterTable('proven_tx_reqs', table => {
+                    table.string('batch', 64).nullable()
+                    table.index('batch')
+                })
+            },
+            async down(knex) {
+                await knex.schema.alterTable('proven_tx_reqs', table => {
+                    table.dropIndex('batch')
+                    table.dropColumn('batch')
+                })
+            }
+        }
+*/
 
         const addTimeStamps = (knex: Knex<any, any[]>, table: Knex.CreateTableBuilder, dbtype: DBType) => {
             if (dbtype === 'MySQL') {
@@ -147,8 +166,8 @@ export class KnexMigrations implements MigrationSource<string> {
                 await knex.schema.createTable('commissions', table => {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('commissionId')
-                    table.integer('userId').notNullable()
-                    table.integer('transactionId').notNullable().unique()
+                    table.integer('userId').unsigned().references('userId').inTable('users').notNullable()
+                    table.integer('transactionId').unsigned().references('transactionId').inTable('transactions').notNullable()
                     table.integer('satoshis', 15).notNullable()
                     table.string('keyOffset', 130).notNullable()
                     table.boolean('isRedeemed').defaultTo(false).notNullable()
@@ -167,7 +186,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.string('providedBy', 130).notNullable()
                     table.string('purpose', 20).notNullable()
                     table.string('type', 50).notNullable()
-                    table.string('outputDescription', 50)
+                    table.string('outputDescription', 300) // allow extra room for encryption and imports
                     table.string('txid', 64)
                     table.string('senderIdentityKey', 130)
                     table.string('derivationPrefix', 32)

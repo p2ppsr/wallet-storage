@@ -1,4 +1,5 @@
-import { sdk, StorageBase, table } from "..";
+import * as bsv from '@bsv/sdk'
+import { entity, sdk, StorageBase, StorageSyncReader, table, verifyId, verifyOne } from "..";
 
 /**
  * The `WalletStorage` class delivers storage access to the wallet while managing multiple `StorageBase` derived storage services.
@@ -15,17 +16,63 @@ import { sdk, StorageBase, table } from "..";
  */
 export class WalletStorage implements sdk.WalletStorage {
 
-    services: StorageBase[] = []
+    stores: sdk.WalletStorage[] = []
+    _services?: sdk.WalletServices
 
-    constructor() {
-
+    constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[]) {
+        this.stores = [ active ]
+        if (backups) this.stores.concat(backups)
     }
 
-    getActive(): StorageBase { return this.services[0] }
+    setServices(v: sdk.WalletServices) { this._services = v }
+    getServices() : sdk.WalletServices {
+        if (!this._services)
+            throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
+        return this._services
+    }
+
+    getActive(): sdk.WalletStorage { return this.stores[0] }
+
+    isAvailable(): boolean {
+        return this.getActive().isAvailable()
+    }
+
+    get settings() : table.Settings | undefined { return this.getActive().settings }
+
+    async makeAvailable(): Promise<void> {
+        this.getActive().makeAvailable()
+    }
 
     async destroy(): Promise<void> {
         return await this.getActive().destroy()
     }
+
+    async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
+        return this.getActive().purgeData(params, trx)
+    }
+
+    async SyncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
+        const writer = this.getActive()
+        const readerSettings = await reader.getSettings()
+
+        const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
+
+        let log = ''
+        let inserts = 0, updates = 0
+        for (;;) {
+            const args = ss.makeRequestSyncChunkArgs(identityKey)
+            const chunk = await reader.requestSyncChunk(args)
+            const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+            inserts += r.inserts
+            updates += r.updates
+            log += `${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}\n`
+            if (r.done)
+                break;
+        }
+        //console.log(log)
+        console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
+    }
+    
 
     /////////////////
     //
@@ -33,6 +80,41 @@ export class WalletStorage implements sdk.WalletStorage {
     //
     /////////////////
 
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> {
+        return await this.getActive().internalizeActionSdk(sargs, originator)
+    }
+    async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
+        return await this.getActive().getProvenOrReq(txid, newReq, trx)
+    }
+    async findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken): Promise<{ tx: table.Transaction; isNew: boolean; }> {
+        return await this.getActive().findOrInsertTransaction(newTx, trx)
+    }
+    async findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken): Promise<table.OutputBasket> {
+        return await this.getActive().findOrInsertOutputBasket(userId, name, trx)
+    }
+    async findOrInsertTxLabel(userId: number, label: string, trx?: sdk.TrxToken): Promise<table.TxLabel> {
+        return await this.getActive().findOrInsertTxLabel(userId, label, trx)
+    }
+    async findOrInsertTxLabelMap(transactionId: number, txLabelId: number, trx?: sdk.TrxToken): Promise<table.TxLabelMap> {
+        return await this.getActive().findOrInsertTxLabelMap(transactionId, txLabelId, trx)
+    }
+    async findOrInsertOutputTag(userId: number, tag: string, trx?: sdk.TrxToken): Promise<table.OutputTag> {
+        return await this.getActive().findOrInsertOutputTag(userId, tag, trx)
+    }
+    async findOrInsertOutputTagMap(outputId: number, outputTagId: number, trx?: sdk.TrxToken): Promise<table.OutputTagMap> {
+        return await this.getActive().findOrInsertOutputTagMap(outputId, outputTagId, trx)
+    }
+    async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken) : Promise<void> {
+        return await this.getActive().tagOutput(partial, tag, trx)
+    }
+
+    async updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken) {
+        return await this.getActive().updateTransactionStatus(status, transactionId, userId, reference, trx)
+    }
+
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
+        return await this.getActive().abortActionSdk(vargs, originator)
+    }
     async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
         return await this.getActive().createTransactionSdk(args, originator)
     }
@@ -154,17 +236,24 @@ export class WalletStorage implements sdk.WalletStorage {
     async getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken) {
         return await this.getActive().getRawTxOfKnownValidTransaction(txid, offset, length, trx)
     }
-    getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
-        throw new Error("Method not implemented.");
+
+    async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
+        return await this.getActive().getLabelsForTransactionId(transactionId, trx)
     }
-    getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
-        throw new Error("Method not implemented.");
+    async getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]> {
+        return await this.getActive().getTagsForOutputId(outputId, trx)
     }
-    getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
-        throw new Error("Method not implemented.");
+    async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
+        return await this.getActive().getProvenTxsForUser(userId, since, paged, trx)
     }
-    getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
-        throw new Error("Method not implemented.");
+    async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
+        return await this.getActive().getProvenTxReqsForUser(userId, since, paged, trx)
+    }
+    async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
+        return await this.getActive().getTxLabelMapsForUser(userId, since, paged, trx)
+    }
+    async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
+        return await this.getActive().getOutputTagMapsForUser(userId, since, paged, trx)
     }
 
     async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
@@ -177,6 +266,9 @@ export class WalletStorage implements sdk.WalletStorage {
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
         return await this.getActive().listOutputsSdk(vargs, originator)
     }
+   async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+        return await this.getActive().listCertificatesSdk(vargs, originator)
+   }
 
     async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.CertificateField[]> {
         return await this.getActive().findCertificateFields(partial, since, paged, trx)
@@ -222,6 +314,46 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     async findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]> {
         return await this.getActive().findWatchmanEvents(partial, since, paged, trx)
+    }
+
+    async findUserByIdentityKey(key: string, trx?: sdk.TrxToken): Promise<table.User | undefined> {
+        return await this.getActive().findUserByIdentityKey(key, trx)
+    }
+    async findCertificateById(id: number, trx?: sdk.TrxToken): Promise<table.Certificate | undefined> {
+        return await this.getActive().findCertificateById(id, trx)
+    }
+    async findCommissionById(id: number, trx?: sdk.TrxToken): Promise<table.Commission | undefined> {
+        return await this.getActive().findCommissionById(id, trx)
+    }
+    async findOutputBasketById(id: number, trx?: sdk.TrxToken): Promise<table.OutputBasket | undefined> {
+        return await this.getActive().findOutputBasketById(id, trx)
+    }
+    async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean): Promise<table.Output | undefined> {
+        return await this.getActive().findOutputById(id, trx)
+    }
+    async findOutputTagById(id: number, trx?: sdk.TrxToken): Promise<table.OutputTag | undefined> {
+        return await this.getActive().findOutputTagById(id, trx)
+    }
+    async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx | undefined> {
+        return await this.getActive().findProvenTxById(id, trx)
+    }
+    async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq | undefined> {
+        return await this.getActive().findProvenTxReqById(id, trx)
+    }
+    async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState | undefined> {
+        return await this.getActive().findSyncStateById(id, trx)
+    }
+    async findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean): Promise<table.Transaction | undefined> {
+        return await this.getActive().findTransactionById(id, trx)
+    }
+    async findTxLabelById(id: number, trx?: sdk.TrxToken): Promise<table.TxLabel | undefined> {
+        return await this.getActive().findTxLabelById(id, trx)
+    }
+    async findUserById(id: number, trx?: sdk.TrxToken): Promise<table.User | undefined> {
+        return await this.getActive().findUserById(id, trx)
+    }
+    async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent | undefined> {
+        return await this.getActive().findWatchmanEventById(id, trx)
     }
 
     async countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken): Promise<number> {

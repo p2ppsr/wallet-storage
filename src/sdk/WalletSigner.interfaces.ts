@@ -11,6 +11,9 @@ export interface WalletSigner {
   keyDeriver?: sdk.KeyDeriverApi
   storageIdentity?: StorageIdentity
 
+  setServices(v: sdk.WalletServices) : void
+  getServices() : sdk.WalletServices
+
   authenticate(identityKey?: string, addIfNew?: boolean): Promise<void>
 
   listActions(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
@@ -28,9 +31,7 @@ export interface WalletSigner {
   discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
   discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
 
-  getHeight(): Promise<number>
   getChain(): Promise<sdk.Chain>
-  getHeaderForHeight(height: number): Promise<number[] | undefined>
 }
 
 export interface KeyPair {

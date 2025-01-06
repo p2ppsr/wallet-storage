@@ -187,11 +187,20 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     return user.userId
   }
 
-  override async insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken): Promise<number> {
+  override async insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number> {
     const e = await this.validateEntityForInsert(certificate, trx)
     if (e.certificateId === 0) delete e.certificateId
     const [id] = await this.toDb(trx)<table.Certificate>('certificates').insert(e)
     certificate.certificateId = id
+
+    if (certificate.fields) {
+      for (const field of certificate.fields) {
+        field.certificateId = id
+        field.userId = certificate.userId
+        await this.insertCertificateField(field, trx)
+      }
+    }
+
     return certificate.certificateId
   }
 

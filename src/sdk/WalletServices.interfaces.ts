@@ -6,12 +6,26 @@ import { ChaintracksClientApi } from '../services/chaintracker'
  */
 export interface WalletServices {
 
+    /**
+     * The chain being serviced.
+     */
     chain: sdk.Chain
 
     /**
      * @returns standard `ChainTracker` service which requires `options.chaintracks` be valid.
      */
     getChainTracker() : Promise<bsv.ChainTracker>
+
+    /**
+     * @returns serialized block header for height on active chain
+     * @param height 
+     */
+    getHeaderForHeight(height: number) : Promise<number[]>
+
+    /**
+     * @returns the height of the active chain
+     */
+    getHeight() : Promise<number>
 
     /**
      * Approximate exchange rate US Dollar / BSV, USD / BSV

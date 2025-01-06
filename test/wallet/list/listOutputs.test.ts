@@ -294,9 +294,7 @@ describe('listOutputs test', () => {
         }
         const r = await wallet.listOutputs(args)
         log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
-        //expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
         expect(r.outputs.length).toBe(5)
-        //expect(r.outputs.length).toBe(args.limit || 10)
         let i = 0
         for (const a of r.outputs) {
           expect(Array.isArray(a.labels)).toBe(true)
@@ -358,6 +356,36 @@ describe('listOutputs test', () => {
         }
         if (!noLog) console.log(log)
       }
+    }
+  })
+
+  test('10a_tags babbage-token-access all', async () => {
+    for (const { wallet } of ctxs) {
+      let log = `\n${testName()}\n`
+      const args: sdk.ListOutputsArgs = {
+        basket: 'babbage-token-access',
+        includeTags: true,
+        tags: ['babbage_basket', 'todo tokens', 'babbage_action_originator projectbabbage.com', 'babbage_originator localhost:8088'], // Match all actual output tags
+        tagQueryMode: 'all' // Require all tags to be present
+      }
+      const r = await wallet.listOutputs(args)
+
+      log += `totalOutputs=${r.totalOutputs} outputs=${r.outputs.length}\n`
+      //if (!noLog) console.log(log)
+      expect(r.totalOutputs).toBeGreaterThanOrEqual(r.outputs.length)
+
+      r.outputs.forEach((o, index) => {
+        log += `totalOutputs=${0} outputs=${r.outputs.length}\n`
+        expect(Array.isArray(o.tags)).toBe(true) // Ensure tags are an array
+        const missingTags = args.tags?.filter(tag => !o.tags?.includes(tag)) || []
+        // if (missingTags.length > 0) {
+        //   console.error(`Output ${index} is missing tags:`, missingTags)
+        // }
+        // expect(missingTags.length).toBe(0) // No tags should be missing
+        log += `${index} ${o.tags?.join(',')}\n`
+      })
+
+      if (!noLog) console.log(log)
     }
   })
 

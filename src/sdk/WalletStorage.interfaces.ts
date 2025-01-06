@@ -1,3 +1,4 @@
+import * as bsv from '@bsv/sdk'
 import { sdk, table } from "..";
 
 export interface WalletStorage extends sdk.StorageSyncReader {
@@ -16,6 +17,7 @@ export interface WalletStorage extends sdk.StorageSyncReader {
    // WRITE OPERATIONS (state modifying methods)
    //
    /////////////////
+
 
    updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
    
@@ -177,7 +179,7 @@ export interface StorageCreateTransactionSdkResult {
    derivationPrefix: string
    version: number
    lockTime: number
-   referenceNumber: string
+   reference: string
 }
 
 export interface StorageProcessActionSdkParams {
@@ -231,3 +233,41 @@ export interface StorageInternalizeActionArgs extends sdk.ValidInternalizeAction
 }
 
 export interface StorageProvenOrReq { proven?: table.ProvenTx, req?: table.ProvenTxReq }
+
+/**
+ * Specifies the available options for computing transaction fees.
+ */
+export interface StorageFeeModel {
+   /**
+    * Available models. Currently only "sat/kb" is supported.
+    */
+   model: 'sat/kb'
+   /**
+    * When "fee.model" is "sat/kb", this is an integer representing the number of satoshis per kb of block space
+    * the transaction will pay in fees.
+    * 
+    * If undefined, the default value is used.
+    */
+   value?: number
+}
+
+export interface StorageGetBeefOptions {
+   /** if 'known', txids known to local storage as valid are included as txidOnly */
+   trustSelf?: 'known'
+   /** list of txids to be included as txidOnly if referenced. Validity is known to caller. */
+   knownTxids?: string[]
+   /** optional. If defined, raw transactions and merkle paths required by txid are merged to this instance and returned. Otherwise a new Beef is constructed and returned. */
+   mergeToBeef?: bsv.Beef | number[]
+   /** optional. Default is false. `dojo.storage` is used for raw transaction and merkle proof lookup */
+   ignoreStorage?: boolean
+   /** optional. Default is false. `dojo.getServices` is used for raw transaction and merkle proof lookup */
+   ignoreServices?: boolean
+   /** optional. Default is false. If true, raw transactions with proofs missing from `dojo.storage` and obtained from `dojo.getServices` are not inserted to `dojo.storage`. */
+   ignoreNewProven?: boolean
+   /** optional. Default is zero. Ignores available merkle paths until recursion detpth equals or exceeds value  */
+   minProofLevel?: number
+}
+
+export interface StorageSyncReaderOptions {
+    chain: sdk.Chain
+}

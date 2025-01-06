@@ -28,7 +28,7 @@ export async function purgeData(storage: StorageKnex, params: sdk.PurgeParams, t
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const qs: PurgeQuery[] = []
 
-        // select * from transactions where updated_at < '2024-08-20' and status = 'completed' and not provenTxId is null and (not truncatedExternalInputs is null or not beef is null or not rawTransaction is null)
+        // select * from transactions where updated_at < '2024-08-20' and status = 'completed' and not provenTxId is null and (not truncatedExternalInputs is null or not beef is null or not rawTx is null)
         qs.push({
             log: 'conpleted transactions purged of transient data',
             q: storage.toDb(trx)('transactions')

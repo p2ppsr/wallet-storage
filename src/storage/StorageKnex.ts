@@ -1,4 +1,4 @@
-import { sdk, verifyOne, verifyOneOrNone } from '..'
+import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '..'
 import { KnexMigrations, table } from '.'
 
 import { Knex } from 'knex'
@@ -8,6 +8,7 @@ import { listOutputsSdk } from './methods/listOutputsSdk'
 import { purgeData } from './methods/purgeData'
 import { requestSyncChunk } from './methods/requestSyncChunk'
 import { listCertificatesSdk } from './methods/listCertificatesSdk'
+import { createTransactinoSdk } from './methods/createTransactionSdk'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
   /**
@@ -155,9 +156,6 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
   override async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
     return await listOutputsSdk(this, vargs, originator)
-  }
-  override async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
-    throw new Error('Method not implemented.')
   }
   override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
     throw new Error('Method not implemented.')
@@ -756,6 +754,119 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
 
   override async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
     return await purgeData(this, params, trx)
+  }
+
+  /**
+   *  Finds closest matching available change output to use as input for new transaction.
+   *
+   * Transactionally allocate the output such that
+   */
+  async countChangeInputs(userId: number, basketId: number, excludeSending: boolean): Promise<number> {
+    const status: sdk.TransactionStatus[] = ['completed', 'unproven']
+    if (!excludeSending) status.push('sending')
+    const statusText = status.map(s => `'${s}'`).join(',')
+    const txStatusCondition = `(SELECT status FROM transactions WHERE outputs.transactionId = transactions.transactionId) in (${statusText})`
+    let q = this.knex<table.Output>('outputs').where({ userId, spendable: true, basketId }).whereRaw(txStatusCondition)
+    const count = await this.getCount(q)
+    return count
+  }
+
+  /**
+   *  Finds closest matching available change output to use as input for new transaction.
+   *
+   * Transactionally allocate the output such that
+   */
+  async allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined> {
+    const status: sdk.TransactionStatus[] = ['completed', 'unproven']
+    if (!excludeSending) status.push('sending')
+    const statusText = status.map(s => `'${s}'`).join(',')
+
+    const r: table.Output | undefined = await this.knex.transaction(async trx => {
+      const txStatusCondition = `AND (SELECT status FROM transactions WHERE outputs.transactionId = transactions.transactionId) in (${statusText})`
+
+      let outputId: number | undefined
+      const setOutputId = async (rawQuery: string): Promise<void> => {
+        let oidr = await trx.raw(rawQuery)
+        outputId = undefined
+        if (!oidr['outputId'] && oidr.length > 0) oidr = oidr[0]
+        if (!oidr['outputId'] && oidr.length > 0) oidr = oidr[0]
+        if (oidr['outputId']) outputId = Number(oidr['outputId'])
+      }
+
+      if (exactSatoshis !== undefined) {
+        // Find outputId of output that with exactSatoshis
+        await setOutputId(`
+                SELECT outputId 
+                FROM outputs
+                WHERE userId = ${userId} 
+                    AND spendable = 1 
+                    AND basketId = ${basketId}
+                    ${txStatusCondition}
+                    AND satoshis = ${exactSatoshis}
+                LIMIT 1;
+                `)
+      }
+
+      if (outputId === undefined) {
+        // Find outputId of output that would at least fund targetSatoshis
+        await setOutputId(`
+                    SELECT outputId 
+                    FROM outputs
+                    WHERE userId = ${userId} 
+                        AND spendable = 1 
+                        AND basketId = ${basketId}
+                        ${txStatusCondition}
+                        AND satoshis - ${targetSatoshis} = (
+                            SELECT MIN(satoshis - ${targetSatoshis}) 
+                            FROM outputs 
+                            WHERE userId = ${userId} 
+                            AND spendable = 1 
+                            AND basketId = ${basketId}
+                            ${txStatusCondition}
+                            AND satoshis - ${targetSatoshis} >= 0
+                        )
+                    LIMIT 1;
+                    `)
+      }
+
+      if (outputId === undefined) {
+        // Find outputId of output that would add the most fund targetSatoshis
+        await setOutputId(`
+                    SELECT outputId 
+                    FROM outputs
+                    WHERE userId = ${userId} 
+                        AND spendable = 1 
+                        AND basketId = ${basketId}
+                        ${txStatusCondition}
+                        AND satoshis - ${targetSatoshis} = (
+                            SELECT MAX(satoshis - ${targetSatoshis}) 
+                            FROM outputs 
+                            WHERE userId = ${userId} 
+                            AND spendable = 1 
+                            AND basketId = ${basketId}
+                            ${txStatusCondition}
+                            AND satoshis - ${targetSatoshis} < 0
+                        )
+                    LIMIT 1;
+                    `)
+      }
+
+      if (outputId === undefined) return undefined
+
+      await this.updateOutput(
+        outputId,
+        {
+          spendable: false,
+          spentBy: transactionId
+        },
+        trx
+      )
+
+      const r = verifyTruthy(await this.findOutputById(outputId, trx))
+      return r
+    })
+
+    return r
   }
 }
 

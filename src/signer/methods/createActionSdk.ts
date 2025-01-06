@@ -34,7 +34,7 @@ async function createNewTx(signer: WalletSigner, args: sdk.ValidCreateActionArgs
   const storageArgs = removeUnlockScripts(args);
   const dcr = await signer.storage.createTransactionSdk(storageArgs, originator)
 
-  const reference = dcr.referenceNumber
+  const reference = dcr.reference
 
   const { tx, amount, pdi } = buildSignableTransaction(dcr, args, signer)
 
@@ -54,7 +54,7 @@ function makeSignableTransactionResult(prior: PendingSignAction, signer: WalletS
   const r: sdk.CreateActionResult = {
     noSendChange: args.isNoSend ? prior.dcr.noSendChangeOutputVouts?.map(vout => `${txid}.${vout}`) : undefined,
     signableTransaction: {
-      reference: prior.dcr.referenceNumber,
+      reference: prior.dcr.reference,
       tx: makeAtomicBeef(prior.tx, prior.dcr.inputBeef)
     }
   }

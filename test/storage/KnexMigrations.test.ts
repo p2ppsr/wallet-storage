@@ -62,7 +62,7 @@ describe('KnexMigrations tests', () => {
     test('2 getSettings', async () => {
         await waitFor1()
         for (const knex of knexs) {
-            const storage = new StorageKnex({ chain: 'test', knex })
+            const storage = new StorageKnex({...StorageKnex.defaultOptions(), chain: 'test', knex })
             const r = await storage.getSettings()
             expect(r.created_at instanceof Date).toBe(true)
             expect(r.updated_at instanceof Date).toBe(true)

@@ -159,6 +159,8 @@ export async function listOutputsSdk(
 
     const labelsByTxid: Record<string, string[]> = {}
 
+    const beef = new bsv.Beef()
+
     for (const o of outputs) {
         const wo: sdk.WalletOutput = {
             satoshis: Number(o.satoshis),
@@ -188,6 +190,13 @@ export async function listOutputsSdk(
             if (o.lockingScript)
                 wo.lockingScript = asString(o.lockingScript)
         }
+        if (vargs.includeTransactions && !beef.findTxid(o.txid!)) {
+            await dsk.getValidBeefForKnownTxid(o.txid!, beef, undefined, vargs.knownTxids, trx)
+        }
+    }
+
+    if (vargs.includeTransactions) {
+        r.BEEF = beef.toBinary()
     }
 
     return r

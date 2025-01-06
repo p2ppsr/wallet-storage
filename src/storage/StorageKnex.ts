@@ -444,25 +444,25 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     }
 
 
-    override async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.CertificateField[]> {
+    override async findCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<table.CertificateField[]> {
         return this.validateEntities(await this.findCertificateFieldsQuery(partial, since, paged, trx))
     }
-    override async findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]> {
+    override async findCertificates(args: sdk.FindCertificatesArgs) : Promise<table.Certificate[]> {
         const q = this.findCertificatesQuery(partial, certifiers, types, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Commission[]> {
+    override async findCommissions(args: sdk.FindCommissionsArgs) : Promise<table.Commission[]> {
         const q = this.findCommissionsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isRedeemed'])
     }
-    override async findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputBasket[]> {
+    override async findOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<table.OutputBasket[]> {
         const q = this.findOutputBasketsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]> {
+    override async findOutputs(args: sdk.FindOutputsArgs) : Promise<table.Output[]> {
         const q = this.findOutputsQuery(partial, noScript, since, paged, trx)
         const r = await q
         if (!noScript) {
@@ -472,32 +472,32 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return this.validateEntities(r, undefined, ['spendable', 'change'])
     }
-    override async findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
+    override async findOutputTagMaps(args: sdk.FindOutputTagMapsArgs) : Promise<table.OutputTagMap[]> {
         const q = this.findOutputTagMapsQuery(partial, tagIds, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTag[]> {
+    override async findOutputTags(args: sdk.FindOutputTagsArgs) : Promise<table.OutputTag[]> {
         const q = this.findOutputTagsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]> {
+    override async findProvenTxReqs(args: sdk.FindProvenTxReqsArgs) : Promise<table.ProvenTxReq[]> {
         const q = this.findProvenTxReqsQuery(partial, status, txids, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['notified'])
     }
-    override async findProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>  {
+    override async findProvenTxs(args: sdk.FindProvenTxsArgs): Promise<table.ProvenTx[]>  {
         const q = this.findProvenTxsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r)
     }
-    override async findSyncStates(partial: Partial<table.SyncState>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
+    override async findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]> {
         const q = this.findSyncStatesQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, ['when'], ['init'])
     }
-    override async findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]> {
+    override async findTransactions(args: sdk.FindTransactionsArgs) : Promise<table.Transaction[]> {
         const q = this.findTransactionsQuery(partial, status, noRawTx, since, paged, trx)
         const r = await q
         if (!noRawTx) {
@@ -505,22 +505,22 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         }
         return this.validateEntities(r, undefined, ['isOutgoing'])
     }
-    override async findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
+    override async findTxLabelMaps(args: sdk.FindTxLabelMapsArgs) : Promise<table.TxLabelMap[]> {
         const q = this.findTxLabelMapsQuery(partial, labelIds, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabel[]> {
+    override async findTxLabels(args: sdk.FindTxLabelsArgs) : Promise<table.TxLabel[]> {
         const q = this.findTxLabelsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, undefined, ['isDeleted'])
     }
-    override async findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.User[]> {
+    override async findUsers(args: sdk.FindUsersArgs) : Promise<table.User[]> {
         const q = this.findUsersQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r)
     }
-    override async findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]>  {
+    override async findWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<table.WatchmanEvent[]>  {
         const q = this.findWatchmanEventsQuery(partial, since, paged, trx)
         const r = await q
         return this.validateEntities(r, ['when'], undefined)

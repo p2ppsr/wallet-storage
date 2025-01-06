@@ -31,7 +31,7 @@ export async function createTransactinoSdk(storage: StorageBase, vargs: sdk.Vali
   const xoutputs = validateRequiredOutputs(storage, userId, vargs);
 
   const changeBasketName = 'default'
-  const changeBasket = verifyOne(await storage.findOutputBaskets({ userId, name: changeBasketName }), `Invalid outputGeneration basket "${changeBasketName}"`)
+  const changeBasket = verifyOne(await storage.findOutputBaskets({ partial: { userId, name: changeBasketName }}), `Invalid outputGeneration basket "${changeBasketName}"`)
 
   const noSendChangeIn = await validateNoSendChange(storage, userId, vargs, changeBasket)
 
@@ -504,7 +504,7 @@ async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: 
 
   for (const input of xinputs) {
     const { txid, vout } = input.outpoint
-    const output = verifyOneOrNone(await dojo.findOutputs({ userId, txid, vout }))
+    const output = verifyOneOrNone(await dojo.findOutputs({ partial: { userId, txid, vout }}))
     if (output) {
       input.output = output
       if (!Buffer.isBuffer(output.lockingScript) || !Number.isInteger(output.satoshis))
@@ -546,7 +546,7 @@ async function validateNoSendChange(dojo: StorageBase, userId: number, vargs: sd
 
     if (noSendChange && noSendChange.length > 0) {
         for (const op of noSendChange) {
-            const output = verifyOneOrNone(await dojo.findOutputs({ userId, txid: op.txid, vout: op.vout }))
+            const output = verifyOneOrNone(await dojo.findOutputs({ partial: { userId, txid: op.txid, vout: op.vout } }))
             // noSendChange is not marked spendable until sent, may not already be spent, and must have a valid greater than zero satoshis
             if (!output
                || output.providedBy !== 'storage'

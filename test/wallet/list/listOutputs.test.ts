@@ -4,7 +4,7 @@ import { sdk, StorageKnex } from '../../../src'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { WalletOutput } from '../../../src/sdk'
 
-const noLog = false
+const noLog = true
 
 describe('listOutputs test', () => {
   jest.setTimeout(99999999)
@@ -44,6 +44,45 @@ describe('listOutputs test', () => {
     }
     return log
   }
+
+  test('0 invalid params', async () => {
+    for (const { wallet } of ctxs) {
+      const invalidArgs: sdk.ListOutputsArgs[] = [
+        { basket: '' as bsv.BasketStringUnder300Bytes },
+        { basket: '   ' as bsv.BasketStringUnder300Bytes },
+        { basket: 'default', tags: [] },
+        { basket: 'default', tags: [''] as bsv.OutputTagStringUnder300Bytes[] },
+        { basket: 'default', limit: 0 },
+        { basket: 'default', limit: -1 },
+        { basket: 'default', limit: 10001 },
+        { basket: 'default', offset: -1 },
+        { basket: 'default', offset: 1.5 as any },
+        { basket: 'default', tagQueryMode: 'invalid' as any },
+        { basket: 'default', include: 'invalid' as any },
+        { basket: 'default', includeCustomInstructions: 1 as any },
+        { basket: 'default', includeTags: 1 as any },
+        { basket: 'default', includeLabels: 1 as any },
+        { basket: 'default', seekPermission: 'notABoolean' as any }
+      ]
+
+      for (const args of invalidArgs) {
+        console.log('Testing args:', args)
+        try {
+          await wallet.listOutputs(args)
+        } catch (e) {
+          const error = e as Error
+          console.log('Error name:', error.name)
+          console.log('Error message:', error.message)
+          console.log('Stack trace:', error.stack)
+
+          // Adjust expectations based on specific cases
+          const expectedError = args.basket === '' ? sdk.WERR_INVALID_PARAMETER : args.basket === '   ' ? sdk.WERR_BAD_REQUEST : sdk.WERR_INVALID_PARAMETER
+
+          expect(error.name).toBe(expectedError.name)
+        }
+      }
+    }
+  })
 
   test('1_default', async () => {
     for (const { wallet } of ctxs) {

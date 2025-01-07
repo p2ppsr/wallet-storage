@@ -30,3 +30,4 @@ tmp
 /dist
 
 out
+test/wallet/list/listOutputsbob*.test.ts

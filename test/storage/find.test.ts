@@ -10,7 +10,7 @@ describe('find tests', () => {
     const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
-        const localSQLiteFile = await _tu.newTmpFile('storagefindtest', false, false, true)
+        const localSQLiteFile = await _tu.newTmpFile('storagefindtest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 

@@ -11,12 +11,12 @@ describe('count tests', () => {
     const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
-        const localSQLiteFile = await _tu.newTmpFile('counttest.sqlite', false, false, true)
+        const localSQLiteFile = await _tu.newTmpFile('storagecounttest.sqlite', false, false, true)
         const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
         storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
         if (!env.noMySQL) {
-            const knexMySQL = _tu.createLocalMySQL('counttest')
+            const knexMySQL = _tu.createLocalMySQL('storagecounttest')
             storages.push(new StorageKnex({...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
         }
 

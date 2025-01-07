@@ -241,7 +241,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 outputDescription: (d.description || '').trim(),
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
-                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase(),
+                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase().replace('dojo', 'storage'),
                 purpose: verifyTruthy(d.purpose || '').trim().toLowerCase(),
                 type: verifyTruthy(d.type).trim(),
                 txid: nullToUndefined(d.txid),

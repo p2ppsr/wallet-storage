@@ -167,11 +167,12 @@ export class KnexMigrations implements MigrationSource<string> {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('commissionId')
                     table.integer('userId').unsigned().references('userId').inTable('users').notNullable()
-                    table.integer('transactionId').unsigned().references('transactionId').inTable('transactions').notNullable()
+                    table.integer('transactionId').unsigned().references('transactionId').inTable('transactions').notNullable().unique()
                     table.integer('satoshis', 15).notNullable()
                     table.string('keyOffset', 130).notNullable()
                     table.boolean('isRedeemed').defaultTo(false).notNullable()
                     table.binary('lockingScript').notNullable()
+                    table.index('transactionId')
                 })
                 await knex.schema.createTable('outputs', table => {
                     addTimeStamps(knex, table, dbtype)

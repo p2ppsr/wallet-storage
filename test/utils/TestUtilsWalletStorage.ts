@@ -394,7 +394,7 @@ export abstract class TestUtilsWalletStorage {
         let useReader = true
         if (tryCopyToPath) {
             await _tu.copyFile(readerFile, tryCopyToPath)
-            console.log('USING FILE COPY INSTEAD OF SOURCE DB SYNC')
+            //console.log('USING FILE COPY INSTEAD OF SOURCE DB SYNC')
             useReader = false
         }
         const rootKeyHex = "153a3df216" + "686f55b253991c" + "7039da1f648" + "ffc5bfe93d6ac2c25ac" + "2d4070918d"

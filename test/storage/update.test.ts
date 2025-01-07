@@ -16,12 +16,12 @@ describe('update tests', () => {
   const env = _tu.getEnv(chain)
 
   beforeAll(async () => {
-    const localSQLiteFile = await _tu.newTmpFile('updatetest.sqlite', false, false, true)
+    const localSQLiteFile = await _tu.newTmpFile('storageupdatetest.sqlite', false, false, true)
     const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
     storages.push(new StorageKnex({ ...StorageKnex.defaultOptions(), chain, knex: knexSQLite }))
 
     if (!env.noMySQL) {
-      const knexMySQL = _tu.createLocalMySQL('updatetest')
+      const knexMySQL = _tu.createLocalMySQL('storageupdatetest')
       storages.push(new StorageKnex({ ...StorageKnex.defaultOptions(), chain, knex: knexMySQL }))
     }
 
@@ -538,7 +538,7 @@ describe('update tests', () => {
 
       // Step 1: Insert initial mock data with valid status values.
       const initialRecord: ProvenTxReq = {
-        provenTxReqId: 3, // Use a unique provenTxReqId
+        provenTxReqId: 3, // Use standard value for new records.
         provenTxId: 1,
         batch: 'batch',
         status: 'nosend', // Using one of the valid status types
@@ -564,7 +564,7 @@ describe('update tests', () => {
       // Step 2: Insert another mock record to set up for unique constraint validation.
       const secondRecord: ProvenTxReq = {
         ...initialRecord,
-        provenTxReqId: 4, // Ensure a unique ID
+        provenTxReqId: 4, // Let the database ensure unique IDs
         txid: 'mockTxid2' // Ensure a unique txid
       }
 

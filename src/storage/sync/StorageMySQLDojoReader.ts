@@ -75,24 +75,24 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return r
     }
 
-    setupQuery<T extends object>(table: string, partial?: Partial<T>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean)
+    setupQuery<T extends object>(table: string, args: sdk.FindPartialSincePagedArgs<T>)
     : Knex.QueryBuilder
     {
-        let q = this.toDb(trx)<T>(table)
-        if (partial && Object.keys(partial).length > 0) q.where(partial)
-        if (since) q.where('updated_at', '>=', this.validateDateForWhere(since));
-        if (paged) {
-            q.limit(paged.limit)
-            q.offset(paged.offset || 0)
+        let q = this.toDb(args.trx)<T>(table)
+        if (args.partial && Object.keys(args.partial).length > 0) q.where(args.partial)
+        if (args.since) q.where('updated_at', '>=', this.validateDateForWhere(args.since));
+        if (args.paged) {
+            q.limit(args.paged.limit)
+            q.offset(args.paged.offset || 0)
         }
         return q
     }
 
-    findOutputBasketsQuery(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        return this.setupQuery('output_baskets', partial, since, paged, trx)
+    findOutputBasketsQuery(args: sdk.FindOutputBasketsArgs) : Knex.QueryBuilder {
+        return this.setupQuery('output_baskets', args)
     }
-    async findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputBasket[]> {
-        const q = this.findOutputBasketsQuery(partial, since, paged, trx)
+    async findOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<table.OutputBasket[]> {
+        const q = this.findOutputBasketsQuery(args)
         const ds = await q
         const rs: table.OutputBasket[] = []
         for (const d of ds) {
@@ -110,11 +110,11 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
-    findTxLabelsQuery(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        return this.setupQuery('tx_labels', partial, since, paged, trx)
+    findTxLabelsQuery(args: sdk.FindTxLabelsArgs) : Knex.QueryBuilder {
+        return this.setupQuery('tx_labels', args)
     }
-    async findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabel[]> {
-        const q = this.findTxLabelsQuery(partial, since, paged, trx)
+    async findTxLabels(args: sdk.FindTxLabelsArgs) : Promise<table.TxLabel[]> {
+        const q = this.findTxLabelsQuery(args)
         const ds = await q
         const rs: table.TxLabel[] = []
         for (const d of ds) {
@@ -130,11 +130,11 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
-    findOutputTagsQuery(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        return this.setupQuery('output_tags', partial, since, paged, trx)
+    findOutputTagsQuery(args: sdk.FindOutputTagsArgs) : Knex.QueryBuilder {
+        return this.setupQuery('output_tags', args)
     }
-    async findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTag[]> {
-        const q = this.findOutputTagsQuery(partial, since, paged, trx)
+    async findOutputTags(args: sdk.FindOutputTagsArgs) : Promise<table.OutputTag[]> {
+        const q = this.findOutputTagsQuery(args)
         const ds = await q
         const rs: table.OutputTag[] = []
         for (const d of ds) {
@@ -150,19 +150,19 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
-    findTransactionsQuery(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder {
-        if (partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
-        if (partial.inputBEEF) throw new sdk.WERR_INVALID_PARAMETER('partial.inputBEEF', `undefined. Transactions may not be found by inputBEEF value.`);
-        const q = this.setupQuery('transactions', partial, since, paged, trx, count)
-        if (status && status.length > 0) q.whereIn('status', status);
-        if (noRawTx && !count) {
+    findTransactionsQuery(args: sdk.FindTransactionsArgs, count?: boolean) : Knex.QueryBuilder {
+        if (args.partial.rawTx) throw new sdk.WERR_INVALID_PARAMETER('args.partial.rawTx', `undefined. Transactions may not be found by rawTx value.`);
+        if (args.partial.inputBEEF) throw new sdk.WERR_INVALID_PARAMETER('args.partial.inputBEEF', `undefined. Transactions may not be found by inputBEEF value.`);
+        const q = this.setupQuery('transactions', args)
+        if (args.status && args.status.length > 0) q.whereIn('status', args.status);
+        if (args.noRawTx && !count) {
             const columns = table.transactionColumnsWithoutRawTx.map(c => `transactions.${c}`)
             q.select(columns)
         }
         return q
     }
-    async findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]> {
-        const q = this.findTransactionsQuery(partial, status, noRawTx, since, paged, trx)
+    async findTransactions(args: sdk.FindTransactionsArgs) : Promise<table.Transaction[]> {
+        const q = this.findTransactionsQuery(args)
         const ds = await q
         const rs: table.Transaction[] = []
         for (const d of ds) {
@@ -187,12 +187,12 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isOutgoing'])
     }
-    findCommissionsQuery(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Commissions may not be found by lockingScript value.`);
-        return this.setupQuery('commissions', partial, since, paged, trx)
+    findCommissionsQuery(args: sdk.FindCommissionsArgs) : Knex.QueryBuilder {
+        if (args.partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('args.partial.lockingScript', `undefined. Commissions may not be found by lockingScript value.`);
+        return this.setupQuery('commissions', args)
     }
-    async findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Commission[]> {
-        const q = this.findCommissionsQuery(partial, since, paged, trx)
+    async findCommissions(args: sdk.FindCommissionsArgs) : Promise<table.Commission[]> {
+        const q = this.findCommissionsQuery(args)
         const ds = await q
         const rs: table.Commission[] = []
         for (const d of ds) {
@@ -211,21 +211,21 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isRedeemed'])
     }
-    findOutputsQuery(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken, count?: boolean) : Knex.QueryBuilder { 
-        if (partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
-        const q = this.setupQuery('outputs', partial, since, paged, trx, count)
-        if (noScript && !count) {
+    limitString(s: string, maxLen: number) : string {
+        if (s.length > maxLen) s = s.slice(0, maxLen);
+        return s
+    }
+    findOutputsQuery(args: sdk.FindOutputsArgs, count?: boolean) : Knex.QueryBuilder { 
+        if (args.partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('args.partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
+        const q = this.setupQuery('outputs', args)
+        if (args.noScript && !count) {
             const columns = table.outputColumnsWithoutLockingScript.map(c => `outputs.${c}`)
             q.select(columns)
         }
         return q
     }
-    limitString(s: string, maxLen: number) : string {
-        if (s.length > maxLen) s = s.slice(0, maxLen);
-        return s
-    }
-    async findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]> {
-        const q = this.findOutputsQuery(partial, noScript, since, paged, trx)
+    async findOutputs(args: sdk.FindOutputsArgs) : Promise<table.Output[]> {
+        const q = this.findOutputsQuery(args)
         const ds = await q
         const rs: table.Output[] = []
         for (const d of ds) {
@@ -241,7 +241,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
                 outputDescription: (d.description || '').trim(),
                 vout: verifyInteger(d.vout),
                 satoshis: verifyInteger(d.amount),
-                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase(),
+                providedBy: verifyTruthy(d.providedBy || '').trim().toLowerCase().replace('dojo', 'storage'),
                 purpose: verifyTruthy(d.purpose || '').trim().toLowerCase(),
                 type: verifyTruthy(d.type).trim(),
                 txid: nullToUndefined(d.txid),
@@ -260,14 +260,14 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['spendable', 'change'])
     }
-    findCertificatesQuery(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const q = this.setupQuery('certificates', partial, since, paged, trx)
-        if (certifiers && certifiers.length > 0) q.whereIn('certifier', certifiers);
-        if (types && types.length > 0) q.whereIn('type', types);
+    findCertificatesQuery(args: sdk.FindCertificatesArgs) : Knex.QueryBuilder {
+        const q = this.setupQuery('certificates', args)
+        if (args.certifiers && args.certifiers.length > 0) q.whereIn('certifier', args.certifiers);
+        if (args.types && args.types.length > 0) q.whereIn('type', args.types);
         return q
     }
-    async findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]> {
-        const q = this.findCertificatesQuery(partial, certifiers, types, since, paged, trx)
+    async findCertificates(args: sdk.FindCertificatesArgs) : Promise<table.Certificate[]> {
+        const q = this.findCertificatesQuery(args)
         const ds = await q
         const rs: table.Certificate[] = []
         for (const d of ds) {
@@ -289,11 +289,11 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
-    findCertificateFieldsQuery(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        return this.setupQuery('certificate_fields', partial, since, paged, trx)
+    findCertificateFieldsQuery(args: sdk.FindCertificateFieldsArgs) : Knex.QueryBuilder {
+        return this.setupQuery('certificate_fields', args)
     }
-    async findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.CertificateField[]> {
-        const q = this.findCertificateFieldsQuery(partial, since, paged, trx)
+    async findCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<table.CertificateField[]> {
+        const q = this.findCertificateFieldsQuery(args)
         const ds = await q
         const rs: table.CertificateField[] = []
         for (const d of ds) {
@@ -310,8 +310,8 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs)
     }
-    override async findSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<table.SyncState[]> {
-        const q = this.setupQuery('sync_state', partial, undefined, undefined, trx)
+    override async findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]> {
+        const q = this.setupQuery('sync_state', args)
         const ds = await q
         const rs: table.SyncState[] = []
         for (const d of ds) {
@@ -335,8 +335,8 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         return this.validateEntities(rs, undefined, ['init'])
     }
-    override async findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.User[]> {
-        const q = this.setupQuery('users', partial, undefined, undefined, trx)
+    override async findUsers(args: sdk.FindUsersArgs): Promise<table.User[]> {
+        const q = this.setupQuery('users', args)
         const ds = await q
         const rs: table.User[] = []
         for (const d of ds) {

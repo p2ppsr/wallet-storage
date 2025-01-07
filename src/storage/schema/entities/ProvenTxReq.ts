@@ -7,13 +7,13 @@ import prettyjson from "prettyjson"
 export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
 
     static async fromStorageTxid(storage: sdk.WalletStorage, txid: string, trx?: sdk.TrxToken) : Promise<ProvenTxReq | undefined> {
-        const reqApi = verifyOneOrNone(await storage.findProvenTxReqs({ txid }, undefined, undefined, undefined, undefined, trx))
+        const reqApi = verifyOneOrNone(await storage.findProvenTxReqs({ partial: { txid }, trx }))
         if (!reqApi) return undefined
         return new ProvenTxReq(reqApi)
     }
 
     static async fromStorageId(storage: sdk.WalletStorage, id: number, trx?: sdk.TrxToken) : Promise<ProvenTxReq> {
-        const reqApi = verifyOneOrNone(await storage.findProvenTxReqs({ provenTxReqId: id }, undefined, undefined, undefined, undefined, trx))
+        const reqApi = verifyOneOrNone(await storage.findProvenTxReqs({ partial: { provenTxReqId: id }, trx }))
         if (!reqApi) throw new sdk.WERR_INTERNAL(`proven_tx_reqs with id ${id} is missing.`)
         return new ProvenTxReq(reqApi)
     }
@@ -65,7 +65,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
     }
 
     async refreshFromStorage(storage: sdk.WalletStorage) : Promise<void> {
-        const newApi = verifyOne(await storage.findProvenTxReqs({ provenTxReqId: this.id }))
+        const newApi = verifyOne(await storage.findProvenTxReqs({ partial: { provenTxReqId: this.id } }))
         this.api = newApi
         this.unpackApi()
     }
@@ -311,7 +311,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.ProvenTxReq, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: ProvenTxReq, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findProvenTxReqs({ txid: ei.txid }, undefined, undefined, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findProvenTxReqs({ partial: { txid: ei.txid }, trx }))
         return {
             found: !!ef,
             eo: new ProvenTxReq(ef || { ...ei }),

@@ -140,7 +140,7 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.ProvenTx, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.ProvenTx, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findProvenTxs({ txid: ei.txid }, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findProvenTxs({ partial: { txid: ei.txid }, trx }))
         return {
             found: !!ef,
             eo: new ProvenTx(ef || { ...ei }),

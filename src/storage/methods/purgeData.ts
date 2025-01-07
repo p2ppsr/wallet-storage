@@ -1,3 +1,4 @@
+import * as bsv from '@bsv/sdk'
 import { Knex } from "knex"
 import { StorageKnex, table } from ".."
 import { sdk } from "../.."
@@ -106,15 +107,30 @@ export async function purgeData(storage: StorageKnex, params: sdk.PurgeParams, t
         const age = params.purgeSpentAge || defaultAge
         const before = toSqlWhereDate(new Date(Date.now() - age))
 
+        const beef = new bsv.Beef()
+        const utxos = await storage.findOutputs({ partial: { spendable: true }, txStatus: ['sending', 'unproven', 'completed', 'nosend']})
+        for (const utxo of utxos) {
+            // Figure out all the txids required to prove the validity of this utxo and merge proofs into beef.
+            const options: sdk.StorageGetBeefOptions = {
+                mergeToBeef: beef,
+                ignoreServices: true
+            }
+            if (utxo.txid)
+                await storage.getBeefForTransaction(utxo.txid, options);
+        }
+        const proofTxids: Record<string, boolean> = {}
+        for (const btx of beef.txs) proofTxids[btx.txid] = true
+
         let qs: PurgeQuery[] = []
 
-        const spentTxsQ = storage.toDb(trx)<{ transactionId: number }>('transactions')
-            .select("transactionId")
+        const spentTxsQ = storage.toDb(trx)<table.Transaction>('transactions')
             .where('updated_at', '<', before)
             .where('status', 'completed')
             .whereRaw(`not exists(select outputId from outputs as o where o.transactionId = transactions.transactionId and o.spendable = 1)`)
-        const txs = await spentTxsQ
-        const spentTxIds = txs.map(tx => tx.transactionId)
+        const txs: table.Transaction[] = await spentTxsQ
+        // Save any spent txid still needed to prove a utxo:
+        const nptxs = txs.filter(t => !proofTxids[t.txid || ''])
+        let spentTxIds = nptxs.map(tx => tx.transactionId)
 
         if (spentTxIds.length > 0) {
             const update: Partial<table.Output> = { spentBy: undefined }

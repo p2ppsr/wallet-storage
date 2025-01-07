@@ -126,11 +126,7 @@ export class Output extends EntityBase<table.Output> {
     : Promise<{ found: boolean, eo: entity.Output, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
         const basketId = ei.basketId ? syncMap.outputBasket.idMap[ei.basketId] : null
-        const ef = verifyOneOrNone(await storage.findOutputs({
-                userId,
-                transactionId,
-                vout: ei.vout,
-            }, false, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findOutputs({ partial: { userId, transactionId, vout: ei.vout, }, trx }))
         return {
             found: !!ef,
             eo: new entity.Output(ef || { ...ei }),

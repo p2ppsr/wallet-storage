@@ -15,8 +15,8 @@ describe('createAction test', () => {
     const ctxs: TestWalletNoSetup[] = []
 
     beforeAll(async () => {
-        if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('listOutputsTests'))
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('listOutputsTests'))
+        if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('createActionTests'))
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('createActionTests'))
     })
 
     afterAll(async () => {

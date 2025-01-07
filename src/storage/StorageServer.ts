@@ -6,6 +6,10 @@
  */
 
 import express, { Request, Response } from "express"
+import { AuthMiddlewareOptions, createAuthMiddleware } from "@bsv/auth-express-middleware"
+import { createPaymentMiddleware } from "@bsv/payment-express-middleware"
+import { ProtoWallet, Wallet } from '@bsv/sdk'
+import { sdk } from '..'
 
 // You have your local or imported `WalletStorage` interface:
 import { WalletStorage } from "./WalletStorage" // adjust import path
@@ -14,23 +18,38 @@ import { StorageKnex } from "./StorageKnex" // adjust path as needed
 
 export interface WalletStorageServerOptions {
     port: number
-    // Possibly more config, e.g. "basePath"
+    wallet: Wallet
+    monetize: boolean
 }
 
 export class StorageServer {
     private app = express()
     private port: number
-    private walletStorage: WalletStorage
+    private walletStorage: sdk.WalletStorage
+    private wallet: Wallet
+    private monetize: boolean
 
-    constructor(walletStorage: WalletStorage, options: WalletStorageServerOptions) {
+    constructor(walletStorage: sdk.WalletStorage, options: WalletStorageServerOptions) {
         this.walletStorage = walletStorage
         this.port = options.port
+        this.wallet = options.wallet
+        this.monetize = options.monetize
 
         this.setupRoutes()
     }
 
     private setupRoutes(): void {
         this.app.use(express.json())
+        const options: AuthMiddlewareOptions = {
+            wallet: this.wallet
+        }
+        this.app.use(createAuthMiddleware(options))
+        if (this.monetize) {
+            this.app.use(createPaymentMiddleware({
+                wallet: this.wallet,
+                calculateRequestPrice: () => 100
+            }))
+        }
 
         // A single POST endpoint for JSON-RPC:
         this.app.post("/", async (req: Request, res: Response) => {
@@ -85,33 +104,29 @@ export class StorageServer {
     }
 }
 
-/******************************************************************************
- * Example usage:
- * 
- * import Knex from 'knex'
- * 
- * async function main() {
- *   const knexInstance = Knex({
- *     client: 'sqlite3', // or 'mysql', etc.
- *     connection: { filename: './test.db' },
- *     useNullAsDefault: true
- *   })
- * 
- *   const storage = new StorageKnex({
- *     knex: knexInstance,
- *     chain: 'test',
- *     feeModel: { model: 'sat/kb', value: 1 },
- *     commissionSatoshis: 0
- *   })
- * 
- *   // Must init storage (migrate, or otherwise):
- *   await storage.makeAvailable() 
- *   await storage.migrate("MyRemoteStorage")
- * 
- *   const serverOptions: WalletStorageServerOptions = { port: 3000 }
- *   const server = new WalletStorageServer(storage, serverOptions)
- *   server.start()
- * }
- * 
- * main().catch(console.error)
- ******************************************************************************/
+import Knex from 'knex'
+
+async function main() {
+    const knexInstance = Knex({
+        client: 'sqlite3', // or 'mysql', etc.
+        connection: { filename: './test.db' },
+        useNullAsDefault: true
+    })
+
+    const storage = new StorageKnex({
+        knex: knexInstance,
+        chain: 'main',
+        feeModel: { model: 'sat/kb', value: 1 },
+        commissionSatoshis: 0
+    })
+
+    // Must init storage (migrate, or otherwise):
+    await storage.migrate("MyRemoteStorage")
+    await storage.makeAvailable()
+
+    const serverOptions: WalletStorageServerOptions = { port: 3000, wallet: new ProtoWallet('anyone'), monetize: false }
+    const server = new StorageServer(storage, serverOptions)
+    server.start()
+}
+
+main().catch(console.error)

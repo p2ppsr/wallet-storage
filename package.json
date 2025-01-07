@@ -29,7 +29,9 @@
   },
   "homepage": "https://github.com/p2ppsr/wallet#readme",
   "dependencies": {
-    "@bsv/sdk": "^1.2.19",
+    "@bsv/auth-express-middleware": "^1.0.1",
+    "@bsv/payment-express-middleware": "^1.0.1",
+    "@bsv/sdk": "^1.2.22",
     "axios": "^0.21.1",
     "express": "^4.21.2",
     "mysql2": "^3.12.0",

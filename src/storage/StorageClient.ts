@@ -5,8 +5,8 @@
  * by sending JSON-RPC calls to a configured remote WalletStorageServer.
  */
 
-import fetch from 'node-fetch' // TODO: auth-fetch
 import { sdk, table } from "..";
+import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
 import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
@@ -15,11 +15,13 @@ import { StorageSyncReader } from "./StorageSyncReader" // Adjust if needed
 export class StorageClient implements sdk.WalletStorage {
     private endpointUrl: string
     private nextId = 1
+    private authClient: AuthFetch
 
     // Track ephemeral (in-memory) "settings" if you wish to align with isAvailable() checks
     public settings?: table.Settings
 
-    constructor(endpointUrl: string) {
+    constructor(wallet: Wallet, endpointUrl: string) {
+        this.authClient = new AuthFetch(wallet)
         this.endpointUrl = endpointUrl
     }
 
@@ -41,7 +43,7 @@ export class StorageClient implements sdk.WalletStorage {
             id
         }
 
-        const response = await fetch(this.endpointUrl, {
+        const response = await this.authClient.fetch(this.endpointUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)

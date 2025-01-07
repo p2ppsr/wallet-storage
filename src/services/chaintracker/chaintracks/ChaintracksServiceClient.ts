@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { asBuffer, asString, sdk } from '../../../'
 
-import fetch from 'node-fetch'
 import { ChaintracksClientApi, ChaintracksInfoApi, HeaderListener, ReorgListener } from './ChaintracksClientApi'
 import { BaseBlockHeader, BaseBlockHeaderHex, BlockHeader, BlockHeaderHex, isBaseBlockHeader, toBaseBlockHeaderHex, toBlockHeader } from './BlockHeaderApi'
 

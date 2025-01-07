@@ -31,3 +31,4 @@ tmp
 
 out
 test/wallet/list/listOutputsbob*.test.ts
+test.db

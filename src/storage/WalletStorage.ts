@@ -86,6 +86,9 @@ export class WalletStorage implements sdk.WalletStorage {
     async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
         return await this.getActive().getProvenOrReq(txid, newReq, trx)
     }
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) {
+        return await this.getActive().findOrInsertProvenTxReq(newReq, trx)
+    }
     async findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken): Promise<{ tx: table.Transaction; isNew: boolean; }> {
         return await this.getActive().findOrInsertTransaction(newTx, trx)
     }

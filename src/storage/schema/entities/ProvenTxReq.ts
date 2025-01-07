@@ -227,6 +227,23 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         await storage.updateProvenTxReq(this.id, update, trx)
     }
 
+    async insertOrMerge(storage: sdk.WalletStorage, trx?: sdk.TrxToken): Promise<ProvenTxReq> {
+        const req = await storage.transaction<ProvenTxReq>(async trx => {
+            let reqApi0 = this.toApi()
+            const { req: reqApi1, isNew } = await storage.findOrInsertProvenTxReq(reqApi0, trx)
+            if (isNew) {
+                return new entity.ProvenTxReq(reqApi1)
+            } else {
+                const req = new ProvenTxReq(reqApi1)
+                req.mergeNotifyTransactionIds(reqApi0)
+                req.mergeHistory(reqApi0)
+                await req.updateStorage(storage, trx)
+                return req
+            }
+        }, trx)
+        return req
+    }
+
     /**
      * See `DojoProvenTxReqStatusApi`
      */

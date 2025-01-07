@@ -275,6 +275,39 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
+    async nLockTimeIsFinal(tx: string | number[] | bsv.Transaction | number): Promise<boolean> {
+        const MAXINT = 0xffffffff
+        const BLOCK_LIMIT = 500000000
+
+        let nLockTime: number
+
+        if (typeof tx === 'number')
+            nLockTime = tx
+        else {
+            if (typeof tx === 'string') {
+                tx = bsv.Transaction.fromHex(tx)
+            } else if (Array.isArray(tx)) {
+                tx = bsv.Transaction.fromBinary(tx)
+            }
+
+            if (tx instanceof bsv.Transaction) {
+                if (tx.inputs.every(i => i.sequence === MAXINT)) {
+                    return true
+                }
+                nLockTime = tx.lockTime
+            } else {
+                throw new sdk.WERR_INTERNAL('Should be either @bsv/sdk Transaction or babbage-bsv Transaction')
+            }
+        }
+
+        if (nLockTime >= BLOCK_LIMIT) {
+            const limit = Math.floor(Date.now() / 1000)
+            return nLockTime < limit
+        }
+
+        const height = await this.getHeight()
+        return nLockTime < height
+    }
 }
 
 export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat) : string {

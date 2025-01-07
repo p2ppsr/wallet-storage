@@ -7,6 +7,7 @@ import { relinquishOutputSdk } from "./methods/relinquishOutputSdk";
 import { proveCertificateSdk } from "./methods/proveCertificateSdk";
 import { relinquishCertificateSdk } from "./methods/relinquishCertificateSdk";
 import { acquireDirectCertificateSdk } from "./methods/acquireDirectCertificateSdk";
+import { signActionSdk } from "./methods/signActionSdk";
 
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
@@ -119,9 +120,8 @@ export class WalletSigner implements sdk.WalletSigner {
 
     async signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> {
         vargs.userId = await this.getUserId()
-        throw new sdk.WERR_NOT_IMPLEMENTED()
-        //const r = await signActionSdk(this, vargs, originator)
-        //return r
+        const r = await signActionSdk(this, vargs, originator)
+        return r
     }
     async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> {
         vargs.userId = await this.getUserId()

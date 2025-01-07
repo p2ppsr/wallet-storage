@@ -4,6 +4,7 @@ import { createTransactinoSdk } from "./methods/createTransactionSdk";
 import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
+import { GetReqsAndBeefResult } from './methods/processActionSdk';
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
@@ -82,6 +83,72 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     }
 
     /**
+     * Given an array of transaction txids with current ProvenTxReq ready-to-share status,
+     * lookup their DojoProvenTxReqApi req records.
+     * For the txids with reqs and status still ready to send construct a single merged beef.
+     * 
+     * @param txids 
+     * @param knownTxids 
+     * @param trx 
+     */
+    async getReqsAndBeefToShareWithWorld(txids: string[], knownTxids: string[], trx?: sdk.TrxToken)
+    : Promise<GetReqsAndBeefResult>
+    {
+        const r: GetReqsAndBeefResult = {
+            beef: new Beef(),
+            details: []
+        }
+
+        for (const txid of txids) {
+            const d: GetReqsAndBeefDetail = {
+                txid,
+                status: 'unknown'
+            }
+            r.details.push(d)
+            try {
+                d.proven = verifyOneOrNone(await this.findProvenTxs({ txid }, trx))
+                if (d.proven)
+                    d.status = 'alreadySent'
+                else {
+                    const alreadySentStatus = ['unmined', 'callback', 'unconfirmed', 'completed']
+                    const readyToSendStatus = ['sending', 'unsent', 'nosend', 'unprocessed']
+                    const errorStatus = ['unknown', 'nonfinal', 'invalid', 'doubleSpend']
+
+                    d.req = verifyOneOrNone(await this.findProvenTxReqs({ txid }, undefined, undefined, trx))
+                    if (!d.req) {
+                        d.status = 'error'
+                        d.error = `ERR_UNKNOWN_TXID: ${txid} was not found.`
+                    } else if (errorStatus.indexOf(d.req.status) > -1) {
+                        d.status = 'error'
+                        d.error = `ERR_INVALID_PARAMETER: ${txid} is not ready to send.`
+                    } else if (alreadySentStatus.indexOf(d.req.status) > -1) {
+                        d.status = 'alreadySent'
+                    } else if (readyToSendStatus.indexOf(d.req.status) > -1) {
+                        if (!d.req.rawTx || !d.req.beef) {
+                            d.status = 'error'
+                            d.error = `ERR_INTERNAL: ${txid} req is missing rawTx or beef.`
+                        } else 
+                            d.status = 'readyToSend'
+                    } else {
+                        d.status = 'error'
+                        d.error = `ERR_INTERNAL: ${txid} has unexpected req status ${d.req.status}`
+                    }
+
+                    if (d.status === 'readyToSend') {
+                        await this.mergeReqToBeefToShareExternally(d.req!, r.beef, knownTxids, trx);
+                    }
+                }
+
+            } catch (eu: unknown) {
+                const e = CwiError.fromUnknown(eu)
+                d.error = `${e.name}: ${e.message}`
+            }
+        }
+
+        return r
+    } 
+
+    /**
      * Checks if txid is a known valid ProvenTx and returns it if found.
      * Next checks if txid is a current ProvenTxReq and returns that if found.
      * If `newReq` is provided and an existing ProvenTxReq isn't found,
@@ -118,6 +185,40 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         }
 
         return r
+    }
+
+    /**
+     * Attempts to find transaction record with matching txid and userId as in newTx.
+     * If found, returns existing record.
+     * If not found, inserts the new transaction and returns it with new transactionId.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param newReq 
+     * @param trx 
+     * @returns 
+     */
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken)
+    : Promise<{ req: table.ProvenTxReq, isNew: boolean}>
+    {
+        let req: table.ProvenTxReq | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid: newReq.txid }, trx }))
+                if (req) break;
+                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
+                isNew = true
+                req = newReq
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { req, isNew }
     }
 
     /**

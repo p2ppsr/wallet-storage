@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Beef, Transaction, TransactionInput } from "@bsv/sdk";
-import { NinjaBase } from "../NinjaBase";
-import { asBsvSdkScript, ScriptTemplateSABPPP } from "cwi-base";
-import { PendingSignAction, processActionSdk } from "./createActionSdk";
 
-export async function signActionSdk(ninja: NinjaBase, vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+import * as bsv from '@bsv/sdk'
+import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
+import { PendingSignAction, WalletSigner } from "../WalletSigner"
+import { processActionSdk } from "./createActionSdk"
+
+export async function signActionSdk(signer: WalletSigner, vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.SignActionResult>
 {
-  const prior = ninja.pendingSignActions[vargs.reference]
+  const prior = signer.pendingSignActions[vargs.reference]
   if (!prior)
     throw new sdk.WERR_NOT_IMPLEMENTED('recovery of out-of-session signAction reference data is not yet implemented.')
   if (!prior.dcr.inputBeef)
     throw new sdk.WERR_INTERNAL('prior.dcr.inputBeef must be valid')
 
-  prior.tx = await completeSignedTransaction(prior, vargs.spends, ninja)
+  prior.tx = await completeSignedTransaction(prior, vargs.spends, signer)
 
-  const sendWithResults = await processActionSdk(prior, ninja, vargs, originator)
+  const sendWithResults = await processActionSdk(prior, signer, vargs, originator)
 
   const r: sdk.SignActionResult = {
     txid: prior.tx.id('hex'),
@@ -26,9 +27,9 @@ export async function signActionSdk(ninja: NinjaBase, vargs: sdk.ValidSignAction
   return r
 }
 
-export function makeAtomicBeef(tx: Transaction, beef: number[] | Beef) : number[] {
+export function makeAtomicBeef(tx: bsv.Transaction, beef: number[] | bsv.Beef) : number[] {
   if (Array.isArray(beef))
-    beef = Beef.fromBinary(beef)
+    beef = bsv.Beef.fromBinary(beef)
   beef.mergeTransaction(tx)
   return beef.toBinaryAtomic(tx.id('hex'))
 }
@@ -36,9 +37,9 @@ export function makeAtomicBeef(tx: Transaction, beef: number[] | Beef) : number[
 export async function completeSignedTransaction(
   prior: PendingSignAction,
   spends: Record<number, sdk.SignActionSpend>,
-  ninja: NinjaBase,
+  ninja: WalletSigner,
 )
-: Promise<Transaction>
+: Promise<bsv.Transaction>
 {
 
   /////////////////////
@@ -67,7 +68,8 @@ export async function completeSignedTransaction(
   for (const pdi of prior.pdi) {
     const sabppp = new ScriptTemplateSABPPP({
       derivationPrefix: pdi.derivationPrefix,
-      derivationSuffix: pdi.derivationSuffix
+      derivationSuffix: pdi.derivationSuffix,
+      keyDeriver: ninja.keyDeriver
     })
     const keys = ninja.getClientChangeKeyPair()
     const lockerPrivKey = keys.privateKey

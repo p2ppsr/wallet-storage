@@ -9,6 +9,7 @@ import { purgeData } from './methods/purgeData'
 import { requestSyncChunk } from './methods/requestSyncChunk'
 import { listCertificatesSdk } from './methods/listCertificatesSdk'
 import { createTransactinoSdk } from './methods/createTransactionSdk'
+import { processActionSdk } from './methods/processActionSdk'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
   /**
@@ -158,7 +159,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     return await listOutputsSdk(this, vargs, originator)
   }
   override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
-    throw new Error('Method not implemented.')
+    return await processActionSdk(this, params, originator)
   }
 
   override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
@@ -309,9 +310,17 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     await this.verifyReadyForDatabaseAccess(trx)
     return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
-  override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
+  override async updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
+    let r: number
+    if (Array.isArray(id)) {
+        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
+    } else if (Number.isInteger(id)) {
+        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
+    } else {
+        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+    }
+    return r
   }
   override async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -323,9 +332,17 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
       .where({ syncStateId: id })
       .update(this.validatePartialForUpdate(update, ['when'], ['init']))
   }
-  override async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
+  override async updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(this.validatePartialForUpdate(update))
+    let r: number
+    if (Array.isArray(id)) {
+        r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
+    } else if (Number.isInteger(id)) {
+        r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
+    } else {
+        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+    }
+    return r
   }
   override async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)

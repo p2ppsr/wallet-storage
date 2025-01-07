@@ -21,7 +21,8 @@ describe('Wallet services tests', () => {
         }
     })
 
-    test('0 TaskClock', async () => {
+    test.skip('0 TaskClock', async () => {
+        // This test takes a bit over a minute to run... un-skip it to work on it.
         for (const { chain, wallet, services, monitor } of ctxs) {
 
             if (!monitor) throw new sdk.WERR_INTERNAL('test requires setup with monitor');
@@ -44,7 +45,8 @@ describe('Wallet services tests', () => {
         }
     })
 
-    test('1 TaskNewHeader', async () => {
+    test.skip('1 TaskNewHeader', async () => {
+        // This test takes 10+ seconds to run... un-skip it to work on it.
         for (const { chain, wallet, services, monitor } of ctxs) {
 
             if (!monitor) throw new sdk.WERR_INTERNAL('test requires setup with monitor');

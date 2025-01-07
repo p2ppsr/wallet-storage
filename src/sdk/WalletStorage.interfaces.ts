@@ -18,21 +18,24 @@ export interface WalletStorage extends sdk.StorageSyncReader {
    //
    /////////////////
 
-
-   updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
-   
    internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.InternalizeActionResult>
    createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult>
    processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
    abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult>
 
+   updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
+
    getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<sdk.StorageProvenOrReq>
+
+   findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken) : Promise<{ user: table.User, isNew: boolean}>
+   findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<{ req: table.ProvenTxReq, isNew: boolean}>
    findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken) : Promise<{ tx: table.Transaction, isNew: boolean}>
    findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken) : Promise<table.OutputBasket>
    findOrInsertTxLabel(userId: number, label: string, trx?: sdk.TrxToken) : Promise<table.TxLabel>
    findOrInsertTxLabelMap(transactionId: number, txLabelId: number, trx?: sdk.TrxToken) : Promise<table.TxLabelMap>
    findOrInsertOutputTag(userId: number, tag: string, trx?: sdk.TrxToken): Promise<table.OutputTag>
    findOrInsertOutputTagMap(outputId: number, outputTagId: number, trx?: sdk.TrxToken): Promise<table.OutputTagMap>
+
    tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken) : Promise<void>
 
    insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number>
@@ -59,9 +62,9 @@ export interface WalletStorage extends sdk.StorageSyncReader {
    updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken) : Promise<number>
    updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken) : Promise<number>
    updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> 
-   updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken) : Promise<number>
+   updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken) : Promise<number>
    updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number>
-   updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken) : Promise<number>
+   updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken) : Promise<number>
    updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken) : Promise<number>
    updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken) : Promise<number>
    updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken) : Promise<number>
@@ -183,6 +186,7 @@ export interface StorageCreateTransactionSdkResult {
 }
 
 export interface StorageProcessActionSdkParams {
+   userId: number,
    isNewTx: boolean
    isSendWith: boolean
    isNoSend: boolean

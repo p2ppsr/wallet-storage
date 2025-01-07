@@ -122,6 +122,12 @@ export interface WalletServices {
      * @param hash block hash
      */
     hashToHeader(hash: string): Promise<sdk.BlockHeaderHex>
+
+    /**
+     * @returns whether the locktime value allows the transaction to be mined at the current chain height
+     * @param txOrLockTime either a bitcoin locktime value or hex, binary, un-encoded Transaction
+     */
+    nLockTimeIsFinal(txOrLockTime: string | number[] | bsv.Transaction | number): Promise<boolean>
 }
 
 export type GetUtxoStatusOutputFormat = 'hashLE' | 'hashBE' | 'script'

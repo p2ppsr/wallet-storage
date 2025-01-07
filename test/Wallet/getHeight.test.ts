@@ -8,7 +8,7 @@ describe('Wallet getHeight Tests', () => {
         wallet = testWallet;
     });
 
-    test.skip('should return the correct blockchain height', async () => {
+    test('should return the correct blockchain height', async () => {
         // not working yet??
         wallet.signer.getHeight.mockResolvedValueOnce(123456);
         const result = await wallet.getHeight({});

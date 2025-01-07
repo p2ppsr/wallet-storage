@@ -153,20 +153,21 @@ function removeUnlockScripts(args: sdk.ValidCreateActionArgs) {
   return storageArgs;
 }
 
-export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, args: sdk.ValidProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, vargs: sdk.ValidProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.SendWithResult[] | undefined>
 {
   const params: sdk.StorageProcessActionSdkParams = {
-    isNewTx: args.isNewTx,
-    isSendWith: args.isSendWith,
-    isNoSend: args.isNoSend,
-    isDelayed: args.isDelayed,
+    userId: vargs.userId!,
+    isNewTx: vargs.isNewTx,
+    isSendWith: vargs.isSendWith,
+    isNoSend: vargs.isNoSend,
+    isDelayed: vargs.isDelayed,
     reference: prior ? prior.reference : undefined,
     txid: prior ? prior.tx.id('hex') : undefined,
     rawTx: prior ? prior.tx.toBinary() : undefined,
-    sendWith: args.isSendWith ? args.options.sendWith : [],
+    sendWith: vargs.isSendWith ? vargs.options.sendWith : [],
   }
-  const r: sdk.StorageProcessActionSdkResults = await signer.storage.processActionSdk(params)
+  const r: sdk.StorageProcessActionSdkResults = await signer.storage.processActionSdk(params, originator)
 
   return r.sendWithResults
 }

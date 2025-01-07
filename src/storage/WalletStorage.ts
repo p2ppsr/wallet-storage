@@ -24,7 +24,11 @@ export class WalletStorage implements sdk.WalletStorage {
         if (backups) this.stores.concat(backups)
     }
 
-    setServices(v: sdk.WalletServices) { this._services = v }
+    setServices(v: sdk.WalletServices) {
+        this._services = v
+        for (const store of this.stores)
+            store.setServices(v)
+    }
     getServices() : sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
@@ -85,6 +89,12 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
         return await this.getActive().getProvenOrReq(txid, newReq, trx)
+    }
+    async findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken) {
+        return await this.getActive().findOrInsertUser(newUser, trx)
+    }
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) {
+        return await this.getActive().findOrInsertProvenTxReq(newReq, trx)
     }
     async findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken): Promise<{ tx: table.Transaction; isNew: boolean; }> {
         return await this.getActive().findOrInsertTransaction(newTx, trx)
@@ -189,7 +199,7 @@ export class WalletStorage implements sdk.WalletStorage {
     async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateOutputTag(id, update, trx)
     }
-    async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
+    async updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateProvenTxReq(id, update, trx)
     }
     async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
@@ -198,7 +208,7 @@ export class WalletStorage implements sdk.WalletStorage {
     async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateSyncState(id, update, trx)
     }
-    async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
+    async updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateTransaction(id, update, trx)
     }
     async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {

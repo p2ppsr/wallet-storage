@@ -68,7 +68,7 @@ describe('listCertificates tests', () => {
                             'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
                             'K94Qt3QJVntql3RVjl9hNmyNT2LweP8x+K+s7lJUg60='
                         ], limit: 10
-                    }, count: 4
+                    }, count: 9
                 },
             ]
 

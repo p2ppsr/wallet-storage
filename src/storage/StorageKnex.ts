@@ -186,7 +186,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number> {
-    const e = await this.validateEntityForInsert(certificate, trx)
+    const e = await this.validateEntityForInsert(certificate, trx, undefined, ['isDeleted'])
     if (e.certificateId === 0) delete e.certificateId
     const [id] = await this.toDb(trx)<table.Certificate>('certificates').insert(e)
     certificate.certificateId = id
@@ -208,7 +208,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken): Promise<number> {
-    const e = await this.validateEntityForInsert(basket, trx)
+    const e = await this.validateEntityForInsert(basket, trx, undefined, ['isDeleted'])
     if (e.basketId === 0) delete e.basketId
     const [id] = await this.toDb(trx)<table.OutputBasket>('output_baskets').insert(e)
     basket.basketId = id
@@ -240,7 +240,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken): Promise<number> {
-    const e = await this.validateEntityForInsert(tag, trx)
+    const e = await this.validateEntityForInsert(tag, trx, undefined, ['isDeleted'])
     if (e.outputTagId === 0) delete e.outputTagId
     const [id] = await this.toDb(trx)<table.OutputTag>('output_tags').insert(e)
     tag.outputTagId = id
@@ -248,12 +248,12 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken): Promise<void> {
-    const e = await this.validateEntityForInsert(tagMap, trx)
+    const e = await this.validateEntityForInsert(tagMap, trx, undefined, ['isDeleted'])
     const [id] = await this.toDb(trx)<table.OutputTagMap>('output_tags_map').insert(e)
   }
 
   override async insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken): Promise<number> {
-    const e = await this.validateEntityForInsert(label, trx)
+    const e = await this.validateEntityForInsert(label, trx, undefined, ['isDeleted'])
     if (e.txLabelId === 0) delete e.txLabelId
     const [id] = await this.toDb(trx)<table.TxLabel>('tx_labels').insert(e)
     label.txLabelId = id
@@ -261,7 +261,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
 
   override async insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken): Promise<void> {
-    const e = await this.validateEntityForInsert(labelMap, trx)
+    const e = await this.validateEntityForInsert(labelMap, trx, undefined, ['isDeleted'])
     const [id] = await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').insert(e)
   }
 
@@ -287,7 +287,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
   override async updateCertificate(id: number, update: Partial<table.Certificate>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.Certificate>('certificates').where({ certificateId: id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.Certificate>('certificates').where({ certificateId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateCommission(id: number, update: Partial<table.Commission>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -295,7 +295,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
   override async updateOutputBasket(id: number, update: Partial<table.OutputBasket>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.OutputBasket>('output_baskets').where({ basketId: id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.OutputBasket>('output_baskets').where({ basketId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -303,11 +303,11 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
   override async updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.OutputTagMap>('output_tags_map').where({ outputId, outputTagId: tagId }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.OutputTagMap>('output_tags_map').where({ outputId, outputTagId: tagId }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -329,11 +329,11 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   }
   override async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').where({ transactionId, txLabelId }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').where({ transactionId, txLabelId }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.TxLabel>('tx_labels').where({ txLabelId: id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.TxLabel>('tx_labels').where({ txLabelId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
   override async updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)

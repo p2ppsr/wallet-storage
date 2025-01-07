@@ -63,7 +63,7 @@ export class Commission extends EntityBase<table.Commission> {
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.Commission, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Commission, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
-        const ef = verifyOneOrNone(await storage.findCommissions({ transactionId, userId }, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findCommissions({ partial: { transactionId, userId }, trx }))
         return {
             found: !!ef,
             eo: new entity.Commission(ef || { ...ei }),

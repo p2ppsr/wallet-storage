@@ -55,7 +55,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
     async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
         const r = await this.transaction(async trx => {
-            const tx = verifyOneOrNone(await this.findTransactions({ userId: vargs.userId, reference: vargs.reference }, undefined, true, undefined, undefined, trx))
+            const tx = verifyOneOrNone(await this.findTransactions({ partial: { userId: vargs.userId, reference: vargs.reference }, noRawTx: true, trx }))
             const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
             if (!tx || !tx.isOutgoing || -1 < unAbortableStatus.findIndex(s => s === tx.status))
                 throw new sdk.WERR_INVALID_PARAMETER('reference', 'an inprocess, outgoing action that has not been signed and shared to the network.');
@@ -103,12 +103,12 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
         const r: sdk.StorageProvenOrReq = { proven: undefined, req: undefined }
 
-        r.proven = verifyOneOrNone(await this.findProvenTxs({ txid }, undefined, undefined, trx))
+        r.proven = verifyOneOrNone(await this.findProvenTxs({ partial: { txid }, trx }))
         if (r.proven) return r
 
         for (let retry = 0; ; retry++) {
             try {
-                r.req = verifyOneOrNone(await this.findProvenTxReqs({ txid }, undefined, undefined, undefined, undefined, trx))
+                r.req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid }, trx }))
                 if (r.req || !newReq) break;
                 newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
                 break;
@@ -140,7 +140,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
         for (let retry = 0; ; retry++) {
             try {
-                tx = verifyOneOrNone(await this.findTransactions({userId: newTx.userId, txid: newTx.txid }, undefined, false, undefined, undefined, trx))
+                tx = verifyOneOrNone(await this.findTransactions({ partial: {userId: newTx.userId, txid: newTx.txid }, trx }))
                 if (tx) break;
                 newTx.transactionId = await this.insertTransaction(newTx, trx)
                 isNew = true
@@ -160,7 +160,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         for (let retry = 0;; retry++) {
             try {
                 const now = new Date()
-                let basket = verifyOneOrNone(await this.findOutputBaskets(partial, undefined, undefined, trx))
+                let basket = verifyOneOrNone(await this.findOutputBaskets({ partial, trx }))
                 if (!basket) {
                     basket = { ...partial, minimumDesiredUTXOValue: 0, numberOfDesiredUTXOs: 0, basketId: 0,  created_at: now, updated_at: now, isDeleted: false }
                     basket.basketId = await this.insertOutputBasket(basket, trx)
@@ -180,7 +180,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         for(let retry = 0;; retry++) {
                 try {
                     const now = new Date()
-                    let txLabel = verifyOneOrNone(await this.findTxLabels(partial, undefined, undefined, trx))
+                    let txLabel = verifyOneOrNone(await this.findTxLabels({ partial, trx }))
                     if (!txLabel) {
                         txLabel = { ...partial, txLabelId: 0,  created_at: now, updated_at: now, isDeleted: false }
                         txLabel.txLabelId = await this.insertTxLabel(txLabel, trx)
@@ -200,7 +200,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         for(let retry = 0;; retry++) {
             try {
                     const now = new Date()
-                let txLabelMap = verifyOneOrNone(await this.findTxLabelMaps(partial, undefined, undefined, undefined, trx))
+                let txLabelMap = verifyOneOrNone(await this.findTxLabelMaps({ partial, trx }))
                 if (!txLabelMap) {
                     txLabelMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
                     await this.insertTxLabelMap(txLabelMap, trx)
@@ -220,7 +220,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         for (let retry = 0; ; retry++) {
             try {
                 const now = new Date()
-                let outputTag = verifyOneOrNone(await this.findOutputTags(partial, undefined, undefined, trx))
+                let outputTag = verifyOneOrNone(await this.findOutputTags({ partial, trx }))
                 if (!outputTag) {
                     outputTag = { ...partial, outputTagId: 0, created_at: now, updated_at: now, isDeleted: false }
                     outputTag.outputTagId = await this.insertOutputTag(outputTag, trx)
@@ -240,7 +240,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         for (let retry = 0; ; retry++) {
             try {
                 const now = new Date()
-                let outputTagMap = verifyOneOrNone(await this.findOutputTagMaps(partial, undefined, undefined, undefined, trx))
+                let outputTagMap = verifyOneOrNone(await this.findOutputTagMaps({ partial, trx }))
                 if (!outputTagMap) {
                     outputTagMap = { ...partial, created_at: now, updated_at: now, isDeleted: false }
                     await this.insertOutputTagMap(outputTagMap, trx)
@@ -257,7 +257,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
     async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken) : Promise<void> {
         await this.transaction(async trx => {
-            const o = verifyOne(await this.findOutputs(partial, true, undefined, undefined, trx))
+            const o = verifyOne(await this.findOutputs({ partial, noScript: true, trx }))
             const outputTag = await this.findOrInsertOutputTag(o.userId, tag, trx)
             await this.findOrInsertOutputTagMap(verifyId(o.outputId), verifyId(outputTag.outputTagId), trx)
         }, trx)
@@ -289,7 +289,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
             if (userId) where.userId = userId
             if (reference) where.reference = reference
 
-            const tx = verifyOne(await this.findTransactions(where, undefined, true, undefined, undefined, trx))
+            const tx = verifyOne(await this.findTransactions({ partial: where, noRawTx: true, trx }))
 
             //if (tx.status === status)
                 // no change required. Assume inputs and outputs spendable and spentBy are valid for status.
@@ -384,68 +384,69 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
     abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
 
-    abstract findOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]>
-    abstract findProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]>
-    abstract findProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>
-    abstract findTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]>
-    abstract findWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.WatchmanEvent[]>
+    abstract findOutputTagMaps(args: sdk.FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
+    abstract findProvenTxReqs(args: sdk.FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>
+    abstract findProvenTxs(args: sdk.FindProvenTxsArgs ): Promise<table.ProvenTx[]>
+    abstract findTxLabelMaps(args: sdk.FindTxLabelMapsArgs ): Promise<table.TxLabelMap[]>
+    abstract findWatchmanEvents(args: sdk.FindWatchmanEventsArgs ): Promise<table.WatchmanEvent[]>
 
-    abstract countCertificateFields(partial: Partial<table.CertificateField>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countCommissions(partial: Partial<table.Commission>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputs(partial: Partial<table.Output>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputTagMaps(partial: Partial<table.OutputTagMap>, tagIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countOutputTags(partial: Partial<table.OutputTag>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countProvenTxReqs(partial: Partial<table.ProvenTxReq>, status?: sdk.ProvenTxReqStatus[], txids?: string[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countProvenTxs(partial: Partial<table.ProvenTx>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countSyncStates(partial: Partial<table.SyncState>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTxLabelMaps(partial: Partial<table.TxLabelMap>, labelIds?: number[], since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countTxLabels(partial: Partial<table.TxLabel>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countUsers(partial: Partial<table.User>, since?: Date, trx?: sdk.TrxToken): Promise<number>
-    abstract countWatchmanEvents(partial: Partial<table.WatchmanEvent>, since?: Date, trx?: sdk.TrxToken): Promise<number>
+    abstract countCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<number>
+    abstract countCertificates(args: sdk.FindCertificatesArgs) : Promise<number>
+    abstract countCommissions(args: sdk.FindCommissionsArgs) : Promise<number>
+    abstract countOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<number>
+    abstract countOutputs(args: sdk.FindOutputsArgs) : Promise<number>
+    abstract countOutputTagMaps(args: sdk.FindOutputTagMapsArgs) : Promise<number>
+    abstract countOutputTags(args: sdk.FindOutputTagsArgs) : Promise<number>
+    abstract countProvenTxReqs(args: sdk.FindProvenTxReqsArgs) : Promise<number>
+    abstract countProvenTxs(args: sdk.FindProvenTxsArgs): Promise<number> 
+    abstract countSyncStates(args: sdk.FindSyncStatesArgs): Promise<number>
+    abstract countTransactions(args: sdk.FindTransactionsArgs) : Promise<number>
+    abstract countTxLabelMaps(args: sdk.FindTxLabelMapsArgs) : Promise<number>
+    abstract countTxLabels(args: sdk.FindTxLabelsArgs) : Promise<number>
+    abstract countUsers(args: sdk.FindUsersArgs) : Promise<number>
+    abstract countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number>
+
     abstract countChangeInputs( userId: number, basketId: number, excludeSending: boolean): Promise<number>
 
     async findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
-        return verifyOneOrNone(await this.findUsers({ identityKey: key }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findUsers({ partial: { identityKey: key }, trx }))
     }
 
     async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
-        return verifyOneOrNone(await this.findCertificates({ certificateId: id }, undefined, undefined, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findCertificates({ partial: { certificateId: id }, trx }))
     }
     async findCommissionById(id: number, trx?: sdk.TrxToken) : Promise<table.Commission| undefined> {
-        return verifyOneOrNone(await this.findCommissions({ commissionId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findCommissions({ partial: { commissionId: id }, trx }))
     }
     async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean) : Promise<table.Output| undefined> {
-        return verifyOneOrNone(await this.findOutputs({ outputId: id }, noScript, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findOutputs({ partial: { outputId: id }, noScript, trx }))
     }
     async findOutputBasketById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputBasket| undefined> {
-        return verifyOneOrNone(await this.findOutputBaskets({ basketId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findOutputBaskets({ partial: { basketId: id }, trx }))
     }
     async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx| undefined> {
-        return verifyOneOrNone(await this.findProvenTxs({ provenTxId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findProvenTxs({ partial: { provenTxId: id }, trx }))
     }
     async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq| undefined> {
-        return verifyOneOrNone(await this.findProvenTxReqs({ provenTxReqId: id }, undefined, undefined, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findProvenTxReqs({ partial: { provenTxReqId: id }, trx }))
     }
     async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState| undefined> {
-        return verifyOneOrNone(await this.findSyncStates({ syncStateId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findSyncStates({ partial: { syncStateId: id }, trx }))
     }
     async findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean) : Promise<table.Transaction| undefined> {
-        return verifyOneOrNone(await this.findTransactions({ transactionId: id }, undefined, noRawTx, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findTransactions({ partial: { transactionId: id }, noRawTx, trx }))
     }
     async findTxLabelById(id: number, trx?: sdk.TrxToken) : Promise<table.TxLabel| undefined> {
-        return verifyOneOrNone(await this.findTxLabels({ txLabelId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findTxLabels({ partial: { txLabelId: id }, trx }))
     }
     async findOutputTagById(id: number, trx?: sdk.TrxToken) : Promise<table.OutputTag| undefined> {
-        return verifyOneOrNone(await this.findOutputTags({ outputTagId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findOutputTags({ partial: { outputTagId: id }, trx }))
     }
     async findUserById(id: number, trx?: sdk.TrxToken) : Promise<table.User| undefined> {
-        return verifyOneOrNone(await this.findUsers({ userId: id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findUsers({ partial: { userId: id }, trx }))
     }
     async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined> {
-        return verifyOneOrNone(await this.findWatchmanEvents({ id }, undefined, undefined, trx))
+        return verifyOneOrNone(await this.findWatchmanEvents({ partial: { id }, trx }))
     }
 
     async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {

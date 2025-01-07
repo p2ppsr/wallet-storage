@@ -24,18 +24,18 @@ export interface StorageSyncReader {
    getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]>
    getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]>
 
-   findCertificateFields(partial: Partial<table.CertificateField>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.CertificateField[]>
-   findCertificates(partial: Partial<table.Certificate>, certifiers?: string[], types?: string[], since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Certificate[]>
-   findCommissions(partial: Partial<table.Commission>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Commission[]>
-   findOutputBaskets(partial: Partial<table.OutputBasket>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputBasket[]>
-   findOutputs(partial: Partial<table.Output>, noScript?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Output[]>
-   findOutputTags(partial: Partial<table.OutputTag>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTag[]>
-   findTransactions(partial: Partial<table.Transaction>, status?: sdk.TransactionStatus[], noRawTx?: boolean, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.Transaction[]>
-   findTxLabels(partial: Partial<table.TxLabel>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabel[]>
+   findCertificateFields(args: sdk.FindCertificateFieldsArgs ): Promise<table.CertificateField[]>
+   findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
+   findCommissions(args: sdk.FindCommissionsArgs ): Promise<table.Commission[]>
+   findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
+   findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findOutputTags(args: sdk.FindOutputTagsArgs ): Promise<table.OutputTag[]>
+   findTransactions(args: sdk.FindTransactionsArgs ): Promise<table.Transaction[]>
+   findTxLabels(args: sdk.FindTxLabelsArgs ): Promise<table.TxLabel[]>
 
    // These are needed for automation:
-   findSyncStates(partial: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<table.SyncState[]>
-   findUsers(partial: Partial<table.User>, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.User[]>
+   findSyncStates(args: sdk.FindSyncStatesArgs ): Promise<table.SyncState[]>
+   findUsers(args: sdk.FindUsersArgs ): Promise<table.User[]>
 
    requestSyncChunk(args: RequestSyncChunkArgs) : Promise<RequestSyncChunkResult>
 }

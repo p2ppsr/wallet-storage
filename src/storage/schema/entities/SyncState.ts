@@ -35,7 +35,7 @@ export class SyncState extends EntityBase<table.SyncState> {
     }
 
     static async fromStorage(storage: sdk.WalletStorage, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
-        let user = verifyOneOrNone(await storage.findUsers({ identityKey: userIdentityKey }))
+        let user = verifyOneOrNone(await storage.findUsers({ partial: { identityKey: userIdentityKey } }))
         if (!user) {
             const now = new Date()
             user = {
@@ -46,7 +46,7 @@ export class SyncState extends EntityBase<table.SyncState> {
             }
             await storage.insertUser(user)
         }
-        let api = verifyOneOrNone(await storage.findSyncStates({ userId: user.userId, storageIdentityKey: remoteSettings.storageIdentityKey }))
+        let api = verifyOneOrNone(await storage.findSyncStates({ partial: { userId: user.userId, storageIdentityKey: remoteSettings.storageIdentityKey } }))
         const ss = new SyncState(api)
         if (!api) {
             ss.userId = user.userId

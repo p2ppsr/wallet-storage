@@ -9,7 +9,7 @@ export async function relinquishCertificateSdk(signer: WalletSigner, vargs: sdk.
     serialNumber: vargs.serialNumber,
     certifier: vargs.certifier
   }
-  const cert = verifyOne(await signer.storage.findCertificates(partial, [], [], undefined, undefined, undefined))
+  const cert = verifyOne(await signer.storage.findCertificates({ partial }))
   const count = await signer.storage.updateCertificate(cert.certificateId, { isDeleted: true })
   if (count !== 1)
     throw new sdk.WERR_INTERNAL('failed to relinquish certificate ${cert.certificateId}')

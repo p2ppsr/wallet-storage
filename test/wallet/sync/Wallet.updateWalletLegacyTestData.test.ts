@@ -91,7 +91,7 @@ describe.skip('Wallet sync tests', () => {
     })
 
     test('3 sync pruned MySQL stagingdojotone to MySQL walletLegacyTestData', async () => {
-        //await waitFor2()
+        await waitFor2()
         console.log('syncing local MySQL stagingdojotone to local SQLite walletLegacyTestData in tmp folder')
         const reader = await _tu.createMySQLTestWallet({ databaseName: 'stagingdojotone', chain: 'test', rootKeyHex })
         const writer = await _tu.createMySQLTestWallet({ databaseName: 'walletLegacyTestData', chain: 'test', rootKeyHex, dropAll: true })

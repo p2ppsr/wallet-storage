@@ -68,14 +68,14 @@ describe('listOutputs test', () => {
 
       for (const args of invalidArgs) {
         for (const originator of invalidOriginators) {
-          console.log('Testing args:', args, 'with originator:', originator)
+          //console.log('Testing args:', args, 'with originator:', originator)
           try {
             await wallet.listOutputs(args, originator as sdk.OriginatorDomainNameStringUnder250Bytes)
             throw new Error('Expected method to throw.')
           } catch (e) {
             const error = e as Error
-            console.log('Error name:', error.name)
-            console.log('Error message:', error.message)
+            //console.log('Error name:', error.name)
+            //console.log('Error message:', error.message)
 
             // Validate error
             expect(error.name).toBe('WERR_INVALID_PARAMETER')
@@ -103,9 +103,9 @@ describe('listOutputs test', () => {
       const validOriginators = ['example.com', 'localhost', 'subdomain.example.com']
 
       for (const originator of validOriginators) {
-        console.log('Testing args:', validArgs, 'with originator:', originator)
+        //console.log('Testing args:', validArgs, 'with originator:', originator)
         const result = await wallet.listOutputs(validArgs, originator as sdk.OriginatorDomainNameStringUnder250Bytes)
-        console.log('Result:', result)
+        //console.log('Result:', result)
         expect(result.totalOutputs).toBeGreaterThanOrEqual(0)
       }
     }
@@ -434,7 +434,7 @@ describe('listOutputs prepare DB with missing custom instructions', () => {
     const db = storage.toDb()
     const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
 
-    console.log('Results from outputs table:', results)
+    //console.log('Results from outputs table:', results)
 
     expect(results).toEqual([
       { outputId: 1, basketId: 4, customInstructions: 'Short instructions A' },
@@ -452,7 +452,7 @@ describe('listOutputs prepare DB with missing custom instructions', () => {
     // Verify that the rows were reset
     const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
 
-    console.log('Results after cleanup:', results)
+    //console.log('Results after cleanup:', results)
 
     // Expect basketId and customInstructions to be null
     expect(results).toEqual([
@@ -494,12 +494,12 @@ async function cleanDatabase(storage: StorageKnex) {
     const db = storage.toDb()
 
     // Log to verify the database connection is established
-    console.log('Database connection established for cleaning.')
+    //console.log('Database connection established for cleaning.')
 
     // Remove the updates for basketId = 4 and reset customInstructions
     const affectedRows = await db('outputs').where('basketId', 4).whereIn('outputId', [1, 2, 3]).update({ basketId: null, customInstructions: null })
 
-    console.log(`Cleaned database: ${affectedRows} rows updated.`)
+    //console.log(`Cleaned database: ${affectedRows} rows updated.`)
   } catch (error) {
     console.error('Error cleaning database:', error)
     throw error // Re-throw the error to let the test handle it

@@ -432,6 +432,7 @@ describe('listOutputs prepare DB with missing custom instructions', () => {
 
   test('Verify custom instructions for basketId = 4', async () => {
     const db = storage.toDb()
+
     const results = await db.select('outputId', 'basketId', 'customInstructions').from('outputs').whereIn('outputId', [1, 2, 3])
 
     if (!noLog) console.log('Results from outputs table:', results)

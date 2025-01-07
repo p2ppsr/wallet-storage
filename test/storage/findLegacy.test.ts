@@ -9,8 +9,8 @@ describe('find tests', () => {
 
     beforeAll(async () => {
         if (!env.noMySQL)
-            ctxs.push(await _tu.createLegacyWalletMySQLCopy('abortActionTests'));
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('abortActionTests'))
+            ctxs.push(await _tu.createLegacyWalletMySQLCopy('storagefindLegacytest'));
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('storagefindLegacytest'))
     })
 
     afterAll(async () => {
@@ -53,7 +53,8 @@ describe('find tests', () => {
             {
                 const r = await storage.findOutputs({ partial: { userId: 1, basketId: 1 }, txStatus: ['sending'] })
                 expect(r.length).toBe(1)
-                expect(r[0].outputId).toBe(497)
+                expect(r[0].txid).toBe('a3a8fe7f541c1383ff7b975af49b27284ae720af5f2705d8409baaf519190d26')
+                expect(r[0].vout).toBe(2)
             }
         }
     })

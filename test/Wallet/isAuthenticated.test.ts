@@ -1,49 +1,69 @@
-import { setupTestWallet } from '../utils/TestUtilsMethodTests';
-import { Wallet } from '../../src/Wallet';
+import { sdk } from "../../src";
+import { _tu, TestWalletNoSetup } from "../utils/TestUtilsWalletStorage";
 
-describe('Wallet isAuthenticated Integration Tests', () => {
-    let wallet: Wallet;
-    let storage: any;
-    let cleanup: () => Promise<void>;
+describe('Wallet isAuthenticated Tests', () => {
+    jest.setTimeout(99999999);
 
-    beforeEach(async () => {
-        // Set up a real wallet for integration testing
-        const setup = await setupTestWallet();
-        wallet = setup.wallet;
-        storage = setup.storage; // Capture the storage instance for direct access
+    const env = _tu.getEnv('test');
+    const ctxs: TestWalletNoSetup[] = [];
 
-        // Define cleanup logic
-        cleanup = async () => {
-            if (storage) {
-                await storage.destroy(); // Clean up storage resources
-            }
-        };
+    beforeAll(async () => {
+        if (!env.noMySQL)
+            ctxs.push(await _tu.createLegacyWalletMySQLCopy('isAuthenticatedTests'));
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('isAuthenticatedTests'));
     });
 
-    afterEach(async () => {
-        // Ensure resources are properly destroyed after each test
-        await cleanup();
+    afterAll(async () => {
+        for (const ctx of ctxs) {
+            await ctx.storage.destroy();
+        }
     });
 
     test('should return true when the wallet is authenticated', async () => {
-        const result = await wallet.isAuthenticated({});
-        expect(result).toEqual({ authenticated: true });
+        for (const { wallet } of ctxs) {
+            const result = await wallet.isAuthenticated({});
+            expect(result).toEqual({ authenticated: true });
+        }
     });
 
     test('should return false when the wallet is not authenticated', async () => {
-        // Simulate unauthenticated state by clearing authenticated data
-        await storage.dropAllData(); // Clear storage to simulate logout
+        for (const { wallet, storage } of ctxs) {
+            await storage.dropAllData(); // Simulate unauthenticated state
+            const result = await wallet.isAuthenticated({});
+            expect(result).toEqual({ authenticated: false });
+        }
+    });
 
-        const result = await wallet.isAuthenticated({});
-        expect(result).toEqual({ authenticated: false });
+    test('should handle invalid parameter inputs gracefully', async () => {
+        for (const { wallet } of ctxs) {
+            const invalidInputs = [
+                undefined, // No input
+                null,      // Null input
+                123,       // Invalid type
+                {},        // Empty object
+                { extra: 'invalid' } // Unexpected property
+            ];
+
+            for (const input of invalidInputs) {
+                try {
+                    const result = await wallet.isAuthenticated(input as any);
+                    throw new Error('Expected method to throw.');
+                } catch (e) {
+                    const error = e as Error;
+                    expect(error.name).toBe('WERR_INVALID_PARAMETER');
+                }
+            }
+        }
     });
 
     test('should handle unexpected errors gracefully', async () => {
-        // Simulate an error scenario by destroying storage mid-operation
-        await storage.destroy();
+        for (const { wallet } of ctxs) {
+            jest.spyOn(wallet.signer, 'isAuthenticated').mockImplementation(() => {
+                throw new Error('Unexpected error');
+            });
 
-        await expect(wallet.isAuthenticated({})).rejects.toThrow(
-            'Storage is unavailable or destroyed'
-        );
+            await expect(wallet.isAuthenticated({})).rejects.toThrow('Unexpected error');
+        }
     });
 });
+

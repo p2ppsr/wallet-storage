@@ -35,7 +35,7 @@ describe('internalizeAction tests', () => {
 
       for (const args of invalidArgs) {
         for (const originator of invalidOriginators) {
-          console.log('Testing args:', args, 'with originator:', originator)
+          //console.log('Testing args:', args, 'with originator:', originator)
 
           //const expectedError = args.tx.length === 0 || args.tx[0] !== 4022206465 ? sdk.WERR_INVALID_PARAMETER : originator.trim() === '' || originator.startsWith('too.long') ? sdk.WERR_INVALID_PARAMETER : sdk.W
 

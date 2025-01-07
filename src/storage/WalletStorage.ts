@@ -192,7 +192,7 @@ export class WalletStorage implements sdk.WalletStorage {
     async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateOutputTag(id, update, trx)
     }
-    async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
+    async updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateProvenTxReq(id, update, trx)
     }
     async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
@@ -201,7 +201,7 @@ export class WalletStorage implements sdk.WalletStorage {
     async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateSyncState(id, update, trx)
     }
-    async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
+    async updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
         return await this.getActive().updateTransaction(id, update, trx)
     }
     async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {

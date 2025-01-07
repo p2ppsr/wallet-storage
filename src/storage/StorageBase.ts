@@ -1,10 +1,11 @@
 import * as bsv from '@bsv/sdk'
-import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { asArray, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
 import { createTransactinoSdk } from "./methods/createTransactionSdk";
 import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
-import { GetReqsAndBeefResult } from './methods/processActionSdk';
+import { GetReqsAndBeefDetail, GetReqsAndBeefResult } from './methods/processActionSdk';
+import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
@@ -95,7 +96,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     : Promise<GetReqsAndBeefResult>
     {
         const r: GetReqsAndBeefResult = {
-            beef: new Beef(),
+            beef: new bsv.Beef(),
             details: []
         }
 
@@ -106,7 +107,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
             }
             r.details.push(d)
             try {
-                d.proven = verifyOneOrNone(await this.findProvenTxs({ txid }, trx))
+                d.proven = verifyOneOrNone(await this.findProvenTxs({ partial: { txid }, trx }))
                 if (d.proven)
                     d.status = 'alreadySent'
                 else {
@@ -114,7 +115,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
                     const readyToSendStatus = ['sending', 'unsent', 'nosend', 'unprocessed']
                     const errorStatus = ['unknown', 'nonfinal', 'invalid', 'doubleSpend']
 
-                    d.req = verifyOneOrNone(await this.findProvenTxReqs({ txid }, undefined, undefined, trx))
+                    d.req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid }, trx }))
                     if (!d.req) {
                         d.status = 'error'
                         d.error = `ERR_UNKNOWN_TXID: ${txid} was not found.`
@@ -124,7 +125,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
                     } else if (alreadySentStatus.indexOf(d.req.status) > -1) {
                         d.status = 'alreadySent'
                     } else if (readyToSendStatus.indexOf(d.req.status) > -1) {
-                        if (!d.req.rawTx || !d.req.beef) {
+                        if (!d.req.rawTx || !d.req.inputBEEF) {
                             d.status = 'error'
                             d.error = `ERR_INTERNAL: ${txid} req is missing rawTx or beef.`
                         } else 
@@ -140,13 +141,32 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
                 }
 
             } catch (eu: unknown) {
-                const e = CwiError.fromUnknown(eu)
+                const e = sdk.WalletError.fromUnknown(eu)
                 d.error = `${e.name}: ${e.message}`
             }
         }
-
         return r
     } 
+
+    async mergeReqToBeefToShareExternally(req: table.ProvenTxReq, mergeToBeef: bsv.Beef, knownTxids: string[], trx?: sdk.TrxToken) : Promise<void> {
+        const { rawTx, inputBEEF: beef } = req;
+        if (!rawTx || !beef) throw new sdk.WERR_INTERNAL(`req rawTx and beef must be valid.`);
+        mergeToBeef.mergeRawTx(asArray(rawTx));
+        mergeToBeef.mergeBeef(asArray(beef));
+        const tx = bsv.Transaction.fromBinary(asArray(rawTx));
+        for (const input of tx.inputs) {
+            if (!input.sourceTXID) throw new sdk.WERR_INTERNAL(`req all transaction inputs must have valid sourceTXID`);
+            const txid = input.sourceTXID
+            const btx = mergeToBeef.findTxid(txid);
+            if (!btx) {
+                if (knownTxids && knownTxids.indexOf(txid) > -1)
+                    mergeToBeef.mergeTxidOnly(txid);
+
+                else
+                    await this.getValidBeefForKnownTxid(txid, mergeToBeef, undefined, knownTxids, trx);
+            }
+        }
+    }
 
     /**
      * Checks if txid is a known valid ProvenTx and returns it if found.
@@ -433,6 +453,10 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return await createTransactinoSdk(this, vargs, originator)
     }
 
+    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
+        return await attemptToPostReqsToNetwork(this, reqs, trx)
+    }
+
 
 
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
@@ -461,10 +485,10 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
     abstract updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>
     abstract updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number>
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>

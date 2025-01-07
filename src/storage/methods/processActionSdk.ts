@@ -58,7 +58,7 @@ async function shareReqsWithWorld(dojo: StorageBase, userId: number, txids: stri
     const r = await dojo.getReqsAndBeefToShareWithWorld(txids, [])
 
     // Initialize aggregate results for each txid
-    const ars: { txid: string, getReq: GetReqsAndBeefDetail, postBeef?: PostBeefResultForTxidApi }[] = []
+    const ars: { txid: string, getReq: GetReqsAndBeefDetail, postBeef?: sdk.PostTxResultForTxid }[] = []
     for (const getReq of r.details) ars.push({ txid: getReq.txid, getReq })
 
     // Filter original txids down to reqIds that are available and need sending

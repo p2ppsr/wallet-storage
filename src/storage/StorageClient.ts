@@ -163,6 +163,10 @@ export class StorageClient implements sdk.WalletStorage {
         return this.rpcCall<sdk.StorageProvenOrReq>("getProvenOrReq", [txid, newReq, trx])
     }
 
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<{ req: table.ProvenTxReq; isNew: boolean; }> {
+        return this.rpcCall<{ req: table.ProvenTxReq; isNew: boolean }>("findOrInsertProvenTxReq", [newReq, trx])
+    }
+
     async findOrInsertTransaction(
         newTx: table.Transaction,
         trx?: sdk.TrxToken

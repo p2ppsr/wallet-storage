@@ -26,21 +26,8 @@ export const log = (message: string, ...optionalParams: any[]): void => {
  */
 export const updateTable = async (updateFunction, id, testValues) => {
   for (const [key, value] of Object.entries(testValues)) {
-    let normalizedValue = value
-
-    // Normalize boolean values explicitly
-    if (key === 'isDeleted' || key === 'someOtherBooleanField') {
-      if (typeof value === 'boolean') {
-        normalizedValue = value ? 1 : 0 // Convert boolean to integer for SQLite
-      } else if (typeof value === 'number' && (value === 0 || value === 1)) {
-        normalizedValue = value // Already normalized
-      } else {
-        throw new Error(`Invalid value for boolean field ${key}: ${value}`)
-      }
-    }
-
-    log('id=', id, '[key]=', [key], 'normalizedValue=', normalizedValue)
-    await updateFunction(id, { [key]: normalizedValue })
+    log('id=', id, '[key]=', [key], 'value=', value)
+    await updateFunction(id, { [key]: value })
   }
 }
 

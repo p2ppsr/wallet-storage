@@ -129,4 +129,4 @@ async function main() {
     server.start()
 }
 
-main().catch(console.error)
+//main().catch(console.error)

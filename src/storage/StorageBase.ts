@@ -207,6 +207,28 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return r
     }
 
+    async findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken)
+    : Promise<{ user: table.User, isNew: boolean}>
+    {
+        let user: table.User | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                user = verifyOneOrNone(await this.findUsers({ partial: { identityKey: newUser.identityKey }, trx }))
+                if (user) break;
+                newUser.userId = await this.insertUser(newUser, trx)
+                isNew = true
+                user = newUser
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { user, isNew }
+    }
+
     /**
      * Attempts to find transaction record with matching txid and userId as in newTx.
      * If found, returns existing record.

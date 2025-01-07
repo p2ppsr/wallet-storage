@@ -35,7 +35,10 @@ export class WalletSigner implements sdk.WalletSigner {
         this.pendingSignActions = {}
     }
 
-    setServices(v: sdk.WalletServices) { this._services = v }
+    setServices(v: sdk.WalletServices) {
+        this._services = v
+        this.storage.setServices(v)
+    }
     getServices() : sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')

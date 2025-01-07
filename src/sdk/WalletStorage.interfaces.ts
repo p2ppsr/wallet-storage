@@ -27,6 +27,7 @@ export interface WalletStorage extends sdk.StorageSyncReader {
 
    getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<sdk.StorageProvenOrReq>
 
+   findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken) : Promise<{ user: table.User, isNew: boolean}>
    findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<{ req: table.ProvenTxReq, isNew: boolean}>
    findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken) : Promise<{ tx: table.Transaction, isNew: boolean}>
    findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken) : Promise<table.OutputBasket>

@@ -24,7 +24,11 @@ export class WalletStorage implements sdk.WalletStorage {
         if (backups) this.stores.concat(backups)
     }
 
-    setServices(v: sdk.WalletServices) { this._services = v }
+    setServices(v: sdk.WalletServices) {
+        this._services = v
+        for (const store of this.stores)
+            store.setServices(v)
+    }
     getServices() : sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
@@ -85,6 +89,9 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
         return await this.getActive().getProvenOrReq(txid, newReq, trx)
+    }
+    async findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken) {
+        return await this.getActive().findOrInsertUser(newUser, trx)
     }
     async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) {
         return await this.getActive().findOrInsertProvenTxReq(newReq, trx)

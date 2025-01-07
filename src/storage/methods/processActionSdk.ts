@@ -2,12 +2,13 @@
 import * as bsv from '@bsv/sdk'
 import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
 
-export async function processActionSdk(dojo: StorageBase, userId: number, params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function processActionSdk(dojo: StorageBase, params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.StorageProcessActionSdkResults>
 {
 
     stampLog(params.log, `start dojo processActionSdk`)
 
+    const userId = params.userId
     const r: sdk.StorageProcessActionSdkResults = {
         sendWithResults: undefined
     }

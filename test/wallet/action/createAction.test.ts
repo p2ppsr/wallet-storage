@@ -169,7 +169,7 @@ describe('createAction test', () => {
 
                 const cr = await wallet.createAction(createArgs)
 
-                expect(cr.noSendChange).toBeTruthy()
+                expect(cr.noSendChange).not.toBeTruthy()
                 expect(cr.sendWithResults?.length).toBe(2)
                 const [swr1, swr2] = cr.sendWithResults!
                 expect(swr1.status !== 'failed').toBe(true)

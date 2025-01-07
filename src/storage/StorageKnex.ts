@@ -9,6 +9,7 @@ import { purgeData } from './methods/purgeData'
 import { requestSyncChunk } from './methods/requestSyncChunk'
 import { listCertificatesSdk } from './methods/listCertificatesSdk'
 import { createTransactinoSdk } from './methods/createTransactionSdk'
+import { processActionSdk } from './methods/processActionSdk'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
   /**
@@ -158,7 +159,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     return await listOutputsSdk(this, vargs, originator)
   }
   override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
-    throw new Error('Method not implemented.')
+    return await processActionSdk(this, params, originator)
   }
 
   override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {

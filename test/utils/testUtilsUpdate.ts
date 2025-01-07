@@ -1,5 +1,5 @@
 // Declare logEnabled globally so it can be accessed anywhere in this file
-let logEnabled: boolean = true
+let logEnabled: boolean = false
 
 /**
  * Centralized logging function to handle logging based on the `logEnabled` flag.
@@ -68,12 +68,12 @@ export const verifyValues = (targetObject: Record<string, any>, testValues: Reco
  * @param {Date} expectedTime - The time you tried to set.
  * @param {Date} referenceTime - A timestamp captured just before the update attempt.
  * @param {number} toleranceMs - Optional tolerance in milliseconds for discrepancies (default: 10ms).
- * @param {boolean} [logEnabled=true] - A flag to enable or disable logging for this error.
+ * @param {boolean} [ logEnabled=false ] - A flag to enable or disable logging for this error.
 
  * @returns {boolean} - Returns `true` if the validation passes; `false` otherwise.
  * Logs human-readable details if the validation fails.
  */
-export const validateUpdateTime = (actualTime: Date, expectedTime: Date, referenceTime: Date, toleranceMs: number = 10, logEnabled: boolean = true): boolean => {
+export const validateUpdateTime = (actualTime: Date, expectedTime: Date, referenceTime: Date, toleranceMs: number = 10, logEnabled: boolean = false): boolean => {
   const actualTimestamp = actualTime.getTime()
   const expectedTimestamp = expectedTime.getTime()
   const referenceTimestamp = referenceTime.getTime()
@@ -148,7 +148,7 @@ export const setLogging = (enabled: boolean): void => {
  * @param {string[]} columnNames - An array of column names for which to check the unique constraint.
  * @param {boolean} logEnabled - A flag to enable or disable logging.
  */
-export const logUniqueConstraintError = (error: any, tableName: string, columnNames: string[], logEnabled: boolean = true): void => {
+export const logUniqueConstraintError = (error: any, tableName: string, columnNames: string[], logEnabled: boolean = false): void => {
   if (logEnabled) {
     // Construct the expected error message string with the table name prefixed to each column
     const expectedErrorString = `SQLITE_CONSTRAINT: UNIQUE constraint failed: ${columnNames.map(col => `${tableName}.${col}`).join(', ')}`
@@ -176,13 +176,13 @@ export const logUniqueConstraintError = (error: any, tableName: string, columnNa
  * @param {any} error - The error object that contains the error message.
  * @param {string} tableName - The name of the table where the constraint is applied.
  * @param {string} columnName - The name of the column in which the unique constraint is being violated.
- * @param {boolean} [logEnabled=true] - A flag to enable or disable logging for this error.
+ * @param {boolean} [ logEnabled=false ] - A flag to enable or disable logging for this error.
  *
  * @returns {void} This function does not return any value. It logs the error to the console.
  *
  * @example logForeignConstraintError(error, 'proven_tx_reqs', 'provenTxReqId', logEnabled)
  */
-const logForeignConstraintError = (error: any, tableName: string, columnName: string, logEnabled: boolean = true): void => {
+const logForeignConstraintError = (error: any, tableName: string, columnName: string, logEnabled: boolean = false): void => {
   if (logEnabled) {
     if (error.message.includes(`SQLITE_CONSTRAINT: FOREIGN KEY constraint failed`)) {
       log(`${columnName} constraint error caught as expected:`, error.message)
@@ -203,7 +203,7 @@ const logForeignConstraintError = (error: any, tableName: string, columnName: st
  * @param {string} columnName - The column name for which the unique constraint is being tested.
  * @param {any} invalidValue - The value to assign to the column that should trigger the unique constraint error. This should be an object with the column name(s) as the key(s).
  * @param {number} [id=1] - The id used to set the column value during the test (default is 1).
- * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
+ * @param {boolean} [ logEnabled=false ] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
  * @returns {Promise<boolean>} This function returns true if error thrown otherwise false, it performs an async operation to test the unique constraint error.
  *
@@ -219,7 +219,7 @@ export const triggerUniqueConstraintError = async (
   columnName: string,
   invalidValue: any, // This remains an object passed in by the caller
   id: number = 1,
-  logEnabled: boolean = true
+  logEnabled: boolean = false
 ): Promise<boolean> => {
   setLogging(logEnabled)
 
@@ -272,7 +272,7 @@ export const triggerUniqueConstraintError = async (
  * @param {string} columnName - The column name being tested for the foreign key constraint.
  * @param {any} invalidValue - The value to assign to the column that should trigger the foreign key constraint error. This should be an object with the column name as the key.
  * @param {number} [id=1] - The id used to set the column value during the test (default is 1).
- * @param {boolean} [logEnabled=true] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
+ * @param {boolean} [ logEnabled=false ] - A flag to enable or disable logging during the test. Default is `true` (logging enabled).
  *
  * @returns {Promise<boolean>} This function returns true if error thrown otherwise false, it performs an async operation to test the foreign key constraint error.
  *
@@ -280,7 +280,7 @@ export const triggerUniqueConstraintError = async (
  *
  * @example await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxId', { provenTxId: 42 })
  */
-export const triggerForeignKeyConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, invalidValue: any, id: number = 1, logEnabled: boolean = true): Promise<boolean> => {
+export const triggerForeignKeyConstraintError = async (storage: any, findMethod: string, updateMethod: string, tableName: string, columnName: string, invalidValue: any, id: number = 1, logEnabled: boolean = false): Promise<boolean> => {
   // Set logging state based on the argument
   setLogging(logEnabled)
 

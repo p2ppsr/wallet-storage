@@ -1,5 +1,9 @@
 import { setupTestWallet } from '../utils/TestUtilsMethodTests';
 
+jest.mock('whatsonchain', () => ({
+    getSomething: jest.fn().mockResolvedValue('mocked value'),
+}));
+
 describe('Wallet waitForAuthentication Tests', () => {
     let wallet: any;
     let mockSigner: any;

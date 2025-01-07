@@ -15,8 +15,14 @@ function defaultOne(v?: number) { return v === undefined ? 1 : v }
 function defaultEmpty<T>(v?: T[]) { return v === undefined ? [] : v }
 
 function validateOptionalStringLength(s: string | undefined, name: string, min?: number, max?: number): string | undefined {
-    if (s === undefined) return undefined
-    return validateOptionalStringLength(s, name, min, max)
+  if (s === undefined) return undefined;
+  if (min !== undefined && s.length < min) {
+      throw new Error(`${name} must be at least ${min} characters long.`);
+  }
+  if (max !== undefined && s.length > max) {
+      throw new Error(`${name} must be at most ${max} characters long.`);
+  }
+  return s; // Base case: Return the valid string
 }
 
 export function validateSatoshis(v: number | undefined, name: string, min?: number): number {

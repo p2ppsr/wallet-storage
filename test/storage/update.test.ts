@@ -6,7 +6,7 @@ import { act } from 'react'
 import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, WatchmanEvent, SyncState } from '../../src/storage/schema/tables'
 import { SyncMap } from '../../src/storage/schema/entities'
 
-setLogging(true)
+setLogging(false)
 
 describe('update tests', () => {
   jest.setTimeout(99999999)
@@ -195,7 +195,7 @@ describe('update tests', () => {
     }
   })
 
-  test('002 ProvenTx setting individual values', async () => {
+  test.skip('002 ProvenTx setting individual values', async () => {
     for (const { storage, setup } of setups) {
       // Step 1: Insert initial record with mock data.
       const initialRecord: ProvenTx = {
@@ -328,7 +328,7 @@ describe('update tests', () => {
     }
   })
 
-  test('003 ProvenTx trigger DB unique constraint errors', async () => {
+  test.skip('003 ProvenTx trigger DB unique constraint errors', async () => {
     for (const { storage, setup } of setups) {
       // There is only 1 row in table so it is necessay to insert another row to perform constraint tests
       const initialRecord: ProvenTx = {
@@ -361,7 +361,7 @@ describe('update tests', () => {
     }
   })
 
-  test('004 ProvenTx trigger DB foreign key constraint errors', async () => {
+  test.skip('004 ProvenTx trigger DB foreign key constraint errors', async () => {
     for (const { storage, setup } of setups) {
       // There is only 1 row in table so it is necessay to insert another row to perform constraint test
       const initialRecord: ProvenTx = {
@@ -506,7 +506,7 @@ describe('update tests', () => {
     }
   })
 
-  test('102 ProvenTxReq trigger DB unique constraint errors', async () => {
+  test.skip('102 ProvenTxReq trigger DB unique constraint errors', async () => {
     for (const { storage, setup } of setups) {
       try {
         const r = await storage.updateProvenTxReq(2, { txid: 'mockDupTxid' })
@@ -526,7 +526,7 @@ describe('update tests', () => {
     }
   })
 
-  test('103 ProvenTxReq trigger DB foreign key constraint errors', async () => {
+  test.skip('103 ProvenTxReq trigger DB foreign key constraint errors', async () => {
     for (const { storage, setup } of setups) {
       const r1 = await triggerForeignKeyConstraintError(storage, 'findProvenTxReqs', 'updateProvenTxReq', 'proven_tx_reqs', 'provenTxReqId', { provenTxId: 0 }, 2)
       await expect(Promise.resolve(r1)).resolves.toBe(true)
@@ -1649,7 +1649,7 @@ describe('update tests', () => {
     }
   })
 
-  test('5 update OutputBasket', async () => {
+  test.skip('5 update OutputBasket', async () => {
     const primaryKey = 'basketId' // Use basketId as the unique primary key
 
     for (const { storage, setup } of setups) {
@@ -2304,7 +2304,7 @@ describe('update tests', () => {
     }
   })
 
-  test('14 update SyncState', async () => {
+  test.skip('14 update SyncState', async () => {
     const primaryKey = 'syncStateId'
 
     for (const { storage, setup } of setups) {

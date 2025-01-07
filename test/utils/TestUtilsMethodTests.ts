@@ -1,4 +1,3 @@
-import { getHeight, getNetwork } from '@babbage/sdk-ts';
 import { sdk } from '../../src';
 import { Wallet } from '../../src/Wallet';
 import { jest } from '@jest/globals';

@@ -388,7 +388,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
         if (args.partial.lockingScript) throw new sdk.WERR_INVALID_PARAMETER('args.partial.lockingScript', `undefined. Outputs may not be found by lockingScript value.`);
         const q = this.setupQuery('outputs', args)
         if (args.txStatus && args.txStatus.length > 0) {
-            q.whereRaw(`(select status from transactions where transaction.transactionId = output.transactionId) in (${args.txStatus.map(s => `'${s}'`).join(',')})`)
+            q.whereRaw(`(select status from transactions where transactions.transactionId = outputs.transactionId) in (${args.txStatus.map(s => `'${s}'`).join(',')})`)
         }
         if (args.noScript && !count) {
             const columns = table.outputColumnsWithoutLockingScript.map(c => `outputs.${c}`)

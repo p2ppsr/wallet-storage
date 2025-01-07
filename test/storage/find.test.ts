@@ -96,6 +96,12 @@ describe('find tests', () => {
     test('8 find Output', async () => {
         for (const { storage, setup } of setups) {
             expect((await storage.findOutputs({ partial: {} })).length).toBe(3)
+
+            {
+                const r = await storage.findOutputs({ partial: { userId: 1, basketId: 1 }, txStatus: ['sending'] })
+                expect(r.length).toBe(1)
+                expect(r[0].outputId).toBe(2059)
+            }
         }
     })
 

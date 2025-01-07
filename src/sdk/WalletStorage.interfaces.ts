@@ -303,7 +303,7 @@ export interface FindOutputBasketsArgs extends FindSincePagedArgs {
 export interface FindOutputsArgs extends FindSincePagedArgs {
    partial: Partial<table.Output>
    noScript?: boolean
-   txStatus: sdk.TransactionStatus[]
+   txStatus?: sdk.TransactionStatus[]
 }
 export interface FindOutputTagMapsArgs extends FindSincePagedArgs {
    partial: Partial<table.OutputTagMap>

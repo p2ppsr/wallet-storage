@@ -31,11 +31,11 @@ export class Transaction extends EntityBase<table.Transaction> {
      * Not all transaction inputs correspond to prior dojo outputs.
      */
     async getInputs(storage: sdk.WalletStorage, trx?: sdk.TrxToken) : Promise<table.Output[]> {
-        const inputs = await storage.findOutputs({ userId: this.userId, spentBy: this.id }, false, undefined, undefined, trx)
+        const inputs = await storage.findOutputs({ partial: { userId: this.userId, spentBy: this.id }, trx })
         // Merge "inputs" by spentBy and userId
         for (const input of this.getBsvTxIns()) {
             //console.log(`getInputs of ${this.id}: ${input.txid()} ${input.txOutNum}`)
-            const pso = verifyOneOrNone(await storage.findOutputs({ userId: this.userId, txid: input.sourceTXID, vout: input.sourceOutputIndex }, false, undefined, undefined, trx))
+            const pso = verifyOneOrNone(await storage.findOutputs({ partial: { userId: this.userId, txid: input.sourceTXID, vout: input.sourceOutputIndex }, trx }))
             if (pso && !inputs.some(i => i.outputId === pso.outputId)) inputs.push(pso)
         }
         return inputs
@@ -151,7 +151,7 @@ export class Transaction extends EntityBase<table.Transaction> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.Transaction, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Transaction, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findTransactions({ reference: ei.reference, userId }, undefined, false, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findTransactions({ partial: { reference: ei.reference, userId }, trx }))
         return {
             found: !!ef,
             eo: new entity.Transaction(ef || { ...ei }),
@@ -194,7 +194,7 @@ export class Transaction extends EntityBase<table.Transaction> {
     
     async getProvenTx(storage: sdk.WalletStorage, trx?: sdk.TrxToken) : Promise<entity.ProvenTx | undefined> {
        if (!this.provenTxId) return undefined
-       const p = verifyOneOrNone(await storage.findProvenTxs({ provenTxId: this.provenTxId }, undefined, undefined, trx))
+       const p = verifyOneOrNone(await storage.findProvenTxs({ partial: { provenTxId: this.provenTxId }, trx }))
        if (!p) return undefined
        return new entity.ProvenTx(p) 
     }

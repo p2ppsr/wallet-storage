@@ -56,7 +56,7 @@ export class TxLabel extends EntityBase<table.TxLabel> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.TxLabel, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.TxLabel, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findTxLabels({ label: ei.label, userId }, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findTxLabels({ partial: { label: ei.label, userId }, trx }))
         return {
             found: !!ef,
             eo: new entity.TxLabel(ef || { ...ei }),

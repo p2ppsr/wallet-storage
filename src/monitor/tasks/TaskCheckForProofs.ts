@@ -48,8 +48,7 @@ export class TaskCheckForProofs extends WalletMonitorTask {
         let offset = 0;
         for (; ;) {
             let log = '';
-            const reqs = await this.storage.findProvenTxReqs({},
-                ['callback', 'unmined', 'nosend', 'sending', 'unknown', 'unconfirmed'], undefined, undefined, { limit, offset });
+            const reqs = await this.storage.findProvenTxReqs({ partial: {}, status: ['callback', 'unmined', 'nosend', 'sending', 'unknown', 'unconfirmed'], paged: { limit, offset } });
             if (reqs.length === 0) break;
             log += `CheckForProofs: ${reqs.length} reqs with status 'callback', 'unmined', 'nosend', 'sending', 'unknown', or 'unconfirmed'\n`;
             const r = await this.monitor.getProofs(reqs, 2, countsAsAttempt);

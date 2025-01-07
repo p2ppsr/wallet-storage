@@ -65,13 +65,13 @@ export class WalletSigner implements sdk.WalletSigner {
     async authenticate(identityKey?: string, addIfNew?: boolean): Promise<void> {
         if (identityKey && identityKey !== this.keyDeriver.identityKey)
             throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'same as already authenticated identity.');
-        this._user = verifyOneOrNone(await this.storage.findUsers({ identityKey: this.keyDeriver.identityKey }))
+        this._user = verifyOneOrNone(await this.storage.findUsers({ partial: { identityKey: this.keyDeriver.identityKey } }))
         if (!this._user) {
             if (!addIfNew)
                 throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'found in storage.');
             const now = new Date()
             await this.storage.insertUser({ created_at: now, updated_at: now, userId: 0, identityKey: this.keyDeriver.identityKey })
-            this._user = verifyOne(await this.storage.findUsers({ identityKey: this.keyDeriver.identityKey }))
+            this._user = verifyOne(await this.storage.findUsers({ partial: { identityKey: this.keyDeriver.identityKey } }))
         }
         this._isAuthenticated = true
     }

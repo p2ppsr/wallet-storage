@@ -62,7 +62,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
     
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: OutputBasket, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findOutputBaskets({ name: ei.name, userId }, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findOutputBaskets({ partial: { name: ei.name, userId }, trx }))
         return {
             found: !!ef,
             eo: new OutputBasket(ef || { ...ei }),

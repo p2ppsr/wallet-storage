@@ -247,15 +247,15 @@ export class WalletMonitor {
      */
     async confirmSpendableOutputs() : Promise<{ invalidSpendableOutputs: table.Output[] }> {
         const invalidSpendableOutputs: table.Output[] = []
-        const users = await this.storage.findUsers({})
+        const users = await this.storage.findUsers({ partial: {} })
         for (const { userId } of users) {
-            const defaultBasket = verifyOne(await this.storage.findOutputBaskets({ userId, name: 'default' }))
+            const defaultBasket = verifyOne(await this.storage.findOutputBaskets({ partial: { userId, name: 'default' } }))
             const where: Partial<table.Output> = {
                 userId,
                 basketId: defaultBasket.basketId,
                 spendable: true
             }
-            const outputs = await this.storage.findOutputs(where)
+            const outputs = await this.storage.findOutputs({ partial: where })
             for (let i = outputs.length - 1; i >= 0; i--) {
                 const o = outputs[i]
                 const oid = verifyId(o.outputId)
@@ -297,7 +297,7 @@ export class WalletMonitor {
         const limit = 100
         let offset = 0
         for (; ;) {
-            const reqs = await this.storage.findProvenTxReqs({}, ['unknown'], undefined, undefined, { limit, offset })
+            const reqs = await this.storage.findProvenTxReqs({ partial: {}, status: ['unknown'], paged: { limit, offset } })
             await this.getProofs(reqs)
             if (reqs.length < limit) break
             offset += limit
@@ -305,7 +305,7 @@ export class WalletMonitor {
         
         offset = 0
         for (; ;) {
-            const reqs = await this.storage.findProvenTxReqs({ notified: false }, sdk.ProvenTxReqTerminalStatus, undefined, undefined, { limit, offset })
+            const reqs = await this.storage.findProvenTxReqs({ partial: { notified: false }, status: sdk.ProvenTxReqTerminalStatus, paged: { limit, offset } })
             await this.notifyOfProvenTx(reqs)
             if (reqs.length < limit) break
             offset += limit
@@ -343,7 +343,7 @@ export class WalletMonitor {
             const reqs: entity.ProvenTxReq[] = []
             if (req.batch) {
                 // Make sure wew process entire batch together for efficient beef generation
-                const batchReqApis = await this.storage.findProvenTxReqs({ batch: req.batch, status: 'unsent' })
+                const batchReqApis = await this.storage.findProvenTxReqs({ partial: { batch: req.batch, status: 'unsent' } })
                 for (const bra of batchReqApis) {
                     // Remove any matching batchReqApis from reqApis
                     const index = reqApis.findIndex(ra => ra.provenTxReqId === bra.provenTxReqId)
@@ -508,7 +508,7 @@ export class WalletMonitor {
             if (ptx) {
                 const p = ptx
                 await this.storage.transaction(async trx => {
-                    const p0 = verifyOneOrNone(await this.storage.findProvenTxs({ txid: p.txid }, undefined, undefined, trx))
+                    const p0 = verifyOneOrNone(await this.storage.findProvenTxs({ partial: { txid: p.txid }, trx }))
                     if (!ptx) throw new sdk.WERR_INTERNAL()
                     p.provenTxId = p0 ? p0.provenTxId : await this.storage.insertProvenTx(ptx.toApi(), trx)
                     req.provenTxId = p.provenTxId
@@ -626,7 +626,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
         const storage = this.storage
         const limit = 100;
 
-        const users = await storage.findUsers({})
+        const users = await storage.findUsers({ partial: {} })
         for (const u of users) {
 
             const userId = verifyId(u.userId)
@@ -634,11 +634,11 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
 
             let offset = 0;
             for (; ;) {
-                const allSpendableOutputs = await storage.findOutputs({ userId, spendable: true })
+                const allSpendableOutputs = await storage.findOutputs({ partial: { userId, spendable: true } })
                 const balance1 = sum(allSpendableOutputs, v => v.satoshis || 0)
                 console.log(`  ${balance1} balance1, sum of spendable outputs`)
 
-                const txs = await storage.findTransactions({ status: 'completed', userId }) // , undefined, { limit, offset });
+                const txs = await storage.findTransactions({ partial: { status: 'completed', userId } }) // , undefined, { limit, offset });
                 const balance2 = sum(txs, v => v.satoshis || 0)
                 console.log(`  ${balance2} balance2, sum of completed transaction satoshiss`)
 
@@ -646,13 +646,13 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
 
                     const tid = verifyId(tx.transactionId)
 
-                    const commissions = await storage.findCommissions({ transactionId: tid })
+                    const commissions = await storage.findCommissions({ partial: { transactionId: tid } })
                     const commissionsSum = sum(commissions, v => v.satoshis)
 
-                    const inputOutpts = await storage.findOutputs({ spentBy: tid })
+                    const inputOutpts = await storage.findOutputs({ partial: { spentBy: tid } })
                     const inputOutputsSum = sum(inputOutpts, v => v.satoshis || 0)
 
-                    const os = await storage.findOutputs({ transactionId: tid })
+                    const os = await storage.findOutputs({ partial: { transactionId: tid } })
                     const owned = filter(os, v => v.userId === tx.userId)
                     const ownedChange = filter(owned.ts, v => v.change || v.purpose === 'change')
                     const myChange = sum(ownedChange.ts, v => v.satoshis || 0)

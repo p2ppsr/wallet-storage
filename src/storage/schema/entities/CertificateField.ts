@@ -54,7 +54,7 @@ export class CertificateField extends EntityBase<table.CertificateField> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.CertificateField, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<{ found: boolean; eo: entity.CertificateField; eiId: number; }> {
         const certificateId = syncMap.certificate.idMap[ei.certificateId];
-        const ef = verifyOneOrNone(await storage.findCertificateFields({ certificateId, userId, fieldName: ei.fieldName }, undefined, undefined, trx));
+        const ef = verifyOneOrNone(await storage.findCertificateFields({ partial: { certificateId, userId, fieldName: ei.fieldName }, trx }));
         return {
             found: !!ef,
             eo: new entity.CertificateField(ef || { ...ei }),

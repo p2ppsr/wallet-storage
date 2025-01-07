@@ -56,7 +56,7 @@ export class OutputTag extends EntityBase<table.OutputTag> {
 
     static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.OutputTag, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.OutputTag, eiId: number }> {
-        const ef = verifyOneOrNone(await storage.findOutputTags({ tag: ei.tag, userId }, undefined, undefined, trx))
+        const ef = verifyOneOrNone(await storage.findOutputTags({ partial: { tag: ei.tag, userId }, trx }))
         return {
             found: !!ef,
             eo: new entity.OutputTag(ef || { ...ei }),

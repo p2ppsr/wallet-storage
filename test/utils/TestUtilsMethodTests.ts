@@ -1,13 +1,15 @@
-import { sdk } from '../../src';
-import { Wallet } from '../../src/Wallet';
-import { jest } from '@jest/globals';
-import { Knex, knex as makeKnex } from 'knex';
+import * as bsv from '@bsv/sdk';
 import path from 'path';
 import { promises as fsp } from 'fs';
+import { Knex, knex as makeKnex } from 'knex';
+import { sdk, Wallet, WalletSigner, WalletStorage, StorageKnex, WalletServices, WalletMonitor, WalletMonitorOptions } from '../../src';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+const localMySqlConnection = process.env.LOCAL_MYSQL_CONNECTION || '';
 
 /**
- * Logging Utility
- * Centralized logging for debugging test cases.
+ * Centralized Logging Utility
  */
 let logEnabled: boolean = true;
 
@@ -20,41 +22,6 @@ export const log = (message: string, ...optionalParams: any[]): void => {
         console.log(`[LOG] ${message}`, ...optionalParams);
     }
 };
-
-/**
- * Mock Utilities
- * Provides reusable mock implementations for WalletSigner and KeyDeriver.
- */
-export const mockWalletSigner = (): any => ({
-    isAuthenticated: jest.fn().mockReturnValue(true),
-    authenticate: jest.fn(),
-    storageIdentity: { storageIdentityKey: 'mockStorageKey' },
-    getClientChangeKeyPair: jest.fn().mockReturnValue({ publicKey: 'mockPublicKey' }),
-    chain: 'test',
-    getChain: jest.fn(),
-    getHeaderForHeight: jest.fn(),
-    getHeight: jest.fn(),
-    getNetwork: jest.fn(),
-    listCertificatesSdk: jest.fn(),
-    acquireCertificateSdk: jest.fn(),
-    relinquishCertificateSdk: jest.fn(),
-    proveCertificateSdk: jest.fn(),
-    discoverByIdentityKeySdk: jest.fn(),
-    discoverByAttributesSdk: jest.fn(),
-});
-
-export const mockKeyDeriver = (): any => ({
-    rootKey: {
-        deriveChild: jest.fn(),
-        toPublicKey: jest.fn(() => ({ toString: jest.fn().mockReturnValue('mockIdentityKey') })),
-    },
-    identityKey: 'mockIdentityKey',
-    derivePublicKey: jest.fn(),
-    derivePrivateKey: jest.fn(),
-    deriveSymmetricKey: jest.fn(),
-    revealCounterpartySecret: jest.fn(),
-    revealSpecificSecret: jest.fn(),
-});
 
 /**
  * SQLite and MySQL Helpers
@@ -78,6 +45,9 @@ export const createMySQLKnex = (connection: object): Knex => {
     return makeKnex(config);
 };
 
+/**
+ * File Utilities
+ */
 export const createTempFile = async (
     filename = '',
     tryToDelete = false,
@@ -105,35 +75,39 @@ export const createTempFile = async (
 };
 
 /**
- * Test Utilities
- * Sets up a mock Wallet instance and associated dependencies for tests.
+ * Wallet Test Setup
  */
-export const setupTestWallet = (): { wallet: Wallet; mockSigner: any; mockKeyDeriver: any } => {
-    const mockSigner = mockWalletSigner();
-    const mockKeyDeriverInstance = mockKeyDeriver();
-    const wallet = new Wallet(mockSigner, mockKeyDeriverInstance);
-    return { wallet, mockSigner, mockKeyDeriver: mockKeyDeriverInstance };
+export const setupTestWallet = async (): Promise<{ wallet: Wallet; signer: WalletSigner; storage: WalletStorage }> => {
+    const knex = createSQLiteKnex(':memory:');
+    const chain: sdk.Chain = 'test';
+    const rootKeyHex = '1'.repeat(64);
+    const rootKey = bsv.PrivateKey.fromHex(rootKeyHex);
+    const keyDeriver = new sdk.KeyDeriver(rootKey);
+    const activeStorage = new StorageKnex({
+        chain,
+        knex,
+        commissionSatoshis: 0,
+        commissionPubKeyHex: undefined,
+        feeModel: { model: 'sat/kb', value: 1 },
+    });
+    await activeStorage.migrate('test_wallet');
+    await activeStorage.makeAvailable();
+
+    const storage = new WalletStorage(activeStorage);
+    const signer = new WalletSigner(chain, keyDeriver, storage);
+    await signer.authenticate(undefined, true);
+
+    const services = new WalletServices(chain);
+    const monitorOptions = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services);
+    const monitor = new WalletMonitor(monitorOptions);
+    const wallet = new Wallet(signer, keyDeriver, services, monitor);
+
+    return { wallet, signer, storage };
 };
 
 /**
- * Argument and Response Generators
- * Creates reusable test data for arguments and expected responses.
+ * Test Data Generators
  */
-export const generateListCertificatesArgs = (overrides = {}): sdk.ListCertificatesArgs => ({
-    certifiers: [],
-    types: [],
-    limit: 10,
-    offset: 0,
-    privileged: false,
-    ...overrides,
-});
-
-export const generateMockCertificatesResponse = (overrides = {}): any => ({
-    certificates: [],
-    totalCertificates: 0,
-    ...overrides,
-});
-
 export const generateAcquireCertificateArgs = (overrides = {}): sdk.AcquireCertificateArgs => ({
     type: 'mockType',
     certifier: 'abcdef1234567890',
@@ -149,51 +123,24 @@ export const generateAcquireCertificateArgs = (overrides = {}): sdk.AcquireCerti
     ...overrides,
 });
 
-
-
-export const generateRelinquishCertificateArgs = (overrides = {}): sdk.RelinquishCertificateArgs => ({
-    type: 'mockType',
-    certifier: 'mockCertifier',
-    serialNumber: 'mockSerialNumber',
-    ...overrides,
-});
-
-export const generateProveCertificateArgs = (overrides = {}): sdk.ProveCertificateArgs => ({
-    certificate: {
-        type: 'mockType',
-        certifier: 'mockCertifier',
-        serialNumber: 'mockSerialNumber',
-    },
-    fieldsToReveal: ['fieldName1', 'fieldName2'],
-    verifier: 'mockVerifierPublicKey',
-    privileged: false,
-    privilegedReason: 'Testing',
-    ...overrides,
-});
-
-// Additional Argument and Response Generators ...
-
 /**
  * Validation Helpers
- * Provides functions to validate results and handle errors in tests.
  */
-export const validateCertificatesResponse = (result: any, expected: any): void => {
-    expect(result.certificates.length).toBe(expected.certificates.length);
-    expect(result.totalCertificates).toBe(expected.totalCertificates);
-};
-
 export const validateAcquireCertificateResponse = (result: any, expected: any): void => {
     expect(result.success).toBe(expected.success);
     expect(result.certificate).toMatchObject(expected.certificate);
 };
 
-export const validateRelinquishCertificateResponse = (result: any, expected: any): void => {
-    expect(result).toEqual(expected);
+// Additional validation helpers
+
+export const verifyValues = (targetObject: Record<string, any>, testValues: Record<string, any>, referenceTime: Date): void => {
+    Object.entries(testValues).forEach(([key, expectedValue]) => {
+        const actualValue = targetObject[key];
+        if (expectedValue instanceof Date) {
+            expect(actualValue).toBeInstanceOf(Date);
+            expect(actualValue.getTime()).toBeGreaterThanOrEqual(referenceTime.getTime());
+        } else {
+            expect(actualValue).toStrictEqual(expectedValue);
+        }
+    });
 };
-
-export const validateProveCertificateResponse = (result: any, expected: any): void => {
-    expect(result).toEqual(expected);
-};
-
-// Additional Validation Helpers ...
-

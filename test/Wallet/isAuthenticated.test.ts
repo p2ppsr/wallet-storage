@@ -1,45 +1,49 @@
 import { setupTestWallet } from '../utils/TestUtilsMethodTests';
+import { Wallet } from '../../src/Wallet';
 
-jest.mock('whatsonchain', () => ({
-    getSomething: jest.fn().mockResolvedValue('mocked value'),
-}));
+describe('Wallet isAuthenticated Integration Tests', () => {
+    let wallet: Wallet;
+    let storage: any;
+    let cleanup: () => Promise<void>;
 
-describe('Wallet isAuthenticated Tests', () => {
-    let wallet: any;
-    let mockSigner: any;
-
-    beforeEach(() => {
-        // Set up the mock wallet and signer
-        const setup = setupTestWallet();
+    beforeEach(async () => {
+        // Set up a real wallet for integration testing
+        const setup = await setupTestWallet();
         wallet = setup.wallet;
-        mockSigner = setup.mockSigner;
+        storage = setup.storage; // Capture the storage instance for direct access
+
+        // Define cleanup logic
+        cleanup = async () => {
+            if (storage) {
+                await storage.destroy(); // Clean up storage resources
+            }
+        };
     });
 
-    test('should return true when the signer is authenticated', async () => {
-        // Mock the signer to return true for isAuthenticated
-        mockSigner.isAuthenticated.mockReturnValue(true);
+    afterEach(async () => {
+        // Ensure resources are properly destroyed after each test
+        await cleanup();
+    });
 
+    test('should return true when the wallet is authenticated', async () => {
         const result = await wallet.isAuthenticated({});
         expect(result).toEqual({ authenticated: true });
-        expect(mockSigner.isAuthenticated).toHaveBeenCalledTimes(1);
     });
 
-    test('should return false when the signer is not authenticated', async () => {
-        // Mock the signer to return false for isAuthenticated
-        mockSigner.isAuthenticated.mockReturnValue(false);
+    test('should return false when the wallet is not authenticated', async () => {
+        // Simulate unauthenticated state by clearing authenticated data
+        await storage.dropAllData(); // Clear storage to simulate logout
 
         const result = await wallet.isAuthenticated({});
         expect(result).toEqual({ authenticated: false });
-        expect(mockSigner.isAuthenticated).toHaveBeenCalledTimes(1);
     });
 
-    test('should handle unexpected errors from the signer gracefully', async () => {
-        // Mock the signer to throw an error
-        mockSigner.isAuthenticated.mockImplementation(() => {
-            throw new Error('Unexpected error');
-        });
+    test('should handle unexpected errors gracefully', async () => {
+        // Simulate an error scenario by destroying storage mid-operation
+        await storage.destroy();
 
-        await expect(wallet.isAuthenticated({})).rejects.toThrow('Unexpected error');
-        expect(mockSigner.isAuthenticated).toHaveBeenCalledTimes(1);
+        await expect(wallet.isAuthenticated({})).rejects.toThrow(
+            'Storage is unavailable or destroyed'
+        );
     });
 });

@@ -2,7 +2,6 @@
 import { asBuffer, asString, sdk } from '../../../'
 
 import fetch from 'node-fetch'
-import { getMerkleRootForHeight } from '@babbage/sdk-ts'
 import { ChaintracksClientApi, ChaintracksInfoApi, HeaderListener, ReorgListener } from './ChaintracksClientApi'
 import { BaseBlockHeader, BaseBlockHeaderHex, BlockHeader, BlockHeaderHex, isBaseBlockHeader, toBaseBlockHeaderHex, toBlockHeader } from './BlockHeaderApi'
 
@@ -22,7 +21,7 @@ export interface ChaintracksServiceClientOptions {
  *
  */
 export class ChaintracksServiceClient implements ChaintracksClientApi {
-    static createChaintracksServiceClientOptions() : ChaintracksServiceClientOptions {
+    static createChaintracksServiceClientOptions(): ChaintracksServiceClientOptions {
         const options: ChaintracksServiceClientOptions = {
             useAuthrite: false
         }
@@ -31,11 +30,11 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
 
     options: ChaintracksServiceClientOptions
 
-    constructor (public chain: sdk.Chain, public serviceUrl: string, options?: ChaintracksServiceClientOptions) {
+    constructor(public chain: sdk.Chain, public serviceUrl: string, options?: ChaintracksServiceClientOptions) {
         this.options = options || ChaintracksServiceClient.createChaintracksServiceClientOptions()
     }
 
-    async currentHeight() : Promise<number> {
+    async currentHeight(): Promise<number> {
         return await this.getPresentHeight()
     }
 
@@ -46,11 +45,11 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
         return isValid
     }
 
-    async subscribeHeaders(listener: HeaderListener) : Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
-    async subscribeReorgs(listener: ReorgListener) : Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
-    async unsubscribe(subscriptionId: string) : Promise<boolean> { throw new sdk.WERR_NOT_IMPLEMENTED() }
+    async subscribeHeaders(listener: HeaderListener): Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
+    async subscribeReorgs(listener: ReorgListener): Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
+    async unsubscribe(subscriptionId: string): Promise<boolean> { throw new sdk.WERR_NOT_IMPLEMENTED() }
 
-    async getJsonOrUndefined<T>(path: string) : Promise<T | undefined> {
+    async getJsonOrUndefined<T>(path: string): Promise<T | undefined> {
         let e: Error | undefined = undefined
         for (let retry = 0; retry < 3; retry++) {
             try {
@@ -117,7 +116,7 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
     async getInfo(wait?: number): Promise<ChaintracksInfoApi> {
         return await this.getJson(`/getInfo?wait=${wait || ''}`)
     }
-    
+
     async isListening(): Promise<boolean> { return await this.getJson('/isListening') }
     async isSynchronized(): Promise<boolean> { return await this.getJson('/isSynchronized') }
     async getPresentHeight(): Promise<number> { return await this.getJson('/getPresentHeight') }

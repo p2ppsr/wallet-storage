@@ -7,10 +7,9 @@ import { ChaintracksChainTracker } from './chaintracker'
 import { getTaalArcServiceConfig, makeGetMerklePathFromTaalARC, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
 import { getMerklePathFromWhatsOnChainTsc, getRawTxFromWhatsOnChain, getUtxoStatusFromWhatsOnChain, updateBsvExchangeRate } from './providers/whatsonchain'
 import { updateChaintracksFiatExchangeRates, updateExchangeratesapi } from './providers/echangeRates'
-import { getHeight } from '@babbage/sdk-ts'
 
 export class WalletServices implements sdk.WalletServices {
-    static createDefaultOptions(chain: sdk.Chain) : sdk.WalletServicesOptions {
+    static createDefaultOptions(chain: sdk.Chain): sdk.WalletServicesOptions {
         return createDefaultWalletServicesOptions(chain)
     }
 
@@ -26,32 +25,32 @@ export class WalletServices implements sdk.WalletServices {
     chain: sdk.Chain
 
     constructor(optionsOrChain: sdk.Chain | sdk.WalletServicesOptions) {
-        this.chain = (typeof optionsOrChain === 'string') ? optionsOrChain :  optionsOrChain.chain
+        this.chain = (typeof optionsOrChain === 'string') ? optionsOrChain : optionsOrChain.chain
 
         this.options = (typeof optionsOrChain === 'string') ? WalletServices.createDefaultOptions(this.chain) : optionsOrChain
-        
+
         this.getMerklePathServices = new ServiceCollection<sdk.GetMerklePathService>()
-        .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc})
+            .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc })
         //.add({ name: 'Taal', service: makeGetMerklePathFromTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
-        
+
         this.getRawTxServices = new ServiceCollection<sdk.GetRawTxService>()
-        .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain})
+            .add({ name: 'WhatsOnChain', service: getRawTxFromWhatsOnChain })
 
         this.postTxsServices = new ServiceCollection<sdk.PostTxsService>()
-        .add({ name: 'TaalArcTxs', service: makePostTxsToTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
+            .add({ name: 'TaalArcTxs', service: makePostTxsToTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
 
         this.postBeefServices = new ServiceCollection<sdk.PostBeefService>()
-        .add({ name: 'TaalArcBeef', service: makePostBeefToTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
+            .add({ name: 'TaalArcBeef', service: makePostBeefToTaalARC(getTaalArcServiceConfig(this.chain, this.options.taalApiKey!)) })
 
         this.getUtxoStatusServices = new ServiceCollection<sdk.GetUtxoStatusService>()
-        .add({ name: 'WhatsOnChain', service: getUtxoStatusFromWhatsOnChain})
-        
+            .add({ name: 'WhatsOnChain', service: getUtxoStatusFromWhatsOnChain })
+
         this.updateFiatExchangeRateServices = new ServiceCollection<sdk.UpdateFiatExchangeRateService>()
-        .add({ name: 'ChaintracksService', service: updateChaintracksFiatExchangeRates })
-        .add({ name: 'exchangeratesapi', service: updateExchangeratesapi })
+            .add({ name: 'ChaintracksService', service: updateChaintracksFiatExchangeRates })
+            .add({ name: 'exchangeratesapi', service: updateExchangeratesapi })
     }
 
-    async getChainTracker() : Promise<bsv.ChainTracker> {
+    async getChainTracker(): Promise<bsv.ChainTracker> {
         if (!this.options.chaintracks)
             throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', `valid to enable 'getChainTracker' service.`)
         return new ChaintracksChainTracker(this.chain, this.options.chaintracks)
@@ -107,7 +106,7 @@ export class WalletServices implements sdk.WalletServices {
      * @returns
      */
     async postTxs(beef: bsv.Beef, txids: string[]): Promise<sdk.PostTxsResult[]> {
-        
+
         const rs = await Promise.all(this.postTxsServices.allServices.map(async service => {
             const r = await service(beef, txids, this)
             return r
@@ -123,7 +122,7 @@ export class WalletServices implements sdk.WalletServices {
      * @returns
      */
     async postBeef(beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> {
-        
+
         const rs = await Promise.all(this.postBeefServices.allServices.map(async service => {
             const r = await service(beef, txids, this)
             return r
@@ -133,7 +132,7 @@ export class WalletServices implements sdk.WalletServices {
     }
 
     async getRawTx(txid: string, useNext?: boolean): Promise<sdk.GetRawTxResult> {
-        
+
         if (useNext)
             this.getRawTxServices.next()
 
@@ -164,7 +163,7 @@ export class WalletServices implements sdk.WalletServices {
         return r0
     }
 
-    async invokeChaintracksWithRetry<R>(method: () => Promise<R>) : Promise<R> {
+    async invokeChaintracksWithRetry<R>(method: () => Promise<R>): Promise<R> {
         if (!this.options.chaintracks)
             throw new sdk.WERR_INVALID_PARAMETER('options.chaintracks', 'valid for this service operation.');
         for (let retry = 0; retry < 3; retry++) {
@@ -180,35 +179,35 @@ export class WalletServices implements sdk.WalletServices {
         throw new sdk.WERR_INVALID_OPERATION('hashToHeader service unavailable')
     }
 
-    async getHeaderForHeight(height: number) : Promise<number[]> {
+    async getHeaderForHeight(height: number): Promise<number[]> {
         const method = async () => {
-                const header = await this.options.chaintracks!.findHeaderHexForHeight(height)
-                if (!header)
-                    throw new sdk.WERR_INVALID_PARAMETER('hash', `valid height '${height}' on mined chain ${this.chain}`);
-                return toBinaryBaseBlockHeaderHex(header)
+            const header = await this.options.chaintracks!.findHeaderHexForHeight(height)
+            if (!header)
+                throw new sdk.WERR_INVALID_PARAMETER('hash', `valid height '${height}' on mined chain ${this.chain}`);
+            return toBinaryBaseBlockHeaderHex(header)
         }
         return this.invokeChaintracksWithRetry(method)
     }
 
-    async getHeight() : Promise<number> {
+    async getHeight(): Promise<number> {
         const method = async () => {
-                return await this.options.chaintracks!.currentHeight()
+            return await this.options.chaintracks!.currentHeight()
         }
         return this.invokeChaintracksWithRetry(method)
     }
 
     async hashToHeader(hash: string): Promise<sdk.BlockHeaderHex> {
         const method = async () => {
-                const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
-                if (!header)
-                    throw new sdk.WERR_INVALID_PARAMETER('hash', `valid blockhash '${hash}' on mined chain ${this.chain}`);
-                return header
+            const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
+            if (!header)
+                throw new sdk.WERR_INVALID_PARAMETER('hash', `valid blockhash '${hash}' on mined chain ${this.chain}`);
+            return header
         }
         return this.invokeChaintracksWithRetry(method)
     }
 
     async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> {
-        
+
         if (useNext)
             this.getMerklePathServices.next()
 
@@ -277,7 +276,7 @@ export class WalletServices implements sdk.WalletServices {
 
 }
 
-export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat) : string {
+export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat): string {
     let b = asArray(output)
     if (!outputFormat) {
         if (b.length === 32)
@@ -308,7 +307,7 @@ export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoSta
  * @returns 80 byte Buffer
  * @publicbody
  */
-export function toBinaryBaseBlockHeaderHex (header: sdk.BaseBlockHeaderHex): number[] {
+export function toBinaryBaseBlockHeaderHex(header: sdk.BaseBlockHeaderHex): number[] {
     const writer = new bsv.Utils.Writer()
     writer.writeUInt32BE(header.version)
     writer.writeReverse(asArray(header.previousHash))

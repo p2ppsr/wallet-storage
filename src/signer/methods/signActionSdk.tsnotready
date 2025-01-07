@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Beef, Transaction, TransactionInput } from "@bsv/sdk";
-import { sdk } from "@babbage/sdk-ts";
 import { NinjaBase } from "../NinjaBase";
 import { asBsvSdkScript, ScriptTemplateSABPPP } from "cwi-base";
 import { PendingSignAction, processActionSdk } from "./createActionSdk";

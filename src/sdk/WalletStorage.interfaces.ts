@@ -236,7 +236,6 @@ export interface PurgeResults {
 }
 
 export interface StorageInternalizeActionArgs extends sdk.ValidInternalizeActionArgs {
-    commonDerivationPrefix: string | undefined
 }
 
 export interface StorageProvenOrReq { proven?: table.ProvenTx, req?: table.ProvenTxReq }

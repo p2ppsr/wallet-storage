@@ -41,8 +41,7 @@ export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.Vali
   const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
 
   const sargs: sdk.StorageInternalizeActionArgs = {
-    ...vargs,
-    commonDerivationPrefix: undefined
+    ...vargs
   }
 
   for (const o of vargs.outputs) {

@@ -62,8 +62,8 @@ describe('internalizeAction tests', () => {
           outputIndex: 0,
           protocol: 'wallet payment',
           paymentRemittance: {
-            derivationPrefix: bsv.Utils.toBase64([1, 2, 3]),
-            derivationSuffix: bsv.Utils.toBase64([4, 5, 6]),
+            derivationPrefix: 'y0tgyMJbVWKhds2/MWkDBA==',
+            derivationSuffix: 'J1Q1E8re2RbvKONkEiEHDA==',
             senderIdentityKey: '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
           }
         }

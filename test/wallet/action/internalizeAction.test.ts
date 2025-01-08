@@ -64,7 +64,7 @@ describe('internalizeAction tests', () => {
           paymentRemittance: {
             derivationPrefix: bsv.Utils.toBase64([1, 2, 3]),
             derivationSuffix: bsv.Utils.toBase64([4, 5, 6]),
-            senderIdentityKey: '02ce39558560fe2219636460b1ce1d8bb5760097656bf2bf21f7d1db422223c4ee'
+            senderIdentityKey: '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
           }
         }
 

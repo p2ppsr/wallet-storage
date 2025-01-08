@@ -3,28 +3,32 @@ import { sdk, table } from "..";
 
 export interface SignerStorage {
 
-   abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult>
-   createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult>
-   destroy(): Promise<void>
-   getSettings(): table.Settings
-   insertCertificate(certificate: table.CertificateX): Promise<number>
-   internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
    isAvailable() : boolean
-   listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult>
-   listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
-   listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult>
    makeAvailable() : Promise<void>
    migrate(storageName: string): Promise<string>
-   processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults>
+   destroy(): Promise<void>
 
-   findCertificates(args: FindCertificatesArgs ): Promise<table.Certificate[]>
-   findOrInsertUser(newUser: table.User) : Promise<{ user: table.User, isNew: boolean}>
-   findOutputBaskets(args: FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
-   findOutputs(args: FindOutputsArgs ): Promise<table.Output[]>
-   isAvailable() : boolean
    setServices(v: sdk.WalletServices) : void
-   updateCertificate(id: number, update: Partial<table.Certificate>) : Promise<number>
-   updateOutput(id: number, update: Partial<table.Output>) : Promise<number>
+   getSettings(): table.Settings
+
+   abortAction(userId: number, args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
+   createAction(userId: number, args: sdk.CreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult>
+   processAction(userId: number, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults>
+   internalizeAction(userId: number, sargs: sdk.StorageInternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
+
+   listActions(userId: number, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
+   listCertificates(userId: number, args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult>
+   listOutputs(userId: number, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+
+   insertCertificate(userId: number, certificate: table.CertificateX): Promise<number>
+
+   findCertificates(userId: number, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
+   findOrInsertUser(identityKey: string) : Promise<{ user: table.User, isNew: boolean}>
+   findOutputBaskets(userId: number, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
+   findOutputs(userId: number, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+
+   relinquishCertificate(userId: number, args: sdk.RelinquishCertificateArgs) : Promise<number>
+   relinquishOutput(userId: number, args: sdk.RelinquishOutputArgs) : Promise<number>
 }
 
 export interface FindSincePagedArgs {

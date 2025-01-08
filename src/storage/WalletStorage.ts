@@ -1,5 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { entity, sdk, StorageBase, StorageSyncReader, table, verifyId, verifyOne } from "..";
+import { SignerStorage } from './SignerStorage';
 
 /**
  * The `WalletStorage` class delivers storage access to the wallet while managing multiple `StorageBase` derived storage services.
@@ -14,48 +15,27 @@ import { entity, sdk, StorageBase, StorageSyncReader, table, verifyId, verifyOne
  * Some storage services do not support multiple writers. `WalletStorage` manages wait-blocking write requests
  * for these services.
  */
-export class WalletStorage implements sdk.WalletStorage {
+export class WalletStorage extends SignerStorage implements sdk.WalletStorage {
 
-    stores: sdk.WalletStorage[] = []
-    _services?: sdk.WalletServices
     _settings?: table.Settings
 
     constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[]) {
-        this.stores = [ active ]
-        if (backups) this.stores.concat(backups)
+        super(active, backups)
     }
 
-    setServices(v: sdk.WalletServices) {
-        this._services = v
-        for (const store of this.stores)
-            store.setServices(v)
-    }
-    getServices() : sdk.WalletServices {
-        if (!this._services)
-            throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
-        return this._services
-    }
-
-    getActive(): sdk.WalletStorage { return this.stores[0] }
-
-    isAvailable(): boolean {
-        return this.getActive().isAvailable()
+    async getUserId(identityKey: string) : Promise<number> {
+        let userId = this._userIdentityKeyToId[identityKey]
+        if (!userId) {
+            const { user, isNew } = await this.getActive().findOrInsertUser({ identityKey, userId: 0, created_at: new Date(), updated_at: new Date() })
+            if (!user)
+                throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'exist on storage.');
+            userId = user.userId
+            this._userIdentityKeyToId[identityKey] = userId
+        }
+        return userId
     }
 
-    getSettings(): table.Settings {
-        if (!this._settings)
-            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
-        return this._settings
-    }
-
-    async makeAvailable(): Promise<void> {
-        this.getActive().makeAvailable()
-        this._settings = await this.getActive().getSettings()
-    }
-
-    async destroy(): Promise<void> {
-        return await this.getActive().destroy()
-    }
+    override getActive(): sdk.WalletStorage { return this.stores[0] as sdk.WalletStorage }
 
     async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
         return this.getActive().purgeData(params, trx)

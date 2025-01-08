@@ -15,9 +15,7 @@ export class WalletSigner implements sdk.WalletSigner {
     storage: sdk.SignerStorage
     storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
-    _isAuthenticated: boolean
-    _isStorageAvailable: boolean
-    _user?: table.User
+    userIdentiyKey: string
 
     pendingSignActions: Record<string, PendingSignAction>
 
@@ -28,9 +26,7 @@ export class WalletSigner implements sdk.WalletSigner {
         this.storage = storage
         const s = storage.getSettings()
         this.storageIdentity = { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
-        // TODO: Sort out authentication
-        this._isAuthenticated = true
-        this._isStorageAvailable = storage.isAvailable()
+        this.userIdentiyKey = this.keyDeriver.identityKey
 
         this.pendingSignActions = {}
     }
@@ -53,109 +49,74 @@ export class WalletSigner implements sdk.WalletSigner {
        return kp
     }
 
-    isAuthenticated(): boolean {
-        return this._isAuthenticated
-    }
-
     async getChain(): Promise<sdk.Chain> {
         return this.chain
     }
 
-    async getUserId() : Promise<number> {
-        await this.verifyStorageAvailable()
-        return this._user!.userId
-    }
-
-    async authenticate(identityKey?: string, addIfNew?: boolean): Promise<void> {
-        await this.storage.makeAvailable()
-        if (identityKey && identityKey !== this.keyDeriver.identityKey)
-            throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'same as already authenticated identity.');
-        if (!identityKey) {
-            identityKey = this.keyDeriver.identityKey
-        }
-        const { user, isNew } = await this.storage.findOrInsertUser({ identityKey, userId: 0, created_at: new Date(), updated_at: new Date() })
-        if (!addIfNew && isNew)
-            throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'exist on storage.');
-        this._user = user
-        this._isAuthenticated = true
-    }
-
-    async verifyStorageAvailable() : Promise<void> {
-        if (!this.isAuthenticated())
-            throw new sdk.WERR_UNAUTHORIZED();
-        if (!this._isStorageAvailable) {
-            await this.waitForStorageAccessMode('multiUser');
-            this._isStorageAvailable = true
-        }
-    }
-
-    async waitForStorageAccessMode(mode: 'singleUser' | 'multiUser' | 'sync') : Promise<void> {
-        this._isStorageAvailable = false
-        // TODO: handle single user / multi user / sync locks.
-    }
-
     async listActions(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await this.storage.listActionsSdk(vargs)
         return r
     }
     async listOutputs(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await this.storage.listOutputsSdk(vargs)
         return r
     }
     async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await this.storage.listCertificatesSdk(vargs)
         return r
     }
 
     async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await this.storage.abortActionSdk(vargs)
         return r
     }
     async createActionSdk(vargs: sdk.ValidCreateActionArgs): Promise<sdk.CreateActionResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await createActionSdk(this, vargs)
         return r
     }
 
     async signActionSdk(vargs: sdk.ValidSignActionArgs): Promise<sdk.SignActionResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await signActionSdk(this, vargs)
         return r
     }
     async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await internalizeActionSdk(this, vargs)
         return r
     }
     async relinquishOutputSdk(vargs: sdk.ValidRelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await relinquishOutputSdk(this, vargs)
         return r
     }
     async acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs): Promise<sdk.AcquireCertificateResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await acquireDirectCertificateSdk(this, vargs)
         return r
     }
     async proveCertificateSdk(vargs: sdk.ValidProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
-        vargs.userId = await this.getUserId()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await proveCertificateSdk(this, vargs)
         return r
     }
     async relinquishCertificateSdk(vargs: sdk.ValidRelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
-        await this.verifyStorageAvailable()
+        vargs.userIdentityKey = this.userIdentiyKey
         const r = await relinquishCertificateSdk(this, vargs)
         return r
     }
 
     async discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
+        vargs.userIdentityKey = this.userIdentiyKey
         throw new Error("Method not implemented.");
     }
     async discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
+        vargs.userIdentityKey = this.userIdentiyKey
         throw new Error("Method not implemented.");
     }
 }

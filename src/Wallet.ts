@@ -13,8 +13,6 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     isLogging: boolean
 
     constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: WalletMonitor) {
-        if (!signer.isAuthenticated())
-            throw new sdk.WERR_INVALID_PARAMETER('signer', 'valid and authenticated')
         if (!keyDeriver)
             throw new sdk.WERR_INVALID_PARAMETER('keyDeriver', 'valid')
         super(keyDeriver)
@@ -246,7 +244,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         const vargs = sdk.validateAbortActionArgs(args)
         this.startLog(vargs, 'abortAction')
 
-        const r = await this.signer.abortActionSdk(args, sdk.validateOriginator(originator))
+        const r = await this.signer.abortActionSdk(vargs, sdk.validateOriginator(originator))
 
         this.endLog(vargs, 'abortAction')
         return r
@@ -278,14 +276,13 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     async isAuthenticated(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AuthenticatedResult> {
         const r: { authenticated: boolean; } = {
-            authenticated: this.signer.isAuthenticated()
+            authenticated: true
         }
         return r
     }
 
     async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.AuthenticatedResult> {
-        await this.signer.authenticate()
         return { authenticated: true }
     }
 

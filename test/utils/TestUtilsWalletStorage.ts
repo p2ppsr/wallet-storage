@@ -344,12 +344,11 @@ export abstract class TestUtilsWalletStorage {
         const storage = new WalletStorage(activeStorage)
         await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        await signer.authenticate(undefined, true)
         const services = new WalletServices(args.chain)
         const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services)
         const monitor = new WalletMonitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
-        const userId = signer._user!.userId
+        const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
         const r: TestWallet<T> = {
             rootKey,
             identityKey,
@@ -416,12 +415,11 @@ export abstract class TestUtilsWalletStorage {
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        await signer.authenticate(undefined, false)
         const services = new WalletServices(chain)
         const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services)
         const monitor = new WalletMonitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
-        const userId = signer._user!.userId
+        const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
         const r: TestWallet<{}> = {
             rootKey,
             identityKey,

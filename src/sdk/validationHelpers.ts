@@ -147,6 +147,12 @@ export function isHexString(s: string) : boolean {
   return true
 }
 
+export interface ValidWalletSignerArgs {
+  userIdentityKey: string
+  userId?: number
+  log?: string
+}
+
 export interface ValidCreateActionInput {
   outpoint: OutPoint
   inputDescription: sdk.DescriptionString5to50Bytes
@@ -236,7 +242,7 @@ export interface ValidSignActionOptions extends ValidProcessActionOptions {
   sendWith: sdk.TXIDHexString[]
 }
 
-export interface ValidProcessActionArgs {
+export interface ValidProcessActionArgs extends ValidWalletSignerArgs {
   options: sdk.ValidProcessActionOptions
   // true if a batch of transactions is included for processing.
   isSendWith: boolean
@@ -246,8 +252,6 @@ export interface ValidProcessActionArgs {
   isNoSend: boolean
   // true if options.acceptDelayedBroadcast is true
   isDelayed: boolean
-  userId?: number
-  log?: string
 }
 
 export interface ValidCreateActionArgs extends ValidProcessActionArgs {
@@ -262,9 +266,6 @@ export interface ValidCreateActionArgs extends ValidProcessActionArgs {
   options: ValidCreateActionOptions
   // true if transaction creation completion will require a `signAction` call.
   isSignAction: boolean
-
-  userId?: number
-  log?: string
 }
 
 export interface ValidSignActionArgs extends ValidProcessActionArgs {
@@ -272,9 +273,6 @@ export interface ValidSignActionArgs extends ValidProcessActionArgs {
   reference: sdk.Base64String
 
   options: sdk.ValidSignActionOptions
-
-  userId?: number
-  log?: string
 }
 
 export function validateCreateActionArgs(args: sdk.CreateActionArgs) : ValidCreateActionArgs {
@@ -292,6 +290,7 @@ export function validateCreateActionArgs(args: sdk.CreateActionArgs) : ValidCrea
       isNoSend: false,
       isNewTx: false,
       isSignAction: false,
+      userIdentityKey: '',
     }
     vargs.isSendWith = vargs.options.sendWith.length > 0
     vargs.isNewTx = (vargs.inputs.length > 0) || (vargs.outputs.length > 0)
@@ -331,8 +330,7 @@ export function validateSignActionArgs(args: sdk.SignActionArgs) : ValidSignActi
       isDelayed: false,
       isNoSend: false,
       isNewTx: true,
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
     vargs.isSendWith = vargs.options.sendWith.length > 0
     vargs.isDelayed = vargs.options.acceptDelayedBroadcast
@@ -341,17 +339,14 @@ export function validateSignActionArgs(args: sdk.SignActionArgs) : ValidSignActi
     return vargs
 }
 
-export interface ValidAbortActionArgs {
+export interface ValidAbortActionArgs extends ValidWalletSignerArgs {
   reference: sdk.Base64String
-  userId?: number
-  log?: string
 }
 
 export function validateAbortActionArgs(args: sdk.AbortActionArgs) : ValidAbortActionArgs {
     const vargs: ValidAbortActionArgs = {
       reference: validateBase64String(args.reference, 'reference'),
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
 
     return vargs
@@ -408,15 +403,13 @@ export function validateInternalizeOutput(args: sdk.InternalizeOutput) : ValidIn
   return v
 }
 
-export interface ValidInternalizeActionArgs {
+export interface ValidInternalizeActionArgs extends ValidWalletSignerArgs {
   tx: sdk.AtomicBEEF,
   outputs: sdk.InternalizeOutput[]
   description: sdk.DescriptionString5to50Bytes
   labels: sdk.LabelStringUnder300Bytes[]
   seekPermission: sdk.BooleanDefaultTrue
   commonDerivationPrefix?: string
-  userId?: number
-  log?: string
 }
 
 export function validateOriginator(s?: string) : string | undefined {
@@ -437,8 +430,7 @@ export function validateInternalizeActionArgs(args: sdk.InternalizeActionArgs) :
       labels: (args.labels || []).map(t => validateLabel(t)),
       seekPermission: defaultTrue(args.seekPermission),
       commonDerivationPrefix: undefined,
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
     for (const o of vargs.outputs) if (o.protocol === 'wallet payment') {
       if (vargs.commonDerivationPrefix && o.paymentRemittance!.derivationPrefix !== vargs.commonDerivationPrefix)
@@ -464,30 +456,25 @@ export function validateOutpointString(outpoint: string, name: string): string {
   return `${txid}.${vout}`
 }
 
-export interface ValidRelinquishOutputArgs {
+export interface ValidRelinquishOutputArgs extends ValidWalletSignerArgs {
   basket: sdk.BasketStringUnder300Bytes
   output: sdk.OutpointString
-  userId?: number
-  log?: string
 }
 
 export function validateRelinquishOutputArgs(args: sdk.RelinquishOutputArgs) : ValidRelinquishOutputArgs {
     const vargs: ValidRelinquishOutputArgs = {
       basket: validateBasket(args.basket),
       output: validateOutpointString(args.output, 'output'),
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
 
     return vargs
 }
 
-export interface ValidRelinquishCertificateArgs {
+export interface ValidRelinquishCertificateArgs extends ValidWalletSignerArgs {
   type: sdk.Base64String
   serialNumber: sdk.Base64String
   certifier: sdk.PubKeyHex
-  userId?: number
-  log?: string
 }
 
 export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificateArgs) : ValidRelinquishCertificateArgs {
@@ -495,14 +482,13 @@ export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificat
       type: validateBase64String(args.type, 'type'),
       serialNumber: validateBase64String(args.serialNumber, 'serialNumber'),
       certifier: validateHexString(args.certifier, 'certifier'),
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
 
     return vargs
 }
 
-export interface ValidListCertificatesArgs {
+export interface ValidListCertificatesArgs extends ValidWalletSignerArgs {
   partial?: {
     type?: sdk.Base64String
     serialNumber?: sdk.Base64String
@@ -517,8 +503,6 @@ export interface ValidListCertificatesArgs {
   offset: sdk.PositiveIntegerOrZero
   privileged: sdk.BooleanDefaultFalse
   privilegedReason?: sdk.DescriptionString5to50Bytes
-  userId?: number,
-  log?: string
 }
 
 export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs) : ValidListCertificatesArgs {
@@ -530,13 +514,12 @@ export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs) : V
       privileged: defaultFalse(args.privileged),
       privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
       partial: undefined,
-      userId: undefined,
-      log: ''
+      userIdentityKey: '',
     }
     return vargs
 }
 
-export interface ValidAcquireCertificateArgs {
+export interface ValidAcquireCertificateArgs extends ValidWalletSignerArgs {
   acquisitionProtocol: sdk.AcquisitionProtocol
 
   type: sdk.Base64String
@@ -553,9 +536,6 @@ export interface ValidAcquireCertificateArgs {
 
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
-
-  userId?: string
-  log?: string
 }
 
 function validateCertificateFields(fields: Record<sdk.CertificateFieldNameUnder50Bytes, string>):
@@ -613,8 +593,7 @@ export async function validateAcquireCertificateArgs(args: sdk.AcquireCertificat
     keyringForSubject: validateOptionalKeyringForSubject(args.keyringForSubject, 'keyringForSubject'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
-    userId: undefined,
-    log: ''
+    userIdentityKey: ''
   }
   if (vargs.privileged && !vargs.privilegedReason)
     throw new sdk.WERR_INVALID_PARAMETER('privilegedReason', `valid when 'privileged' is true `)
@@ -626,7 +605,7 @@ export async function validateAcquireCertificateArgs(args: sdk.AcquireCertificat
   return vargs
 }
 
-export interface ValidAcquireDirectCertificateArgs {
+export interface ValidAcquireDirectCertificateArgs extends ValidWalletSignerArgs {
   type: sdk.Base64String
   serialNumber: sdk.Base64String
   certifier: sdk.PubKeyHex
@@ -645,9 +624,6 @@ export interface ValidAcquireDirectCertificateArgs {
 
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
-
-  userId?: number
-  log?: string
 }
 
 export function validateAcquireDirectCertificateArgs(args: sdk.AcquireCertificateArgs) : ValidAcquireDirectCertificateArgs {
@@ -671,13 +647,12 @@ export function validateAcquireDirectCertificateArgs(args: sdk.AcquireCertificat
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
     subject: '',
-    userId: undefined,
-    log: ''
+    userIdentityKey: ''
   }
   return vargs
 }
 
-export interface ValidProveCertificateArgs {
+export interface ValidProveCertificateArgs extends ValidWalletSignerArgs {
   type?: sdk.Base64String
   serialNumber?: sdk.Base64String
   certifier?: sdk.PubKeyHex
@@ -689,8 +664,6 @@ export interface ValidProveCertificateArgs {
   verifier: sdk.PubKeyHex
   privileged: boolean
   privilegedReason?: sdk.DescriptionString5to50Bytes
-  userId?: number
-  log?: string
 }
 
 export function validateProveCertificateArgs(args: sdk.ProveCertificateArgs)
@@ -709,19 +682,16 @@ export function validateProveCertificateArgs(args: sdk.ProveCertificateArgs)
     verifier: validateHexString(args.verifier, 'verifier'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
-    userId: undefined,
-    log: ''
+    userIdentityKey: ''
   }
   return vargs
 }
 
-export interface ValidDiscoverByIdentityKeyArgs {
+export interface ValidDiscoverByIdentityKeyArgs extends ValidWalletSignerArgs {
   identityKey: sdk.PubKeyHex
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: boolean
-  userId?: number
-  log?: string
 }
 
 export function validateDiscoverByIdentityKeyArgs(args: sdk.DiscoverByIdentityKeyArgs)
@@ -732,19 +702,16 @@ export function validateDiscoverByIdentityKeyArgs(args: sdk.DiscoverByIdentityKe
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
-    userId: undefined,
-    log: ''
+    userIdentityKey: ''
   }
   return vargs
 }
 
-export interface ValidDiscoverByAttributesArgs {
+export interface ValidDiscoverByAttributesArgs extends ValidWalletSignerArgs {
   attributes: Record<sdk.CertificateFieldNameUnder50Bytes, string>
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: boolean
-  userId?: number
-  log?: string
 }
 
 function validateAttributes(attributes: Record<sdk.CertificateFieldNameUnder50Bytes, string>):
@@ -764,13 +731,12 @@ export function validateDiscoverByAttributesArgs(args: sdk.DiscoverByAttributesA
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
-    userId: undefined,
-    log: ''
+    userIdentityKey: ''
   }
   return vargs
 }
 
-export interface ValidListOutputsArgs {
+export interface ValidListOutputsArgs extends ValidWalletSignerArgs {
   basket: sdk.BasketStringUnder300Bytes
   tags: sdk.OutputTagStringUnder300Bytes[]
   tagQueryMode: 'all' | 'any'
@@ -783,8 +749,6 @@ export interface ValidListOutputsArgs {
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
   knownTxids: string[]
-  userId?: number
-  log?: string
 }
 
 /**
@@ -822,14 +786,13 @@ export function validateListOutputsArgs(args: sdk.ListOutputsArgs) : ValidListOu
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
       knownTxids: [],
-      userId: undefined,
-      log: ''
+      userIdentityKey: ''
     }
 
     return vargs
 }
 
-export interface ValidListActionsArgs {
+export interface ValidListActionsArgs extends ValidWalletSignerArgs {
   labels: sdk.LabelStringUnder300Bytes[]
   labelQueryMode: 'any' | 'all'
   includeLabels: sdk.BooleanDefaultFalse
@@ -841,8 +804,6 @@ export interface ValidListActionsArgs {
   limit: sdk.PositiveIntegerDefault10Max10000
   offset: sdk.PositiveIntegerOrZero
   seekPermission: sdk.BooleanDefaultTrue
-  userId?: number
-  log?: string
 }
 
 /**
@@ -879,8 +840,7 @@ export function validateListActionsArgs(args: sdk.ListActionsArgs) : ValidListAc
       limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
-      userId: undefined,
-      log: ''
+      userIdentityKey: ''
     }
 
     if (vargs.labels.length < 1)

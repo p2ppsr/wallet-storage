@@ -4,6 +4,7 @@ export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.Valid
 : Promise<sdk.ProveCertificateResult>
 {
   const lcargs: sdk.ValidListCertificatesArgs = {
+    userIdentityKey: vargs.userIdentityKey,
     userId: vargs.userId,
     partial: {
       type: vargs.type,

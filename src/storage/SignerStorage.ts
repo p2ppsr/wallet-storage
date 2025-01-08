@@ -18,10 +18,23 @@ export class SignerStorage implements sdk.SignerStorage {
 
     stores: sdk.SignerStorage[] = []
     _services?: sdk.WalletServices
+    _userIdentityKeyToId: Record<string, number> = {}
 
     constructor(active: sdk.SignerStorage, backups?: sdk.SignerStorage[]) {
         this.stores = [ active ]
         if (backups) this.stores.concat(backups)
+    }
+
+    async getUserId(identityKey: string) : Promise<number> {
+        let userId = this._userIdentityKeyToId[identityKey]
+        if (!userId) {
+            const { user, isNew } = await this.getActive().findOrInsertUser({ identityKey, userId: 0, created_at: new Date(), updated_at: new Date() })
+            if (!user)
+                throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'exist on storage.');
+            userId = user.userId
+            this._userIdentityKeyToId[identityKey] = userId
+        }
+        return userId
     }
 
     setServices(v: sdk.WalletServices) {
@@ -58,21 +71,26 @@ export class SignerStorage implements sdk.SignerStorage {
     /////////////////
 
     async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+        sargs.userId = await this.getUserId(sargs.userIdentityKey)
         return await this.getActive().internalizeActionSdk(sargs)
     }
     async findOrInsertUser(newUser: table.User) {
         return await this.getActive().findOrInsertUser(newUser)
     }
     async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
+        vargs.userId = await this.getUserId(vargs.userIdentityKey)
         return await this.getActive().abortActionSdk(vargs)
     }
     async createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
+args.userId = await this.getUserId(args.userIdentityKey)
         return await this.getActive().createTransactionSdk(args)
     }
     async processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults> {
+params.userId = await this.getUserId(params.userIdentityKey)
         return await this.getActive().processActionSdk(params)
     }
     async insertCertificate(certificate: table.Certificate): Promise<number> {
+certificate.userId = await this.getUserId(certificate.userIdentityKey)
         return await this.getActive().insertCertificate(certificate)
     }
     async updateCertificate(id: number, update: Partial<table.Certificate>): Promise<number> {

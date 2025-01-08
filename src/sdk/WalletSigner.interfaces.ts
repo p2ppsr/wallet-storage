@@ -5,16 +5,12 @@ import { sdk } from "..";
  * the `NinjaWallet` implementation of the `Wallet.interface` API
  */
 export interface WalletSigner {
-  chain?: sdk.Chain
-  isAuthenticated(): boolean;
-  getClientChangeKeyPair(): KeyPair;
-  keyDeriver?: sdk.KeyDeriverApi
-  storageIdentity?: StorageIdentity
+  chain: sdk.Chain
+  keyDeriver: sdk.KeyDeriverApi
+  storageIdentity: StorageIdentity
 
   setServices(v: sdk.WalletServices) : void
   getServices() : sdk.WalletServices
-
-  authenticate(identityKey?: string, addIfNew?: boolean): Promise<void>
 
   listActions(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
   listOutputs(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
@@ -32,6 +28,7 @@ export interface WalletSigner {
   discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
 
   getChain(): Promise<sdk.Chain>
+  getClientChangeKeyPair(): KeyPair;
 }
 
 export interface KeyPair {

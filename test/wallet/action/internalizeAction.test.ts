@@ -21,6 +21,88 @@ describe('internalizeAction tests', () => {
   })
 
   test('001_default', async () => {
+    // While this works, there's no need to do it. If you look at the interface being returned by "createLegacyWallet..."
+    // you'll see everything useful is being shared directly.
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      try {
+        // Prepare StorageGetBeefOptions
+        const options: sdk.StorageGetBeefOptions = {
+          // Setting 'known' tells it not to include rawTxs it already knows about, just their txids.
+          // trustSelf: 'known',
+          // Setting knownTxids tells it not to include these rawTxs, just their txids.
+          // knownTxids: ['2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122'],
+          // False and undefined are equal here so no need for this.
+          // ignoreStorage: false,
+          // Yes, you expect storage to have the info, so don't use services.
+          ignoreServices: true
+          // Since you aren't using services and there won't be any newProven (rawTx's with merklePaths previously unknown to storage but required for this beef)
+          // ignoreNewProven: false,
+          // You don't expect infinitely deep nonsense
+          // minProofLevel: 0
+        }
+
+        // Fetch Beef object
+        const beef = await storage.getBeefForTransaction('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122', options)
+
+        console.log('Beef Object:\n', beef.toLogString())
+
+        // Ensure Beef object contains valid transactions
+        if (beef.txs.length === 0) {
+          throw new Error('Beef contains no transactions')
+        }
+
+        // Validate the first transaction in the Beef object
+        const firstTx = beef.txs[0]
+        if (!firstTx.isValid) {
+          console.error('First transaction is invalid:', firstTx)
+          throw new Error('Beef contains an invalid transaction')
+        }
+
+        // Hmm... I expect this to be undefined.
+        expect(beef.atomicTxid).toBeUndefined()
+
+        // Convert to AtomicBEEF transaction
+        // perfect!
+        const atomicTx = beef.toBinaryAtomic('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122')
+        console.log('Atomic Transaction:', atomicTx)
+
+        {
+          const abeef = bsv.Beef.fromBinary(atomicTx)
+          // Here I expect it to be '279...'
+          //expect(beef.atomicTxid).toBe('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122')
+        }
+
+        // This needs to be a real output (the locking script and derivation bits / key need to work with each other)
+        // But it is still a valid test to see what the reaction is to this nonsense :-)
+        // Prepare output for internalization
+        const output: bsv.InternalizeOutput = {
+          outputIndex: 2,
+          protocol: 'wallet payment',
+          paymentRemittance: {
+            derivationPrefix: 'y0tgyMJbVWKhds2/MWkDBA==',
+            derivationSuffix: 'J1Q1E8re2RbvKONkEiEHDA==',
+            senderIdentityKey: '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
+          }
+        }
+
+        // Internalize Action
+        const r = await wallet.internalizeAction({
+          tx: atomicTx,
+          outputs: [output],
+          description: 'Default test description'
+        })
+
+        // Validate result
+        console.log('Internalize Action Result:', r)
+        expect(r).toBeDefined()
+      } catch (error) {
+        console.error('Test failed with error:', error)
+        throw error
+      }
+    }
+  })
+
+  test.skip('001_default', async () => {
     const storage = ctxs[0].activeStorage as StorageKnex // Initialize storage
     for (const { wallet } of ctxs) {
       try {

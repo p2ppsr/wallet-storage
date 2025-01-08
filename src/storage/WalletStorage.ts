@@ -61,7 +61,7 @@ export class WalletStorage implements sdk.WalletStorage {
         return this.getActive().purgeData(params, trx)
     }
 
-    async SyncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
+    async syncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
         const writer = this.getActive()
         const readerSettings = await reader.getSettings()
 

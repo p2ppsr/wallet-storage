@@ -412,7 +412,7 @@ export abstract class TestUtilsWalletStorage {
             const readerKnex = _tu.createLocalSQLite(readerFile)
             const reader = new StorageKnex({ chain, knex: readerKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
             await reader.makeAvailable()
-            await storage.SyncFromReader(identityKey, reader)
+            await storage.syncFromReader(identityKey, reader)
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)

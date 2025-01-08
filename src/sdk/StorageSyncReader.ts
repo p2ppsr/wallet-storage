@@ -4,10 +4,6 @@ export interface StorageSyncReader {
 
    isAvailable(): boolean
    makeAvailable(): Promise<void>
-   /**
-    * Valid if isAvailable() returns true which requires makeAvailable() to complete successfully.
-    */
-   settings?: table.Settings
 
    destroy(): Promise<void>
 
@@ -17,7 +13,7 @@ export interface StorageSyncReader {
    //
    /////////////////
 
-   getSettings(trx?: sdk.TrxToken): Promise<table.Settings>
+   getSettings(trx?: sdk.TrxToken): table.Settings
 
    getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]>
    getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]>

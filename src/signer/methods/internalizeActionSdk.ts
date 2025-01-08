@@ -34,15 +34,14 @@ import { WalletSigner } from "../WalletSigner";
  * @param originator 
  * @returns 
  */
-export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.ValidInternalizeActionArgs)
 : Promise<sdk.InternalizeActionResult> {
 
   const { ab, tx, txid } = await validateAtomicBeef();
   const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
 
   const sargs: sdk.StorageInternalizeActionArgs = {
-    ...vargs,
-    commonDerivationPrefix: undefined
+    ...vargs
   }
 
   for (const o of vargs.outputs) {
@@ -55,7 +54,7 @@ export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.Vali
     }
   }
 
-  const r: sdk.InternalizeActionResult = await signer.storage.internalizeActionSdk(sargs, originator)
+  const r: sdk.InternalizeActionResult = await signer.storage.internalizeActionSdk(sargs)
 
   return r
 

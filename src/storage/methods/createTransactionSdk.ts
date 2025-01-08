@@ -507,7 +507,7 @@ async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: 
     const output = verifyOneOrNone(await dojo.findOutputs({ partial: { userId, txid, vout }}))
     if (output) {
       input.output = output
-      if (!Buffer.isBuffer(output.lockingScript) || !Number.isInteger(output.satoshis))
+      if (!Array.isArray(output.lockingScript) || !Number.isInteger(output.satoshis))
         throw new sdk.WERR_INVALID_PARAMETER(`${txid}.${vout}`, 'output with valid lockingScript and satoshis');
       if (!output.spendable && !vargs.isNoSend)
         throw new sdk.WERR_INVALID_PARAMETER(`${txid}.${vout}`, 'spendable output unless noSend is true');

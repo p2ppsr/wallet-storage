@@ -9,6 +9,7 @@ import { purgeData } from './methods/purgeData'
 import { requestSyncChunk } from './methods/requestSyncChunk'
 import { listCertificatesSdk } from './methods/listCertificatesSdk'
 import { createTransactinoSdk } from './methods/createTransactionSdk'
+import { processActionSdk } from './methods/processActionSdk'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
   /**
@@ -26,8 +27,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     this.knex = options.knex
   }
 
-  override async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
-    return this.validateEntity(verifyOne(await this.toDb(trx)<table.Settings>('settings')))
+  async readSettings(): Promise<table.Settings> {
+    return this.validateEntity(verifyOne(await this.toDb(undefined)<table.Settings>('settings')))
   }
 
   override async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx> {
@@ -158,7 +159,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     return await listOutputsSdk(this, vargs, originator)
   }
   override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
-    throw new Error('Method not implemented.')
+    return await processActionSdk(this, params, originator)
   }
 
   override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
@@ -309,9 +310,17 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     await this.verifyReadyForDatabaseAccess(trx)
     return await this.toDb(trx)<table.OutputTag>('output_tags').where({ outputTagId: id }).update(this.validatePartialForUpdate(update, undefined, ['isDeleted']))
   }
-  override async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
+  override async updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ provenTxReqId: id }).update(this.validatePartialForUpdate(update))
+    let r: number
+    if (Array.isArray(id)) {
+        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
+    } else if (Number.isInteger(id)) {
+        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
+    } else {
+        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+    }
+    return r
   }
   override async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -323,9 +332,17 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
       .where({ syncStateId: id })
       .update(this.validatePartialForUpdate(update, ['when'], ['init']))
   }
-  override async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
+  override async updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(this.validatePartialForUpdate(update))
+    let r: number
+    if (Array.isArray(id)) {
+        r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
+    } else if (Number.isInteger(id)) {
+        r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
+    } else {
+        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+    }
+    return r
   }
   override async updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
@@ -648,16 +665,16 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
    * @param trx
    */
   async verifyReadyForDatabaseAccess(trx?: sdk.TrxToken): Promise<DBType> {
-    if (!this.settings) {
-      this.settings = await this.getSettings()
+    if (!this._settings) {
+      this._settings = await this.readSettings()
 
       // Make sure foreign key constraint checking is turned on in SQLite.
-      if (this.settings.dbtype === 'SQLite') {
+      if (this._settings.dbtype === 'SQLite') {
         await this.toDb(trx).raw('PRAGMA foreign_keys = ON;')
       }
     }
 
-    return this.settings.dbtype
+    return this._settings.dbtype
   }
 
   /**

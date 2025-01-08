@@ -342,6 +342,7 @@ export abstract class TestUtilsWalletStorage {
         await activeStorage.makeAvailable()
         const setup = await args.insertSetup(activeStorage, identityKey)
         const storage = new WalletStorage(activeStorage)
+        await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
         await signer.authenticate(undefined, true)
         const services = new WalletServices(args.chain)
@@ -406,10 +407,12 @@ export abstract class TestUtilsWalletStorage {
         await activeStorage.migrate(databaseName)
         await activeStorage.makeAvailable()
         const storage = new WalletStorage(activeStorage)
+        await storage.makeAvailable()
         if (useReader) {
             const readerKnex = _tu.createLocalSQLite(readerFile)
             const reader = new StorageKnex({ chain, knex: readerKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
-            await storage.SyncFromReader(identityKey, reader)
+            await reader.makeAvailable()
+            await storage.syncFromReader(identityKey, reader)
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)

@@ -8,25 +8,26 @@ import { proveCertificateSdk } from "./methods/proveCertificateSdk";
 import { relinquishCertificateSdk } from "./methods/relinquishCertificateSdk";
 import { acquireDirectCertificateSdk } from "./methods/acquireDirectCertificateSdk";
 import { signActionSdk } from "./methods/signActionSdk";
+import { SignerStorage } from "../storage/SignerStorage";
 
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
     keyDeriver: sdk.KeyDeriverApi
-    storage: sdk.SignerStorage
+    storage: SignerStorage
     storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
-    userIdentiyKey: string
+    identityKey: string
 
     pendingSignActions: Record<string, PendingSignAction>
 
-    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorage) {
+    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: SignerStorage) {
         if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`)
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage
         const s = storage.getSettings()
         this.storageIdentity = { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
-        this.userIdentiyKey = this.keyDeriver.identityKey
+        this.identityKey = this.keyDeriver.identityKey
 
         this.pendingSignActions = {}
     }
@@ -53,70 +54,77 @@ export class WalletSigner implements sdk.WalletSigner {
         return this.chain
     }
 
-    async listActions(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
-        const r = await this.storage.listActionsSdk(vargs)
+    private injectIdentityKey<A, T extends sdk.ValidWalletSignerArgs>(args: A, validate: (args: A) => T) : T {
+        const vargs = validate(args)
+        vargs.userIdentityKey = this.identityKey
+        return vargs
+    }
+    
+    async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateListActionsArgs)
+        vargs.userIdentityKey = this.identityKey
+        const r = await this.storage.listActions(vargs.userIdentityKey, args)
         return r
     }
-    async listOutputs(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateListOutputsArgs)
         const r = await this.storage.listOutputsSdk(vargs)
         return r
     }
-    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateListCertificatesArgs)
         const r = await this.storage.listCertificatesSdk(vargs)
         return r
     }
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateAbortActionArgs)
         const r = await this.storage.abortActionSdk(vargs)
         return r
     }
-    async createActionSdk(vargs: sdk.ValidCreateActionArgs): Promise<sdk.CreateActionResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateCreateActionArgs)
         const r = await createActionSdk(this, vargs)
         return r
     }
 
-    async signActionSdk(vargs: sdk.ValidSignActionArgs): Promise<sdk.SignActionResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateSignActionArgs)
         const r = await signActionSdk(this, vargs)
         return r
     }
-    async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateInternalizeActionArgs)
         const r = await internalizeActionSdk(this, vargs)
         return r
     }
-    async relinquishOutputSdk(vargs: sdk.ValidRelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateRelinquishOutputArgs)
         const r = await relinquishOutputSdk(this, vargs)
         return r
     }
-    async acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs): Promise<sdk.AcquireCertificateResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async acquireCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateAcquireDirectCertificateArgs)
         const r = await acquireDirectCertificateSdk(this, vargs)
         return r
     }
-    async proveCertificateSdk(vargs: sdk.ValidProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateProveCertificateArgs)
         const r = await proveCertificateSdk(this, vargs)
         return r
     }
-    async relinquishCertificateSdk(vargs: sdk.ValidRelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateRelinquishCertificateArgs)
         const r = await relinquishCertificateSdk(this, vargs)
         return r
     }
 
-    async discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateDiscoverByIdentityKeyArgs)
         throw new Error("Method not implemented.");
     }
-    async discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
-        vargs.userIdentityKey = this.userIdentiyKey
+    async discoverByAttributes(args: sdk.DiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
+        const vargs = this.injectIdentityKey(args, sdk.validateDiscoverByAttributesArgs)
         throw new Error("Method not implemented.");
     }
 }

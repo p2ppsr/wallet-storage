@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import { sdk, table } from "..";
 
-export interface WalletStorage extends sdk.StorageSyncReader, sdk.SignerStorage {
+export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
 
    isAvailable(): boolean
    makeAvailable(): Promise<void>
@@ -25,14 +25,14 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.SignerStorage 
 
    internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
    createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult>
-   processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults>
+   processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults>
    abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult>
 
    updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
 
    getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<sdk.StorageProvenOrReq>
 
-   findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken) : Promise<{ user: table.User, isNew: boolean}>
+   findOrInsertUser(identityKey: string, trx?: sdk.TrxToken) : Promise<{ user: table.User, isNew: boolean}>
    findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<{ req: table.ProvenTxReq, isNew: boolean}>
    findOrInsertTransaction(newTx: table.Transaction, trx?: sdk.TrxToken) : Promise<{ tx: table.Transaction, isNew: boolean}>
    findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken) : Promise<table.OutputBasket>
@@ -188,7 +188,7 @@ export interface StorageCreateTransactionSdkResult {
    reference: string
 }
 
-export interface StorageProcessActionSdkParams {
+export interface StorageProcessActionArgs {
    userId: number,
    isNewTx: boolean
    isSendWith: boolean

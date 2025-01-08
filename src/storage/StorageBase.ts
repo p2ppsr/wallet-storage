@@ -50,13 +50,20 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract migrate(storageName: string): Promise<string>
     abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
+    private injectUserId<A, T extends sdk.ValidWalletSignerArgs>(userId: number, args: A, validate: (args: A) => T) : T {
+        const vargs = validate(args)
+        vargs.userId = userId
+        return vargs
+    }
+    
     /////////////////
     //
     // WRITE OPERATIONS (state modifying methods)
     //
     /////////////////
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
+    async abortAction(userId: number, args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
+        const vargs = await this.injectUserId(userId, args, sdk.validateAbortActionArgs)
         const r = await this.transaction(async trx => {
             const tx = verifyOneOrNone(await this.findTransactions({ partial: { userId: vargs.userId, reference: vargs.reference }, noRawTx: true, trx }))
             const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
@@ -483,7 +490,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
 
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
-    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults>
+    abstract processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults>
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
     abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>

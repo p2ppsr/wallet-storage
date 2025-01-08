@@ -2,7 +2,7 @@
 import * as bsv from '@bsv/sdk'
 import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
 
-export async function processActionSdk(dojo: StorageBase, params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function processActionSdk(dojo: StorageBase, params: sdk.StorageProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.StorageProcessActionSdkResults>
 {
 
@@ -162,7 +162,7 @@ interface ValidCommitNewTxToStorageArgs {
     postStatus?: ReqTxStatus
 }
 
-async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: number, params: sdk.StorageProcessActionSdkParams)
+async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: number, params: sdk.StorageProcessActionArgs)
 : Promise<ValidCommitNewTxToStorageArgs>
 {
     const storage = dojo

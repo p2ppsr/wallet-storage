@@ -114,7 +114,7 @@ export class WalletStorage extends SignerStorage implements sdk.WalletStorage {
     async createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
         return await this.getActive().createTransactionSdk(args)
     }
-    async processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults> {
+    async processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults> {
         return await this.getActive().processActionSdk(params)
     }
 

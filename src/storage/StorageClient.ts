@@ -145,7 +145,7 @@ export class StorageClient implements sdk.WalletStorage {
     }
 
     async processActionSdk(
-        params: sdk.StorageProcessActionSdkParams,
+        params: sdk.StorageProcessActionArgs,
         originator?: sdk.OriginatorDomainNameStringUnder250Bytes
     ): Promise<sdk.StorageProcessActionSdkResults> {
         return this.rpcCall<sdk.StorageProcessActionSdkResults>("processActionSdk", [params, originator])

@@ -156,7 +156,7 @@ function removeUnlockScripts(args: sdk.ValidCreateActionArgs) {
 export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, vargs: sdk.ValidProcessActionArgs)
 : Promise<sdk.SendWithResult[] | undefined>
 {
-  const params: sdk.StorageProcessActionSdkParams = {
+  const params: sdk.StorageProcessActionArgs = {
     userId: vargs.userId!,
     isNewTx: vargs.isNewTx,
     isSendWith: vargs.isSendWith,

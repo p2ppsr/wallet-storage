@@ -158,7 +158,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   override async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
     return await listOutputsSdk(this, vargs, originator)
   }
-  override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
+  override async processActionSdk(params: sdk.StorageProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
     return await processActionSdk(this, params, originator)
   }
 

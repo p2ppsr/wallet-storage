@@ -82,15 +82,15 @@ export class SignerStorage implements sdk.SignerStorage {
         return await this.getActive().abortActionSdk(vargs)
     }
     async createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
-args.userId = await this.getUserId(args.userIdentityKey)
+        args.userId = await this.getUserId(args.userIdentityKey)
         return await this.getActive().createTransactionSdk(args)
     }
-    async processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults> {
-params.userId = await this.getUserId(params.userIdentityKey)
+    async processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults> {
+        params.userId = await this.getUserId(params.userIdentityKey)
         return await this.getActive().processActionSdk(params)
     }
     async insertCertificate(certificate: table.Certificate): Promise<number> {
-certificate.userId = await this.getUserId(certificate.userIdentityKey)
+        certificate.userId = await this.getUserId(certificate.userIdentityKey)
         return await this.getActive().insertCertificate(certificate)
     }
     async updateCertificate(id: number, update: Partial<table.Certificate>): Promise<number> {
@@ -110,8 +110,18 @@ certificate.userId = await this.getUserId(certificate.userIdentityKey)
         return await this.getActive().migrate(storageName)
     }
 
-    async listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult> {
-        return await this.getActive().listActionsSdk(vargs)
+    private async injectIdentityKey<A, T extends sdk.ValidWalletSignerArgs>(identityKey: string, args: A, validate: (args: A) => T) : Promise<T> {
+        const vargs = validate(args)
+        vargs.userIdentityKey = identityKey
+        vargs.userId = await this.getUserId(identityKey)
+        if (!vargs.userId)
+            throw new sdk.WERR_UNAUTHORIZED(`identityKey ${identityKey} is not recognized as authenticated.`)
+        return vargs
+    }
+    
+    async listActions(identityKey: string, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+        const vargs = await this.injectIdentityKey(identityKey, args, sdk.validateListActionsArgs)
+        return await this.getActive().listActions(vargs.userId, args)
     }
     async listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult> {
         return await this.getActive().listOutputsSdk(vargs)

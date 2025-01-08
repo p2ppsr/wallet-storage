@@ -9,8 +9,7 @@ import { sdk, table } from "..";
 import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
-import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
-import { StorageSyncReader } from "./StorageSyncReader" // Adjust if needed
+import { SignerStorage } from "./SignerStorage" // Adjust this import path to where your local interface is declared
 
 export class StorageClient implements sdk.WalletStorage {
     private endpointUrl: string
@@ -319,10 +318,12 @@ export class StorageClient implements sdk.WalletStorage {
     // READ OPERATIONS
     //////////////////////////////////////////////////////////////////////////////
 
-    async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
-        const s = await this.rpcCall<table.Settings>("getSettings", [trx])
-        this.settings = s // store for local usage
-        return s
+    _settings?: table.Settings
+
+    getSettings(trx?: sdk.TrxToken): table.Settings {
+        if (!this._settings)
+            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
+        return this._settings!
     }
 
     async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx> {

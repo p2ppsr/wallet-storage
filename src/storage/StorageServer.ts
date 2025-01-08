@@ -12,7 +12,7 @@ import { ProtoWallet, Wallet } from '@bsv/sdk'
 import { sdk } from '..'
 
 // You have your local or imported `WalletStorage` interface:
-import { WalletStorage } from "./WalletStorage" // adjust import path
+import { SignerStorage } from "./SignerStorage" // adjust import path
 // Or your known local implementation:
 import { StorageKnex } from "./StorageKnex" // adjust path as needed
 

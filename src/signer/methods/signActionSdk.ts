@@ -5,7 +5,7 @@ import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
 import { PendingSignAction, WalletSigner } from "../WalletSigner"
 import { processActionSdk } from "./createActionSdk"
 
-export async function signActionSdk(signer: WalletSigner, vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function signActionSdk(signer: WalletSigner, vargs: sdk.ValidSignActionArgs)
 : Promise<sdk.SignActionResult>
 {
   const prior = signer.pendingSignActions[vargs.reference]
@@ -16,7 +16,7 @@ export async function signActionSdk(signer: WalletSigner, vargs: sdk.ValidSignAc
 
   prior.tx = await completeSignedTransaction(prior, vargs.spends, signer)
 
-  const sendWithResults = await processActionSdk(prior, signer, vargs, originator)
+  const sendWithResults = await processActionSdk(prior, signer, vargs)
 
   const r: sdk.SignActionResult = {
     txid: prior.tx.id('hex'),

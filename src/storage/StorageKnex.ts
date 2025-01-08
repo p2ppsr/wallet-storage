@@ -27,8 +27,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     this.knex = options.knex
   }
 
-  override async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
-    return this.validateEntity(verifyOne(await this.toDb(trx)<table.Settings>('settings')))
+  async readSettings(): Promise<table.Settings> {
+    return this.validateEntity(verifyOne(await this.toDb(undefined)<table.Settings>('settings')))
   }
 
   override async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx> {
@@ -665,16 +665,16 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
    * @param trx
    */
   async verifyReadyForDatabaseAccess(trx?: sdk.TrxToken): Promise<DBType> {
-    if (!this.settings) {
-      this.settings = await this.getSettings()
+    if (!this._settings) {
+      this._settings = await this.readSettings()
 
       // Make sure foreign key constraint checking is turned on in SQLite.
-      if (this.settings.dbtype === 'SQLite') {
+      if (this._settings.dbtype === 'SQLite') {
         await this.toDb(trx).raw('PRAGMA foreign_keys = ON;')
       }
     }
 
-    return this.settings.dbtype
+    return this._settings.dbtype
   }
 
   /**

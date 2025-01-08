@@ -45,6 +45,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return this._services
     }
 
+
     abstract dropAllData(): Promise<void>
     abstract migrate(storageName: string): Promise<string>
     abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
@@ -55,7 +56,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     //
     /////////////////
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
         const r = await this.transaction(async trx => {
             const tx = verifyOneOrNone(await this.findTransactions({ partial: { userId: vargs.userId, reference: vargs.reference }, noRawTx: true, trx }))
             const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
@@ -78,7 +79,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return r
     }
 
-    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs)
     : Promise<sdk.InternalizeActionResult> {
         throw new sdk.WERR_NOT_IMPLEMENTED()
     }
@@ -471,8 +472,8 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         }, trx)
     }
 
-    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return await createTransactinoSdk(this, vargs, originator)
+    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
+        return await createTransactinoSdk(this, vargs)
     }
 
     async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
@@ -482,7 +483,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
 
 
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
-    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
+    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults>
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
     abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>
@@ -528,8 +529,8 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
     abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
 
-    abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
-    abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
+    abstract listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult>
+    abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult>
 
     abstract findOutputTagMaps(args: sdk.FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
     abstract findProvenTxReqs(args: sdk.FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>
@@ -596,8 +597,8 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return verifyOneOrNone(await this.findWatchmanEvents({ partial: { id }, trx }))
     }
 
-    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
-        return await listCertificatesSdk(this, vargs, originator)
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+        return await listCertificatesSdk(this, vargs)
     }
 
     async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken) : Promise<boolean> {

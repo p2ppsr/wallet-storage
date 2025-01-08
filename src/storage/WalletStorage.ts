@@ -18,6 +18,7 @@ export class WalletStorage implements sdk.WalletStorage {
 
     stores: sdk.WalletStorage[] = []
     _services?: sdk.WalletServices
+    _settings?: table.Settings
 
     constructor(active: sdk.WalletStorage, backups?: sdk.WalletStorage[]) {
         this.stores = [ active ]
@@ -41,10 +42,15 @@ export class WalletStorage implements sdk.WalletStorage {
         return this.getActive().isAvailable()
     }
 
-    get settings() : table.Settings | undefined { return this.getActive().settings }
+    getSettings(): table.Settings {
+        if (!this._settings)
+            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
+        return this._settings
+    }
 
     async makeAvailable(): Promise<void> {
         this.getActive().makeAvailable()
+        this._settings = await this.getActive().getSettings()
     }
 
     async destroy(): Promise<void> {
@@ -84,8 +90,8 @@ export class WalletStorage implements sdk.WalletStorage {
     //
     /////////////////
 
-    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> {
-        return await this.getActive().internalizeActionSdk(sargs, originator)
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+        return await this.getActive().internalizeActionSdk(sargs)
     }
     async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
         return await this.getActive().getProvenOrReq(txid, newReq, trx)
@@ -122,14 +128,14 @@ export class WalletStorage implements sdk.WalletStorage {
         return await this.getActive().updateTransactionStatus(status, transactionId, userId, reference, trx)
     }
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
-        return await this.getActive().abortActionSdk(vargs, originator)
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
+        return await this.getActive().abortActionSdk(vargs)
     }
-    async createTransactionSdk(args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return await this.getActive().createTransactionSdk(args, originator)
+    async createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
+        return await this.getActive().createTransactionSdk(args)
     }
-    async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
-        return await this.getActive().processActionSdk(params, originator)
+    async processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults> {
+        return await this.getActive().processActionSdk(params)
     }
 
     async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
@@ -237,9 +243,6 @@ export class WalletStorage implements sdk.WalletStorage {
         return await this.getActive().migrate(storageName)
     }
 
-    async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
-        return await this.getActive().getSettings(trx)
-    }
     async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken) {
         return await this.getActive().getProvenOrRawTx(txid, trx)
     }
@@ -270,14 +273,14 @@ export class WalletStorage implements sdk.WalletStorage {
         return this.getActive().transaction<T>(scope, trx)
     }
 
-    async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
-        return await this.getActive().listActionsSdk(vargs, originator)
+    async listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult> {
+        return await this.getActive().listActionsSdk(vargs)
     }
-    async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
-        return await this.getActive().listOutputsSdk(vargs, originator)
+    async listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult> {
+        return await this.getActive().listOutputsSdk(vargs)
     }
-   async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
-        return await this.getActive().listCertificatesSdk(vargs, originator)
+   async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+        return await this.getActive().listCertificatesSdk(vargs)
    }
 
     async findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]> {

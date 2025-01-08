@@ -1,7 +1,7 @@
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
 import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyTruthy, WalletSigner } from "../.."
 
-export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCreateActionArgs)
 : Promise<sdk.CreateActionResult>
 {
   const r: sdk.CreateActionResult = {}
@@ -9,7 +9,7 @@ export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCrea
   let prior: PendingSignAction | undefined = undefined
 
   if (vargs.isNewTx) {
-    prior = await createNewTx(signer, vargs, originator)
+    prior = await createNewTx(signer, vargs)
 
     if (vargs.isSignAction) {
       return makeSignableTransactionResult(prior, signer, vargs)
@@ -23,16 +23,16 @@ export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCrea
       r.tx = makeAtomicBeef(prior.tx, prior.dcr.inputBeef!)
   }
 
-  r.sendWithResults = await processActionSdk(prior, signer, vargs, originator)
+  r.sendWithResults = await processActionSdk(prior, signer, vargs)
 
   return r
 }
 
-async function createNewTx(signer: WalletSigner, args: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+async function createNewTx(signer: WalletSigner, args: sdk.ValidCreateActionArgs)
 : Promise<PendingSignAction>
 {
   const storageArgs = removeUnlockScripts(args);
-  const dcr = await signer.storage.createTransactionSdk(storageArgs, originator)
+  const dcr = await signer.storage.createTransactionSdk(storageArgs)
 
   const reference = dcr.reference
 
@@ -153,7 +153,7 @@ function removeUnlockScripts(args: sdk.ValidCreateActionArgs) {
   return storageArgs;
 }
 
-export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, vargs: sdk.ValidProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, vargs: sdk.ValidProcessActionArgs)
 : Promise<sdk.SendWithResult[] | undefined>
 {
   const params: sdk.StorageProcessActionSdkParams = {
@@ -167,7 +167,7 @@ export async function processActionSdk(prior: PendingSignAction | undefined, sig
     rawTx: prior ? prior.tx.toBinary() : undefined,
     sendWith: vargs.isSendWith ? vargs.options.sendWith : [],
   }
-  const r: sdk.StorageProcessActionSdkResults = await signer.storage.processActionSdk(params, originator)
+  const r: sdk.StorageProcessActionSdkResults = await signer.storage.processActionSdk(params)
 
   return r.sendWithResults
 }

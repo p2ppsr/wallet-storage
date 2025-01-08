@@ -12,7 +12,7 @@ import { signActionSdk } from "./methods/signActionSdk";
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
     keyDeriver: sdk.KeyDeriverApi
-    storage: sdk.WalletStorage
+    storage: sdk.SignerStorage
     storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
     _isAuthenticated: boolean
@@ -26,7 +26,7 @@ export class WalletSigner implements sdk.WalletSigner {
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage
-        const s = storage.settings!
+        const s = storage.getSettings()
         this.storageIdentity = { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
         // TODO: Sort out authentication
         this._isAuthenticated = true
@@ -67,16 +67,16 @@ export class WalletSigner implements sdk.WalletSigner {
     }
 
     async authenticate(identityKey?: string, addIfNew?: boolean): Promise<void> {
+        await this.storage.makeAvailable()
         if (identityKey && identityKey !== this.keyDeriver.identityKey)
             throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'same as already authenticated identity.');
-        this._user = verifyOneOrNone(await this.storage.findUsers({ partial: { identityKey: this.keyDeriver.identityKey } }))
-        if (!this._user) {
-            if (!addIfNew)
-                throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'found in storage.');
-            const now = new Date()
-            await this.storage.insertUser({ created_at: now, updated_at: now, userId: 0, identityKey: this.keyDeriver.identityKey })
-            this._user = verifyOne(await this.storage.findUsers({ partial: { identityKey: this.keyDeriver.identityKey } }))
+        if (!identityKey) {
+            identityKey = this.keyDeriver.identityKey
         }
+        const { user, isNew } = await this.storage.findOrInsertUser({ identityKey, userId: 0, created_at: new Date(), updated_at: new Date() })
+        if (!addIfNew && isNew)
+            throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'exist on storage.');
+        this._user = user
         this._isAuthenticated = true
     }
 
@@ -94,68 +94,68 @@ export class WalletSigner implements sdk.WalletSigner {
         // TODO: handle single user / multi user / sync locks.
     }
 
-    async listActions(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
+    async listActions(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult> {
         vargs.userId = await this.getUserId()
-        const r = await this.storage.listActionsSdk(vargs, originator)
+        const r = await this.storage.listActionsSdk(vargs)
         return r
     }
-    async listOutputs(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
+    async listOutputs(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult> {
         vargs.userId = await this.getUserId()
-        const r = await this.storage.listOutputsSdk(vargs, originator)
+        const r = await this.storage.listOutputsSdk(vargs)
         return r
     }
-    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
         vargs.userId = await this.getUserId()
-        const r = await this.storage.listCertificatesSdk(vargs, originator)
-        return r
-    }
-
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult> {
-        vargs.userId = await this.getUserId()
-        const r = await this.storage.abortActionSdk(vargs, originator)
-        return r
-    }
-    async createActionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult> {
-        vargs.userId = await this.getUserId()
-        const r = await createActionSdk(this, vargs, originator)
+        const r = await this.storage.listCertificatesSdk(vargs)
         return r
     }
 
-    async signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> {
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
         vargs.userId = await this.getUserId()
-        const r = await signActionSdk(this, vargs, originator)
+        const r = await this.storage.abortActionSdk(vargs)
         return r
     }
-    async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> {
+    async createActionSdk(vargs: sdk.ValidCreateActionArgs): Promise<sdk.CreateActionResult> {
         vargs.userId = await this.getUserId()
-        const r = await internalizeActionSdk(this, vargs, originator)
+        const r = await createActionSdk(this, vargs)
         return r
     }
-    async relinquishOutputSdk(vargs: sdk.ValidRelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishOutputResult> {
+
+    async signActionSdk(vargs: sdk.ValidSignActionArgs): Promise<sdk.SignActionResult> {
         vargs.userId = await this.getUserId()
-        const r = await relinquishOutputSdk(this, vargs, originator)
+        const r = await signActionSdk(this, vargs)
         return r
     }
-    async acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult> {
+    async internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
         vargs.userId = await this.getUserId()
-        const r = await acquireDirectCertificateSdk(this, vargs, originator)
+        const r = await internalizeActionSdk(this, vargs)
         return r
     }
-    async proveCertificateSdk(vargs: sdk.ValidProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ProveCertificateResult> {
+    async relinquishOutputSdk(vargs: sdk.ValidRelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
         vargs.userId = await this.getUserId()
-        const r = await proveCertificateSdk(this, vargs, originator)
+        const r = await relinquishOutputSdk(this, vargs)
         return r
     }
-    async relinquishCertificateSdk(vargs: sdk.ValidRelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishCertificateResult> {
+    async acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs): Promise<sdk.AcquireCertificateResult> {
+        vargs.userId = await this.getUserId()
+        const r = await acquireDirectCertificateSdk(this, vargs)
+        return r
+    }
+    async proveCertificateSdk(vargs: sdk.ValidProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
+        vargs.userId = await this.getUserId()
+        const r = await proveCertificateSdk(this, vargs)
+        return r
+    }
+    async relinquishCertificateSdk(vargs: sdk.ValidRelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
         await this.verifyStorageAvailable()
-        const r = await relinquishCertificateSdk(this, vargs, originator)
+        const r = await relinquishCertificateSdk(this, vargs)
         return r
     }
 
-    async discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> {
+    async discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
         throw new Error("Method not implemented.");
     }
-    async discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> {
+    async discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
         throw new Error("Method not implemented.");
     }
 }

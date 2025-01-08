@@ -20,7 +20,7 @@ describe('Wallet getVersion Tests', () => {
     }
   })
 
-  // Test: Correct version is returned
+  // Test: Correct version is returned and handles empty arguments
   test('0_correct_version_returned', async () => {
     for (const { wallet } of ctxs) {
       const result = await wallet.getVersion({}) // Call getVersion with no arguments
@@ -29,17 +29,8 @@ describe('Wallet getVersion Tests', () => {
     }
   })
 
-  // Test: Handles empty arguments
-  test('1_handles_empty_arguments', async () => {
-    for (const { wallet } of ctxs) {
-      const result = await wallet.getVersion({}) // Call getVersion with an empty argument object
-      // Verify the returned version matches the expected value
-      expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
-    }
-  })
-
   // Test: Rejects invalid arguments
-  test('2_rejects_invalid_arguments', async () => {
+  test('1_rejects_invalid_arguments', async () => {
     const invalidInputs = [
       undefined, // No input
       null, // Null input
@@ -57,7 +48,7 @@ describe('Wallet getVersion Tests', () => {
   })
 
   // Test: Handles high concurrency
-  test('3_handles_high_concurrency', async () => {
+  test('2_handles_high_concurrency', async () => {
     for (const { wallet } of ctxs) {
       // Create 10 concurrent promises for getVersion
       const promises = Array.from({ length: 10 }, () => wallet.getVersion({}))
@@ -70,7 +61,7 @@ describe('Wallet getVersion Tests', () => {
   })
 
   // Test: Handles repeated calls
-  test('4_consistently_returns_same_version', async () => {
+  test('3_consistently_returns_same_version', async () => {
     for (const { wallet } of ctxs) {
       for (let i = 0; i < 100; i++) {
         const result = await wallet.getVersion({}) // Call getVersion repeatedly

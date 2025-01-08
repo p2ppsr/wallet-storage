@@ -3,19 +3,25 @@ import { requestSyncChunk } from "./methods/requestSyncChunk";
 
 export abstract class StorageSyncReader implements sdk.StorageSyncReader {
     chain: sdk.Chain
-    settings?: table.Settings
+    _settings?: table.Settings
     whenLastAccess?: Date
-    get dbtype(): DBType | undefined { return this.settings?.dbtype }
+    get dbtype(): DBType | undefined { return this._settings?.dbtype }
 
     constructor(options: sdk.StorageSyncReaderOptions) {
         this.chain = options.chain
     }
 
     isAvailable(): boolean {
-        return !!this.settings
+        return !!this._settings
     }
     async makeAvailable(): Promise<void> {
-        this.settings = await this.getSettings()
+        this._settings = await this.readSettings()
+    }
+
+    getSettings() : table.Settings {
+        if (!this._settings)
+            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
+        return this._settings
     }
 
     abstract destroy(): Promise<void>
@@ -28,7 +34,7 @@ export abstract class StorageSyncReader implements sdk.StorageSyncReader {
     //
     /////////////////
 
-    abstract getSettings(trx?: sdk.TrxToken): Promise<table.Settings>
+    abstract readSettings(trx?: sdk.TrxToken): Promise<table.Settings>
 
     abstract getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>
     abstract getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]>

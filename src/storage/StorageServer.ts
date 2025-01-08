@@ -12,7 +12,7 @@ import { ProtoWallet, Wallet } from '@bsv/sdk'
 import { sdk } from '..'
 
 // You have your local or imported `WalletStorage` interface:
-import { WalletStorage } from "./WalletStorage" // adjust import path
+import { SignerStorage } from "./SignerStorage" // adjust import path
 // Or your known local implementation:
 import { StorageKnex } from "./StorageKnex" // adjust path as needed
 
@@ -53,7 +53,13 @@ export class StorageServer {
 
         // A single POST endpoint for JSON-RPC:
         this.app.post("/", async (req: Request, res: Response) => {
-            const { jsonrpc, method, params, id } = req.body
+            debugger
+            let { jsonrpc, method, params, id } = req.body
+            if (method !== 'getSettings') {
+                if (typeof params[0] !== 'object' || !params[0]) {
+                    params = [{}]
+                }
+            }
 
             // Basic JSON-RPC protocol checks:
             if (jsonrpc !== "2.0" || !method || typeof method !== "string") {
@@ -68,6 +74,21 @@ export class StorageServer {
                     throw new Error("Server method dispatch not used in this approach.")
                 } else if (typeof (this.walletStorage as any)[method] === "function") {
                     // method is on the walletStorage:
+                    // Find user
+                    if (method !== 'getSettings') {
+                        const user = await this.walletStorage.findUserByIdentityKey(req.auth.identityKey)
+                        if (!user) {
+                            const userId = await this.walletStorage.insertUser({
+                                identityKey: req.auth.identityKey as string,
+                                userId: 0,
+                                created_at: new Date(),
+                                updated_at: new Date()
+                            })
+                            params[0].userId = userId
+                        } else {
+                            params[0].userId = user.userId
+                        }
+                    }
                     const result = await (this.walletStorage as any)[method](...(params || []))
                     return res.json({ jsonrpc: "2.0", result, id })
                 } else {
@@ -129,4 +150,4 @@ async function main() {
     server.start()
 }
 
-main().catch(console.error)
+//main().catch(console.error)

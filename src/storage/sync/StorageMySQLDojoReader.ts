@@ -58,7 +58,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return db
     }
 
-    override async getSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
+    override async readSettings(trx?: sdk.TrxToken): Promise<table.Settings> {
         const d = verifyOne(await this.toDb(trx)('settings'))
         const r: table.Settings = {
             created_at: verifyTruthy(d.created_at),
@@ -71,7 +71,7 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         }
         if (r.storageName.startsWith('staging') && this.chain !== 'test')
             throw new sdk.WERR_INVALID_PARAMETER('chain', `in aggreement with storage chain ${r.storageName}`)
-        this.settings = r
+        this._settings = r
         return r
     }
 

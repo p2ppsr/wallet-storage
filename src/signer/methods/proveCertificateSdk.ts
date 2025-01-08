@@ -1,6 +1,6 @@
 import { sdk, WalletSigner } from '../..'
 
-export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.ValidProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.ValidProveCertificateArgs)
 : Promise<sdk.ProveCertificateResult>
 {
   const lcargs: sdk.ValidListCertificatesArgs = {
@@ -20,7 +20,7 @@ export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.Valid
     privileged: false
   }
 
-  const lcr = await signer.storage.listCertificatesSdk(lcargs, originator)
+  const lcr = await signer.storage.listCertificatesSdk(lcargs)
   if (lcr.certificates.length != 1)
     throw new sdk.WERR_INVALID_PARAMETER('args', `a unique certificate match`)
   const storageCert = lcr.certificates[0]

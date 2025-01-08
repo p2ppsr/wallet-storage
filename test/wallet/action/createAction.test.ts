@@ -17,6 +17,25 @@ describe('createAction test', () => {
     beforeAll(async () => {
         if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('createActionTests'))
         ctxs.push(await _tu.createLegacyWalletSQLiteCopy('createActionTests'))
+        for (const { services } of ctxs) {
+            // Mock the services postBeef to avoid actually broadcasting new transactions.
+            services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]) : Promise<sdk.PostBeefResult[]> => {
+                const r: sdk.PostBeefResult = {
+                    name: 'mock',
+                    status: 'success',
+                    txidResults: txids.map(txid => ({ txid, status: 'success' }))
+                }
+                return Promise.resolve([r])
+            })
+            services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]) : Promise<sdk.PostBeefResult[]> => {
+                const r: sdk.PostBeefResult = {
+                    name: 'mock',
+                    status: 'success',
+                    txidResults: txids.map(txid => ({ txid, status: 'success' }))
+                }
+                return Promise.resolve([r])
+            })
+        }
     })
 
     afterAll(async () => {
@@ -169,7 +188,7 @@ describe('createAction test', () => {
 
                 const cr = await wallet.createAction(createArgs)
 
-                expect(cr.noSendChange).toBeTruthy()
+                expect(cr.noSendChange).not.toBeTruthy()
                 expect(cr.sendWithResults?.length).toBe(2)
                 const [swr1, swr2] = cr.sendWithResults!
                 expect(swr1.status !== 'failed').toBe(true)

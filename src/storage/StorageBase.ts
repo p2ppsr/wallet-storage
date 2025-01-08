@@ -1,9 +1,11 @@
 import * as bsv from '@bsv/sdk'
-import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { asArray, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "..";
 import { createTransactinoSdk } from "./methods/createTransactionSdk";
 import { listCertificatesSdk } from "./methods/listCertificatesSdk";
 import { StorageSyncReader } from './StorageSyncReader'
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
+import { GetReqsAndBeefDetail, GetReqsAndBeefResult } from './methods/processActionSdk';
+import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
 
 export abstract class StorageBase extends StorageSyncReader implements sdk.WalletStorage {
     isDirty = false
@@ -43,6 +45,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return this._services
     }
 
+
     abstract dropAllData(): Promise<void>
     abstract migrate(storageName: string): Promise<string>
     abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
@@ -53,7 +56,7 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     //
     /////////////////
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator: string | undefined): Promise<sdk.AbortActionResult> {
+    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
         const r = await this.transaction(async trx => {
             const tx = verifyOneOrNone(await this.findTransactions({ partial: { userId: vargs.userId, reference: vargs.reference }, noRawTx: true, trx }))
             const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
@@ -76,9 +79,94 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return r
     }
 
-    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs)
     : Promise<sdk.InternalizeActionResult> {
         throw new sdk.WERR_NOT_IMPLEMENTED()
+    }
+
+    /**
+     * Given an array of transaction txids with current ProvenTxReq ready-to-share status,
+     * lookup their DojoProvenTxReqApi req records.
+     * For the txids with reqs and status still ready to send construct a single merged beef.
+     * 
+     * @param txids 
+     * @param knownTxids 
+     * @param trx 
+     */
+    async getReqsAndBeefToShareWithWorld(txids: string[], knownTxids: string[], trx?: sdk.TrxToken)
+    : Promise<GetReqsAndBeefResult>
+    {
+        const r: GetReqsAndBeefResult = {
+            beef: new bsv.Beef(),
+            details: []
+        }
+
+        for (const txid of txids) {
+            const d: GetReqsAndBeefDetail = {
+                txid,
+                status: 'unknown'
+            }
+            r.details.push(d)
+            try {
+                d.proven = verifyOneOrNone(await this.findProvenTxs({ partial: { txid }, trx }))
+                if (d.proven)
+                    d.status = 'alreadySent'
+                else {
+                    const alreadySentStatus = ['unmined', 'callback', 'unconfirmed', 'completed']
+                    const readyToSendStatus = ['sending', 'unsent', 'nosend', 'unprocessed']
+                    const errorStatus = ['unknown', 'nonfinal', 'invalid', 'doubleSpend']
+
+                    d.req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid }, trx }))
+                    if (!d.req) {
+                        d.status = 'error'
+                        d.error = `ERR_UNKNOWN_TXID: ${txid} was not found.`
+                    } else if (errorStatus.indexOf(d.req.status) > -1) {
+                        d.status = 'error'
+                        d.error = `ERR_INVALID_PARAMETER: ${txid} is not ready to send.`
+                    } else if (alreadySentStatus.indexOf(d.req.status) > -1) {
+                        d.status = 'alreadySent'
+                    } else if (readyToSendStatus.indexOf(d.req.status) > -1) {
+                        if (!d.req.rawTx || !d.req.inputBEEF) {
+                            d.status = 'error'
+                            d.error = `ERR_INTERNAL: ${txid} req is missing rawTx or beef.`
+                        } else 
+                            d.status = 'readyToSend'
+                    } else {
+                        d.status = 'error'
+                        d.error = `ERR_INTERNAL: ${txid} has unexpected req status ${d.req.status}`
+                    }
+
+                    if (d.status === 'readyToSend') {
+                        await this.mergeReqToBeefToShareExternally(d.req!, r.beef, knownTxids, trx);
+                    }
+                }
+
+            } catch (eu: unknown) {
+                const e = sdk.WalletError.fromUnknown(eu)
+                d.error = `${e.name}: ${e.message}`
+            }
+        }
+        return r
+    } 
+
+    async mergeReqToBeefToShareExternally(req: table.ProvenTxReq, mergeToBeef: bsv.Beef, knownTxids: string[], trx?: sdk.TrxToken) : Promise<void> {
+        const { rawTx, inputBEEF: beef } = req;
+        if (!rawTx || !beef) throw new sdk.WERR_INTERNAL(`req rawTx and beef must be valid.`);
+        mergeToBeef.mergeRawTx(asArray(rawTx));
+        mergeToBeef.mergeBeef(asArray(beef));
+        const tx = bsv.Transaction.fromBinary(asArray(rawTx));
+        for (const input of tx.inputs) {
+            if (!input.sourceTXID) throw new sdk.WERR_INTERNAL(`req all transaction inputs must have valid sourceTXID`);
+            const txid = input.sourceTXID
+            const btx = mergeToBeef.findTxid(txid);
+            if (!btx) {
+                if (knownTxids && knownTxids.indexOf(txid) > -1)
+                    mergeToBeef.mergeTxidOnly(txid);
+
+                else
+                    await this.getValidBeefForKnownTxid(txid, mergeToBeef, undefined, knownTxids, trx);
+            }
+        }
     }
 
     /**
@@ -118,6 +206,62 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         }
 
         return r
+    }
+
+    async findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken)
+    : Promise<{ user: table.User, isNew: boolean}>
+    {
+        let user: table.User | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                user = verifyOneOrNone(await this.findUsers({ partial: { identityKey: newUser.identityKey }, trx }))
+                if (user) break;
+                newUser.userId = await this.insertUser(newUser, trx)
+                isNew = true
+                user = newUser
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { user, isNew }
+    }
+
+    /**
+     * Attempts to find transaction record with matching txid and userId as in newTx.
+     * If found, returns existing record.
+     * If not found, inserts the new transaction and returns it with new transactionId.
+     * 
+     * This is safe "findOrInsert" operation using retry if unique index constraint
+     * is violated by a race condition insert.
+     * 
+     * @param newReq 
+     * @param trx 
+     * @returns 
+     */
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken)
+    : Promise<{ req: table.ProvenTxReq, isNew: boolean}>
+    {
+        let req: table.ProvenTxReq | undefined
+        let isNew = false
+
+        for (let retry = 0; ; retry++) {
+            try {
+                req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid: newReq.txid }, trx }))
+                if (req) break;
+                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
+                isNew = true
+                req = newReq
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+
+        return { req, isNew }
     }
 
     /**
@@ -328,14 +472,18 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         }, trx)
     }
 
-    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return await createTransactinoSdk(this, vargs, originator)
+    async createTransactionSdk(vargs: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
+        return await createTransactinoSdk(this, vargs)
+    }
+
+    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
+        return await attemptToPostReqsToNetwork(this, reqs, trx)
     }
 
 
 
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
-    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults>
+    abstract processActionSdk(params: sdk.StorageProcessActionSdkParams): Promise<sdk.StorageProcessActionSdkResults>
 
     abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
     abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>
@@ -360,10 +508,10 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
     abstract updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>
     abstract updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number>
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>
@@ -381,8 +529,8 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
     abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
     abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
 
-    abstract listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
-    abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
+    abstract listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult>
+    abstract listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult>
 
     abstract findOutputTagMaps(args: sdk.FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
     abstract findProvenTxReqs(args: sdk.FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>
@@ -449,8 +597,8 @@ export abstract class StorageBase extends StorageSyncReader implements sdk.Walle
         return verifyOneOrNone(await this.findWatchmanEvents({ partial: { id }, trx }))
     }
 
-    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
-        return await listCertificatesSdk(this, vargs, originator)
+    async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+        return await listCertificatesSdk(this, vargs)
     }
 
     async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken) : Promise<boolean> {

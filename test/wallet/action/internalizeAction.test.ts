@@ -23,6 +23,7 @@ describe('internalizeAction tests', () => {
   test('001_default', async () => {
     // While this works, there's no need to do it. If you look at the interface being returned by "createLegacyWallet..."
     // you'll see everything useful is being shared directly.
+<<<<<<< HEAD
     for (const { wallet, activeStorage: storage } of ctxs) {
       try {
         // Prepare StorageGetBeefOptions
@@ -105,21 +106,31 @@ describe('internalizeAction tests', () => {
   test.skip('001_default', async () => {
     const storage = ctxs[0].activeStorage as StorageKnex // Initialize storage
     for (const { wallet } of ctxs) {
+=======
+    // const storage = ctxs[0].activeStorage as StorageKnex // Initialize storage
+    for (const { wallet, activeStorage: storage } of ctxs) {
+>>>>>>> origin/master
       try {
         // Prepare StorageGetBeefOptions
         const options: sdk.StorageGetBeefOptions = {
-          trustSelf: 'known',
-          knownTxids: ['2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122'],
-          ignoreStorage: false,
-          ignoreServices: false,
-          ignoreNewProven: false,
-          minProofLevel: 0
+          // Setting 'known' tells it not to include rawTxs it already knows about, just their txids.
+          // trustSelf: 'known',
+          // Setting knownTxids tells it not to include these rawTxs, just their txids.
+          // knownTxids: ['2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122'],
+          // False and undefined are equal here so no need for this.
+          // ignoreStorage: false,
+          // Yes, you expect storage to have the info, so don't use services.
+          ignoreServices: true,
+          // Since you aren't using services and there won't be any newProven (rawTx's with merklePaths previously unknown to storage but required for this beef)
+          // ignoreNewProven: false,
+          // You don't expect infinitely deep nonsense
+          // minProofLevel: 0
         }
 
         // Fetch Beef object
         const beef = await storage.getBeefForTransaction('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122', options)
 
-        console.log('Beef Object:', beef)
+        console.log('Beef Object:\n', beef.toLogString())
 
         // Ensure Beef object contains valid transactions
         if (beef.txs.length === 0) {
@@ -133,12 +144,22 @@ describe('internalizeAction tests', () => {
           throw new Error('Beef contains an invalid transaction')
         }
 
+        // Hmm... I expect this to be undefined.
         expect(beef.atomicTxid).toBeDefined()
 
         // Convert to AtomicBEEF transaction
+        // perfect!
         const atomicTx = beef.toBinaryAtomic('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122')
         console.log('Atomic Transaction:', atomicTx)
 
+        {
+          const abeef = bsv.Beef.fromBinary(atomicTx)
+          // Here I expect it to be '279...'
+          expect(beef.atomicTxid).toBeDefined()
+        }
+
+        // This needs to be a real output (the locking script and derivation bits / key need to work with each other)
+        // But it is still a valid test to see what the reaction is to this nonsense :-)
         // Prepare output for internalization
         const output: bsv.InternalizeOutput = {
           outputIndex: 0,

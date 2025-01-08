@@ -20,9 +20,20 @@ describe('internalizeAction tests', () => {
     }
   })
 
+  // Check:  'unproven' or 'completed' status. Any other status is an error.
+  // When the transaction already exists, the description is updated. The isOutgoing sense is not changed.
+
   test('001_default', async () => {
     // While this works, there's no need to do it. If you look at the interface being returned by "createLegacyWallet..."
     // you'll see everything useful is being shared directly.
+    // "basket insertion" Merge Rules:
+    // The "default" basket may not be specified as the insertion basket.
+    // A change output in the "default" basket may not be target of an insertion into a different basket.
+    // These baskets do not affect the wallet's balance and are typed "custom".
+    // "wallet payment" Merge Rules:
+    // Targetting an existing change "default" basket output results in a no-op. No error. No alterations made.
+    // Targetting a previously "custom" non-change output converts it into a change output. This alters the transaction's amount, and the wallet balance.
+
     for (const { wallet, activeStorage: storage } of ctxs) {
       try {
         // Prepare StorageGetBeefOptions

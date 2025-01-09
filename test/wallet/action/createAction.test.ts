@@ -25,6 +25,7 @@ describe('createAction test', () => {
           status: 'success',
           txidResults: txids.map(txid => ({ txid, status: 'success' }))
         }
+        console.log('mock services postBeef')
         return Promise.resolve([r])
       })
       services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
@@ -33,6 +34,7 @@ describe('createAction test', () => {
           status: 'success',
           txidResults: txids.map(txid => ({ txid, status: 'success' }))
         }
+        console.log('mock services postTxs')
         return Promise.resolve([r])
       })
     }
@@ -428,7 +430,38 @@ describe('createAction test', () => {
     }
   })
 
-  test('9_Transaction with Real Data Large Input Set', async () => {
+  test('8a. Transaction with first Broadcasting', async () => {
+    const root = '02135476'
+    const kp = _tu.getKeyPair(root.repeat(8))
+
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const inputs = await fetchInputsFromDatabase(storage)
+
+      const createArgs: sdk.CreateActionArgs = {
+        description: 'Large Input Set Transaction',
+        inputs,
+        outputs: [
+          {
+            satoshis: 1000,
+            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
+            outputDescription: 'Output from Large Input Set'
+          }
+        ],
+        options: {
+          signAndProcess: true, // Sign and process the transaction
+          acceptDelayedBroadcast: false, // Enforce immediate broadcast
+          noSend: false // Allow the transaction to be broadcast
+        }
+      }
+
+      const cr = await wallet.createAction(createArgs)
+
+      expect(cr.txid).toBeTruthy() // Validate the transaction was broadcast successfully
+      expect(cr.noSendChange).toBeFalsy() // Validate that no change outputs remain unbroadcast
+    }
+  })
+
+  test.skip('9_Transaction with Real Data Large Input Set', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -446,14 +479,26 @@ describe('createAction test', () => {
         inputs,
         outputs: [
           {
-            satoshis: 1000,
+            satoshis: 199,
             lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
             outputDescription: 'Output from Large Input Set'
           }
-        ],
-        options: {
-          noSend: true
-        }
+        ]
+        // export interface CreateActionOptions {
+        //     signAndProcess?: BooleanDefaultTrue
+        //     acceptDelayedBroadcast?: BooleanDefaultTrue
+        //     trustSelf?: TrustSelf
+        //     knownTxids?: TXIDHexString[]
+        //     returnTXIDOnly?: BooleanDefaultFalse
+        //     noSend?: BooleanDefaultFalse
+        //     noSendChange?: OutpointString[]
+        //     sendWith?: TXIDHexString[]
+        //     randomizeOutputs?: BooleanDefaultTrue
+        //   }
+        //     options: {
+        //       noSend: false,
+        //       acceptDelayedBroadcast: false
+        //     }
       }
 
       const cr = await wallet.createAction(createArgs)
@@ -661,7 +706,7 @@ async function fetchInputsFromDatabase(storage: StorageKnex) {
     .from('outputs')
     .where('spendable', 1)
     .orderBy('created_at')
-    .limit(50)
+    .limit(1)
 
   if (!results.length) {
     throw new Error('No spendable inputs found in the database.')

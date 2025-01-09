@@ -91,6 +91,7 @@ describe('createAction test', () => {
         }
 
         const cr = await wallet.createAction(createArgs)
+
         noSendChange = cr.noSendChange
 
         expect(cr.noSendChange).toBeTruthy()
@@ -144,7 +145,7 @@ describe('createAction test', () => {
           options: {
             noSendChange,
             // signAndProcess: false, // Not required as an input lacks unlock script...
-            noSend: true
+            noSend: false
           }
         }
 
@@ -430,16 +431,29 @@ describe('createAction test', () => {
     }
   })
 
-  test('8a. Transaction with first Broadcasting', async () => {
+  test('8a_Transaction with first Broadcasting', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const inputs = await fetchInputsFromDatabase(storage)
+      // Fetch inputs from the database with lockingScript
+      const db = storage.toDb()
+      const inputs = await db
+        .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), 'lockingScript', db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
+        .from('outputs')
+        .where('spendable', 1)
+        .orderBy('created_at')
+        .limit(1)
+
+      const formattedInputs = inputs.map(row => ({
+        outpoint: row.outpoint,
+        inputDescription: row.inputDescription,
+        unlockingScriptLength: row.unlockingScriptLength
+      }))
 
       const createArgs: sdk.CreateActionArgs = {
         description: 'Large Input Set Transaction',
-        inputs,
+        inputs: formattedInputs,
         outputs: [
           {
             satoshis: 1000,
@@ -702,7 +716,7 @@ async function fetchInputsFromDatabase(storage: StorageKnex) {
 
   // Fetch inputs with txid, vout, and unlocking script length
   const results = await db
-    .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
+    .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), db.raw('lockingScript'), db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
     .from('outputs')
     .where('spendable', 1)
     .orderBy('created_at')

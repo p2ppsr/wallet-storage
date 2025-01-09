@@ -6135,6 +6135,12 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: acquireDirectCertificateSdk
 
+Acquire Direct Certificate allows the creation and storage of a certificate directly in the wallet's storage. It accepts certificate details, including type, subject, certifier, serial number, signature, and associated fields, and constructs a certificate object for insertion into the storage layer.
+
+Each certificate field is validated and mapped with its corresponding master key from the provided keyring. Certificates are classified by type, subject, and certifier, with optional verification details and revocation metadata. The function ensures that all fields are properly timestamped and linked to the user ID.
+
+The certificate is inserted into storage along with its associated fields, and the function returns the certificate details in the expected structure, ensuring consistency and traceability of certificates within the wallet system.
+
 ```ts
 export async function acquireDirectCertificateSdk(signer: WalletSigner, vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult>
 ```
@@ -6159,6 +6165,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: asArray
 
+# Function: asArray
+
+As Array converts a given input value into an array of numbers. It supports inputs in the form of an array, a Buffer, or a string. For Buffers and strings, it generates the array by transforming the data into its numeric representation. If the input is a string, an optional encoding (defaulting to 'hex') can be specified to guide the conversion.
+
 ```ts
 export function asArray(val: Buffer | string | number[], encoding?: BufferEncoding): number[]
 ```
@@ -6168,6 +6178,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: asBsvSdkPrivateKey
+
+As Bsv Sdk Private Key converts a 32-byte hexadecimal private key string into a `PrivateKey` object from the `@bsv/sdk` library. This ensures compatibility and ease of use with the Bitcoin SV SDK for cryptographic operations.
 
 ```ts
 export function asBsvSdkPrivateKey(privKey: string): PrivateKey
@@ -6189,6 +6201,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: asBsvSdkPublickKey
+
+# Function: asBsvSdkPublicKey
+
+As Bsv Sdk Public Key converts a standard compressed hexadecimal public key string into a `PublicKey` object from the `@bsv/sdk` library. This facilitates compatibility with the Bitcoin SV SDK for cryptographic and transaction-related operations.
 
 ```ts
 export function asBsvSdkPublickKey(pubKey: string): PublicKey
@@ -6322,6 +6338,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: completeSignedTransaction
 
+Ccomplete Signed Transaction finalizes a partially signed Bitcoin transaction by inserting user-provided unlocking scripts and generating templates for inputs requiring ScriptTemplateSABPPP unlocks. It validates the provided scripts, ensures compatibility with expected script lengths, and integrates the necessary unlocking mechanisms for both user and dojo-signed inputs. Finally, the function signs all inputs, producing a fully valid Bitcoin transaction ready for broadcast or further processing.
+
 ```ts
 export async function completeSignedTransaction(prior: PendingSignAction, spends: Record<number, sdk.SignActionSpend>, signer: WalletSigner): Promise<Transaction>
 ```
@@ -6333,6 +6351,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: convertProofToMerklePath
+
+Convert Proof To Merkle Path converts a transaction's Merkle proof into a `MerklePath` object for use with the `bsv` SDK. It processes the proof's nodes to construct a hierarchical representation of the Merkle tree, aligning hashes and transaction IDs based on their position within the tree. The function ensures that duplicate nodes, offsets, and hashes are correctly identified and mapped. The resulting `MerklePath` encapsulates the block height and proof path, facilitating validation and further blockchain operations.
 
 ```ts
 export function convertProofToMerklePath(txid: string, proof: TscMerkleProofApi): bsv.MerklePath
@@ -6346,6 +6366,44 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: createActionSdk
 
+Create Actionfacilitates the creation of transactions in a wallet environment, enabling users to create, sign, and broadcast Bitcoin transactions using predefined inputs, outputs, and options. It supports flexible configurations such as creating new transactions, handling signing actions, and interacting with the storage layer for persistent data handling.
+
+Overview
+This function operates in several stages:
+
+Transaction Creation: If a new transaction is requested, it invokes the createNewTx method, which prepares the transaction with the provided inputs and outputs. The transaction is either returned as a signable transaction or completed directly, depending on the provided options.
+Transaction Signing: If signing is required, the function integrates user-provided unlocking scripts or storage-supplied SABPPP templates for signing storage inputs. This ensures the transaction is valid and ready for broadcasting.
+Broadcasting: For immediate broadcasting, the function processes the transaction using the processActionSdk function, which handles broadcasting details and ensures the transaction reaches the Bitcoin network.
+
+Key Features
+
+Customizable Inputs and Outputs: Supports a variety of input and output types, including user-defined and storage-provided inputs. Outputs can include standard payments, change outputs, and commission outputs.
+Transaction Signing: Uses a mix of explicit unlocking scripts and SABPPP templates to sign inputs securely, ensuring compliance with wallet and protocol requirements.
+
+Flexible Options: Allows for options such as noSend, signAndProcess, and acceptDelayedBroadcast to control transaction behavior during and after creation.
+Integration with Storage: Interacts with the wallet's storage layer to fetch inputs, validate data, and store completed transactions, ensuring consistency and traceability.
+
+Core Components
+
+createNewTx
+Prepares a new transaction by combining user-provided arguments with storage data. The transaction is built incrementally with properly validated inputs, outputs, and change keys.
+
+completeSignedTransaction
+Finalizes a transaction by inserting unlocking scripts for user-supplied inputs and SABPPP templates for storage-supplied inputs. This step ensures the transaction is fully signed and ready for broadcasting.
+
+processActionSdk
+Handles broadcasting and post-processing of the transaction, ensuring the transaction is sent to the Bitcoin network or prepared for delayed broadcasting.
+
+buildSignableTransaction
+Constructs the transaction object by iterating over validated inputs and outputs. This ensures outputs are added in the correct order and that inputs are matched to their corresponding outputs.
+
+Use Cases
+Creating new Bitcoin transactions with custom inputs and outputs.
+Managing wallet transactions that involve change outputs or SABPPP-signed inputs.
+Signing and processing transactions directly from the wallet environment.
+Broadcasting transactions to the Bitcoin network with configurable options.
+This function forms a robust and flexible foundation for managing transaction creation, signing, and broadcasting workflows in a Bitcoin wallet system.
+
 ```ts
 export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult>
 ```
@@ -6358,6 +6416,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: createDefaultWalletServicesOptions
 
+Create Default Wallet Services Options generates a set of default options for wallet services, customized for the specified blockchain network (`chain`). It includes configuration for APIs, such as Taal API keys for mainnet and testnet, and exchange rate data for Bitcoin SV (BSV) and fiat currencies. The function defines update intervals for BSV and fiat exchange rates, enables or disables Mapi callbacks, and configures the Chaintracks service URL and client. This ensures a comprehensive and consistent setup for interacting with blockchain and financial services.
+
 ```ts
 export function createDefaultWalletServicesOptions(chain: sdk.Chain): sdk.WalletServicesOptions
 ```
@@ -6369,6 +6429,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: deserializeTscMerkleProofNodes
+
+Deserialize Tsc Merkle Proof Nodes processes a buffer representing serialized Merkle proof nodes and returns an array of string representations of those nodes. Each node is identified as either a placeholder (`'*'`) or a 32-byte hash. The function ensures the input is a valid buffer and throws errors for unsupported node types or invalid formats. This utility is essential for deserializing and interpreting proof data in Merkle tree structures.
 
 ```ts
 export function deserializeTscMerkleProofNodes(nodes: Buffer): string[]
@@ -6442,6 +6504,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: getExchangeRatesIo
 
+Get Exchange Rates Io fetches the latest exchange rates from the Exchange Rates API using a provided API key. It constructs the request URL, sends a GET request, and validates the response. If the request fails or the data is invalid, it throws an error. Upon success, the function returns the exchange rates as a structured `ExchangeRatesIoApi` object.
+
 ```ts
 export async function getExchangeRatesIo(key: string): Promise<ExchangeRatesIoApi>
 ```
@@ -6453,6 +6517,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: getMerklePathFromTaalARC
+
+Get Merkle Path From Taal ARC retrieves the Merkle path for a given transaction ID (`txid`) using the Taal ARC service. It initializes an `ArcServices` instance with the provided configuration, fetches the transaction status, and processes the response. If a valid Merkle path and block hash are returned, the function converts the Merkle path to a `bsv.MerklePath` object and retrieves the block header using the wallet services. Any errors encountered during the process are captured and stored as a `WalletError`. The function returns a result object containing the Merkle path, block header, and any errors.
 
 ```ts
 export async function getMerklePathFromTaalARC(txid: string, config: ArcServiceConfig, services: sdk.WalletServices): Promise<sdk.GetMerklePathResult>
@@ -6484,6 +6550,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: getRawTxFromWhatsOnChain
 
+Get Raw Tx From Whats On Chain fetches the raw transaction data for a given transaction ID (`txid`) from the WhatsOnChain API. It constructs the API URL based on the specified blockchain network (`chain`) and sends a GET request. If the API response contains valid data, the function converts it into an array of bytes representing the raw transaction and includes it in the result. Any errors encountered during the process are captured and stored as a `WalletError`. The function returns a result object containing the raw transaction data, the transaction ID, and any errors.
+
 ```ts
 export async function getRawTxFromWhatsOnChain(txid: string, chain: sdk.Chain): Promise<sdk.GetRawTxResult>
 ```
@@ -6496,6 +6564,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: getTaalArcServiceConfig
 
+Get Taal Arc Service Config constructs a configuration object for connecting to the Taal ARC service. It selects the appropriate endpoint URL based on whether the blockchain network is `main` or `test` and incorporates the provided `apiKey` for authentication. A unique `deploymentId` is generated to identify the client instance, ensuring proper API tracking and usage. This function simplifies the setup of Taal ARC services for blockchain operations.
+
 ```ts
 export function getTaalArcServiceConfig(chain: sdk.Chain, apiKey: string): ArcServiceConfig
 ```
@@ -6507,6 +6577,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: getUtxoStatusFromWhatsOnChain
+
+Get Utxo Status From Whats On Chain checks the status of a UTXO (unspent transaction output) for a given `output` on the specified blockchain network (`chain`) using the WhatsOnChain API. It validates the provided script hash and constructs the appropriate API URL to query unspent outputs. If the response contains data, the function determines whether the output is unspent (`isUtxo`) and populates the result object with transaction details, including `txid`, `satoshis`, `height`, and `index`.
+
+The function includes retry logic to handle transient errors like connection resets. If a failure persists after retries or an unrecoverable error occurs, it records the error details in the result object. The result includes the UTXO status (`success` or `error`), details of unspent outputs, and any errors encountered during the process.
 
 ```ts
 export async function getUtxoStatusFromWhatsOnChain(output: string, chain: sdk.Chain, outputFormat?: sdk.GetUtxoStatusOutputFormat): Promise<sdk.GetUtxoStatusResult>
@@ -6559,6 +6633,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: isHexString
 
+Is Hex String validates whether a given string is a valid hexadecimal string. It trims the input, checks if the string length is even (a requirement for hexadecimal representation), and verifies that the string contains only valid hexadecimal characters (`0-9`, `A-F`, `a-f`). The function returns `true` if the input meets all criteria; otherwise, it returns `false`.
+
 ```ts
 export function isHexString(s: string): boolean
 ```
@@ -6568,6 +6644,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: makeAtomicBeef
+
+Make Atomic Beef creates an atomic representation of a Bitcoin transaction (`tx`) combined with its associated proof data (`beef`). It accepts a transaction and either a raw beef array or a `Beef` object. If the beef is in raw array form, it is converted into a `Beef` object. The function merges the transaction into the beef and returns the atomic binary representation of the combined data, uniquely associated with the transaction ID.
 
 ```ts
 export function makeAtomicBeef(tx: Transaction, beef: number[] | Beef): number[]
@@ -6719,6 +6797,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: processActionSdk
 
+Process Action processes transactions in the wallet storage, handling both new and existing transactions. For new transactions, it validates, commits them to storage, and optionally prepares them for broadcasting or queuing based on parameters like isNoSend, isSendWith, and isDelayed. If broadcasting is required, transaction IDs are shared with the network after validating proof data (beef) and assigning statuses.
+
+For existing transactions, it verifies readiness and either queues them for delayed broadcast or sends them immediately. Transactions are grouped into batches where necessary, and all updates to storage, outputs, and transaction records are performed atomically. Results include the status of shared transactions (sendWithResults) or confirmation of queued transactions. The function ensures robust handling of transaction lifecycles while integrating seamlessly with the network.
+
 ```ts
 export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, args: sdk.ValidProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SendWithResult[] | undefined>
 ```
@@ -6730,6 +6812,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: proveCertificateSdk
+
+Prove Certificate validates and prepares a certificate for sharing with a specified verifier. It ensures that the certificate matches the given criteria (such as type, serial number, certifier, subject, and signature) and is uniquely identified within the wallet's storage. Upon validation, the certificate is processed to selectively reveal specified fields and is securely exported for the verifier using cryptographic operations. This function facilitates secure and controlled certificate sharing, preserving the privacy of non-revealed data while ensuring the integrity of the shared certificate.
 
 ```ts
 export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.ValidProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ProveCertificateResult>

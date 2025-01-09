@@ -1,5 +1,5 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 
@@ -52,7 +52,7 @@ export class CertificateField extends EntityBase<table.CertificateField> {
         return true;
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.CertificateField, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<{ found: boolean; eo: entity.CertificateField; eiId: number; }> {
+    static async mergeFind(storage: StorageBase, userId: number, ei: table.CertificateField, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<{ found: boolean; eo: entity.CertificateField; eiId: number; }> {
         const certificateId = syncMap.certificate.idMap[ei.certificateId];
         const ef = verifyOneOrNone(await storage.findCertificateFields({ partial: { certificateId, userId, fieldName: ei.fieldName }, trx }));
         return {
@@ -62,13 +62,13 @@ export class CertificateField extends EntityBase<table.CertificateField> {
         };
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.certificateId = syncMap.certificate.idMap[this.certificateId];
         this.userId = userId;
         await storage.insertCertificateField(this.toApi(), trx);
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.CertificateField, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.CertificateField, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false;
         if (ei.updated_at > this.updated_at) {
             this.fieldValue = ei.fieldValue

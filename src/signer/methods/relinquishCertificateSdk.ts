@@ -1,6 +1,6 @@
 import { sdk, table, verifyOne, WalletSigner } from '../..'
 
-export async function relinquishCertificateSdk(signer: WalletSigner, vargs: sdk.ValidRelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function relinquishCertificateSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidRelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.RelinquishCertificateResult>
 {
   const partial: Partial<table.Certificate> = {

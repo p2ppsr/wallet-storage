@@ -1,6 +1,6 @@
 import { sdk, WalletSigner } from '../..'
 
-export async function proveCertificateSdk(signer: WalletSigner, vargs: sdk.ValidProveCertificateArgs)
+export async function proveCertificateSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidProveCertificateArgs)
 : Promise<sdk.ProveCertificateResult>
 {
   const lcargs: sdk.ValidListCertificatesArgs = {

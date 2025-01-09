@@ -148,9 +148,6 @@ export function isHexString(s: string) : boolean {
 }
 
 export interface ValidWalletSignerArgs {
-  userIdentityKey: string
-  userId?: number
-  log?: string
 }
 
 export interface ValidCreateActionInput {
@@ -290,7 +287,6 @@ export function validateCreateActionArgs(args: sdk.CreateActionArgs) : ValidCrea
       isNoSend: false,
       isNewTx: false,
       isSignAction: false,
-      userIdentityKey: '',
     }
     vargs.isSendWith = vargs.options.sendWith.length > 0
     vargs.isNewTx = (vargs.inputs.length > 0) || (vargs.outputs.length > 0)
@@ -330,7 +326,6 @@ export function validateSignActionArgs(args: sdk.SignActionArgs) : ValidSignActi
       isDelayed: false,
       isNoSend: false,
       isNewTx: true,
-      userIdentityKey: '',
     }
     vargs.isSendWith = vargs.options.sendWith.length > 0
     vargs.isDelayed = vargs.options.acceptDelayedBroadcast
@@ -346,7 +341,6 @@ export interface ValidAbortActionArgs extends ValidWalletSignerArgs {
 export function validateAbortActionArgs(args: sdk.AbortActionArgs) : ValidAbortActionArgs {
     const vargs: ValidAbortActionArgs = {
       reference: validateBase64String(args.reference, 'reference'),
-      userIdentityKey: '',
     }
 
     return vargs
@@ -430,7 +424,6 @@ export function validateInternalizeActionArgs(args: sdk.InternalizeActionArgs) :
       labels: (args.labels || []).map(t => validateLabel(t)),
       seekPermission: defaultTrue(args.seekPermission),
       commonDerivationPrefix: undefined,
-      userIdentityKey: '',
     }
     for (const o of vargs.outputs) if (o.protocol === 'wallet payment') {
       if (vargs.commonDerivationPrefix && o.paymentRemittance!.derivationPrefix !== vargs.commonDerivationPrefix)
@@ -465,7 +458,6 @@ export function validateRelinquishOutputArgs(args: sdk.RelinquishOutputArgs) : V
     const vargs: ValidRelinquishOutputArgs = {
       basket: validateBasket(args.basket),
       output: validateOutpointString(args.output, 'output'),
-      userIdentityKey: '',
     }
 
     return vargs
@@ -482,7 +474,6 @@ export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificat
       type: validateBase64String(args.type, 'type'),
       serialNumber: validateBase64String(args.serialNumber, 'serialNumber'),
       certifier: validateHexString(args.certifier, 'certifier'),
-      userIdentityKey: '',
     }
 
     return vargs
@@ -514,7 +505,6 @@ export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs) : V
       privileged: defaultFalse(args.privileged),
       privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
       partial: undefined,
-      userIdentityKey: '',
     }
     return vargs
 }
@@ -593,7 +583,6 @@ export async function validateAcquireCertificateArgs(args: sdk.AcquireCertificat
     keyringForSubject: validateOptionalKeyringForSubject(args.keyringForSubject, 'keyringForSubject'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
-    userIdentityKey: ''
   }
   if (vargs.privileged && !vargs.privilegedReason)
     throw new sdk.WERR_INVALID_PARAMETER('privilegedReason', `valid when 'privileged' is true `)
@@ -647,7 +636,6 @@ export function validateAcquireDirectCertificateArgs(args: sdk.AcquireCertificat
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
     subject: '',
-    userIdentityKey: ''
   }
   return vargs
 }
@@ -682,7 +670,6 @@ export function validateProveCertificateArgs(args: sdk.ProveCertificateArgs)
     verifier: validateHexString(args.verifier, 'verifier'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),
-    userIdentityKey: ''
   }
   return vargs
 }
@@ -702,7 +689,6 @@ export function validateDiscoverByIdentityKeyArgs(args: sdk.DiscoverByIdentityKe
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
-    userIdentityKey: ''
   }
   return vargs
 }
@@ -731,7 +717,6 @@ export function validateDiscoverByAttributesArgs(args: sdk.DiscoverByAttributesA
     limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
     offset: validatePositiveIntegerOrZero(defaultZero(args.offset), 'offset'),
     seekPermission: defaultFalse(args.seekPermission),
-    userIdentityKey: ''
   }
   return vargs
 }
@@ -786,7 +771,6 @@ export function validateListOutputsArgs(args: sdk.ListOutputsArgs) : ValidListOu
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
       knownTxids: [],
-      userIdentityKey: ''
     }
 
     return vargs
@@ -840,7 +824,6 @@ export function validateListActionsArgs(args: sdk.ListActionsArgs) : ValidListAc
       limit: validateInteger(args.limit, 'limit', 10, 1, 10000),
       offset: validateInteger(args.offset, 'offset', 0, 0, undefined),
       seekPermission: defaultTrue(args.seekPermission),
-      userIdentityKey: ''
     }
 
     if (vargs.labels.length < 1)

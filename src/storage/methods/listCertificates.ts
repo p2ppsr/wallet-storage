@@ -2,8 +2,9 @@ import * as bsv from "@bsv/sdk"
 import { StorageBase, StorageKnex, table } from ".."
 import { asString, sdk, verifyOne } from "../.."
 
-export async function listCertificatesSdk(
+export async function listCertificates(
     storage: StorageBase,
+    auth: sdk.AuthId,
     vargs: sdk.ValidListCertificatesArgs,
     originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
 )
@@ -11,7 +12,7 @@ export async function listCertificatesSdk(
 {
     const paged: sdk.Paged = { limit: vargs.limit, offset: vargs.offset }
 
-    const partial: Partial<table.Certificate> = { userId: vargs.userId, isDeleted: false }
+    const partial: Partial<table.Certificate> = { userId: auth.userId, isDeleted: false }
 
     if (vargs.partial) {
         const vp = vargs.partial
@@ -28,7 +29,7 @@ export async function listCertificatesSdk(
         const findCertsArgs: sdk.FindCertificatesArgs = { partial, certifiers: vargs.certifiers, types: vargs.types, paged, trx }
         const certs = await storage.findCertificates(findCertsArgs)
         const certsWithFields = await Promise.all(certs.map(async cert => {
-            const fields = await storage.findCertificateFields({ partial: { certificateId: cert.certificateId, userId: vargs.userId }, trx })
+            const fields = await storage.findCertificateFields({ partial: { certificateId: cert.certificateId, userId: auth.userId }, trx })
             return {
                 ...cert,
                 fields: Object.fromEntries(fields.map(f => ([f.fieldName, f.fieldValue]))),

@@ -34,7 +34,7 @@ import { WalletSigner } from "../WalletSigner";
  * @param originator 
  * @returns 
  */
-export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.ValidInternalizeActionArgs)
+export async function internalizeActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidInternalizeActionArgs)
 : Promise<sdk.InternalizeActionResult> {
 
   const { ab, tx, txid } = await validateAtomicBeef();

@@ -5,7 +5,7 @@ import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
 import { PendingSignAction, WalletSigner } from "../WalletSigner"
 import { processActionSdk } from "./createActionSdk"
 
-export async function signActionSdk(signer: WalletSigner, vargs: sdk.ValidSignActionArgs)
+export async function signActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidSignActionArgs)
 : Promise<sdk.SignActionResult>
 {
   const prior = signer.pendingSignActions[vargs.reference]

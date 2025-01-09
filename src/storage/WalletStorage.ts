@@ -70,8 +70,8 @@ export class WalletStorage extends SignerStorage implements sdk.WalletStorage {
     //
     /////////////////
 
-    async internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        return await this.getActive().internalizeActionSdk(sargs)
+    async internalizeAction(sargs: sdk.StorageInternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+        return await this.getActive().internalizeAction(sargs)
     }
     async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
         return await this.getActive().getProvenOrReq(txid, newReq, trx)
@@ -108,14 +108,14 @@ export class WalletStorage extends SignerStorage implements sdk.WalletStorage {
         return await this.getActive().updateTransactionStatus(status, transactionId, userId, reference, trx)
     }
 
-    async abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
-        return await this.getActive().abortActionSdk(vargs)
+    async abortAction(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult> {
+        return await this.getActive().abortAction(vargs)
     }
-    async createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return await this.getActive().createTransactionSdk(args)
+    async createAction(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult> {
+        return await this.getActive().createAction(args)
     }
-    async processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults> {
-        return await this.getActive().processActionSdk(params)
+    async processAction(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults> {
+        return await this.getActive().processAction(params)
     }
 
     async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
@@ -395,7 +395,7 @@ export class WalletStorage extends SignerStorage implements sdk.WalletStorage {
         return await this.getActive().countWatchmanEvents(args)
     }
 
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunkResult> {
+    async requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunk> {
         return await this.getActive().requestSyncChunk(args)
     }
 }

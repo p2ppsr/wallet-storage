@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class OutputTagMap extends EntityBase<table.OutputTagMap> {
@@ -47,7 +47,7 @@ export class OutputTagMap extends EntityBase<table.OutputTagMap> {
         return true
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.OutputTagMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: StorageBase, userId: number, ei: table.OutputTagMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.OutputTagMap, eiId: number }> {
         const outputId = syncMap.output.idMap[ei.outputId]
         const outputTagId = syncMap.outputTag.idMap[ei.outputTagId]
@@ -59,13 +59,13 @@ export class OutputTagMap extends EntityBase<table.OutputTagMap> {
         }
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.outputId = syncMap.output.idMap[this.outputId]
         this.outputTagId = syncMap.outputTag.idMap[this.outputTagId]
         await storage.insertOutputTagMap(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.OutputTagMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.OutputTagMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.isDeleted = ei.isDeleted

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from "@bsv/sdk"
-import { arraysEqual, entity, optionalArraysEqual, sdk, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, optionalArraysEqual, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class Transaction extends EntityBase<table.Transaction> {
@@ -30,7 +30,7 @@ export class Transaction extends EntityBase<table.Transaction> {
      * Uses both spentBy and rawTx inputs (if available) to locate inputs from among user's outputs.
      * Not all transaction inputs correspond to prior dojo outputs.
      */
-    async getInputs(storage: sdk.WalletStorage, trx?: sdk.TrxToken) : Promise<table.Output[]> {
+    async getInputs(storage: StorageBase, trx?: sdk.TrxToken) : Promise<table.Output[]> {
         const inputs = await storage.findOutputs({ partial: { userId: this.userId, spentBy: this.id }, trx })
         // Merge "inputs" by spentBy and userId
         for (const input of this.getBsvTxIns()) {
@@ -149,7 +149,7 @@ export class Transaction extends EntityBase<table.Transaction> {
         return true
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.Transaction, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: StorageBase, userId: number, ei: table.Transaction, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Transaction, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findTransactions({ partial: { reference: ei.reference, userId }, trx }))
         return {
@@ -159,14 +159,14 @@ export class Transaction extends EntityBase<table.Transaction> {
         }
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         if (this.provenTxId) this.provenTxId = syncMap.provenTx.idMap[this.provenTxId]
         this.userId = userId
         this.transactionId = 0
         this.transactionId = await storage.insertTransaction(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.Transaction, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.Transaction, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             // Properties that are never updated:
@@ -192,7 +192,7 @@ export class Transaction extends EntityBase<table.Transaction> {
         return wasMerged
     }
     
-    async getProvenTx(storage: sdk.WalletStorage, trx?: sdk.TrxToken) : Promise<entity.ProvenTx | undefined> {
+    async getProvenTx(storage: StorageBase, trx?: sdk.TrxToken) : Promise<entity.ProvenTx | undefined> {
        if (!this.provenTxId) return undefined
        const p = verifyOneOrNone(await storage.findProvenTxs({ partial: { provenTxId: this.provenTxId }, trx }))
        if (!p) return undefined

@@ -130,28 +130,28 @@ export class StorageClient implements sdk.WalletStorage {
         return this.rpcCall<void>("updateTransactionStatus", [status, transactionId, userId, reference, trx])
     }
 
-    async internalizeActionSdk(
+    async internalizeAction(
         sargs: sdk.StorageInternalizeActionArgs,
         originator?: sdk.OriginatorDomainNameStringUnder250Bytes
     ): Promise<sdk.InternalizeActionResult> {
         return this.rpcCall<sdk.InternalizeActionResult>("internalizeActionSdk", [sargs, originator])
     }
 
-    async createTransactionSdk(
+    async createAction(
         args: sdk.ValidCreateActionArgs,
         originator?: sdk.OriginatorDomainNameStringUnder250Bytes
-    ): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return this.rpcCall<sdk.StorageCreateTransactionSdkResult>("createTransactionSdk", [args, originator])
+    ): Promise<sdk.StorageCreateActionResult> {
+        return this.rpcCall<sdk.StorageCreateActionResult>("createTransactionSdk", [args, originator])
     }
 
-    async processActionSdk(
+    async processAction(
         params: sdk.StorageProcessActionArgs,
         originator?: sdk.OriginatorDomainNameStringUnder250Bytes
-    ): Promise<sdk.StorageProcessActionSdkResults> {
-        return this.rpcCall<sdk.StorageProcessActionSdkResults>("processActionSdk", [params, originator])
+    ): Promise<sdk.StorageProcessActionResults> {
+        return this.rpcCall<sdk.StorageProcessActionResults>("processActionSdk", [params, originator])
     }
 
-    async abortActionSdk(
+    async abortAction(
         vargs: sdk.ValidAbortActionArgs,
         originator?: sdk.OriginatorDomainNameStringUnder250Bytes
     ): Promise<sdk.AbortActionResult> {
@@ -595,7 +595,7 @@ export class StorageClient implements sdk.WalletStorage {
         return this.rpcCall<number>("countWatchmanEvents", [args])
     }
 
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
-        return this.rpcCall<sdk.RequestSyncChunkResult>("requestSyncChunk", [args])
+    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunk> {
+        return this.rpcCall<sdk.RequestSyncChunk>("requestSyncChunk", [args])
     }
 }

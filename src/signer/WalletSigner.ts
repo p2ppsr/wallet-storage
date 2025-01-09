@@ -54,77 +54,76 @@ export class WalletSigner implements sdk.WalletSigner {
         return this.chain
     }
 
-    private injectIdentityKey<A, T extends sdk.ValidWalletSignerArgs>(args: A, validate: (args: A) => T) : T {
+    private validateAuthAndArgs<A, T extends sdk.ValidWalletSignerArgs>(args: A, validate: (args: A) => T) : { vargs: T, auth: sdk.AuthId } {
         const vargs = validate(args)
-        vargs.userIdentityKey = this.identityKey
-        return vargs
+        const auth: sdk.AuthId = { identityKey: this.identityKey }
+        return { vargs, auth }
     }
     
     async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateListActionsArgs)
-        vargs.userIdentityKey = this.identityKey
-        const r = await this.storage.listActions(vargs.userIdentityKey, args)
+        const { auth } = this.validateAuthAndArgs(args, sdk.validateListActionsArgs)
+        const r = await this.storage.listActions(auth, args)
         return r
     }
     async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateListOutputsArgs)
-        const r = await this.storage.listOutputsSdk(vargs)
+        const { auth } = this.validateAuthAndArgs(args, sdk.validateListOutputsArgs)
+        const r = await this.storage.listOutputs(auth, args)
         return r
     }
     async listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateListCertificatesArgs)
-        const r = await this.storage.listCertificatesSdk(vargs)
+        const { auth } = this.validateAuthAndArgs(args, sdk.validateListCertificatesArgs)
+        const r = await this.storage.listCertificates(auth, args)
         return r
     }
 
     async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateAbortActionArgs)
-        const r = await this.storage.abortActionSdk(vargs)
+        const { auth } = this.validateAuthAndArgs(args, sdk.validateAbortActionArgs)
+        const r = await this.storage.abortAction(auth, args)
         return r
     }
     async createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateCreateActionArgs)
-        const r = await createActionSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateCreateActionArgs)
+        const r = await createActionSdk(this, auth, vargs)
         return r
     }
 
     async signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateSignActionArgs)
-        const r = await signActionSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateSignActionArgs)
+        const r = await signActionSdk(this, auth, vargs)
         return r
     }
     async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateInternalizeActionArgs)
-        const r = await internalizeActionSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateInternalizeActionArgs)
+        const r = await internalizeActionSdk(this, auth, vargs)
         return r
     }
     async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateRelinquishOutputArgs)
-        const r = await relinquishOutputSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateRelinquishOutputArgs)
+        const r = await relinquishOutputSdk(this, auth, vargs)
         return r
     }
-    async acquireCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateAcquireDirectCertificateArgs)
-        const r = await acquireDirectCertificateSdk(this, vargs)
+    async acquireDirectCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult> {
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateAcquireDirectCertificateArgs)
+        const r = await acquireDirectCertificateSdk(this, auth, vargs)
         return r
     }
     async proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateProveCertificateArgs)
-        const r = await proveCertificateSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateProveCertificateArgs)
+        const r = await proveCertificateSdk(this, auth, vargs)
         return r
     }
     async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateRelinquishCertificateArgs)
-        const r = await relinquishCertificateSdk(this, vargs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateRelinquishCertificateArgs)
+        const r = await relinquishCertificateSdk(this, auth, vargs)
         return r
     }
 
     async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateDiscoverByIdentityKeyArgs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateDiscoverByIdentityKeyArgs)
         throw new Error("Method not implemented.");
     }
     async discoverByAttributes(args: sdk.DiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
-        const vargs = this.injectIdentityKey(args, sdk.validateDiscoverByAttributesArgs)
+        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateDiscoverByAttributesArgs)
         throw new Error("Method not implemented.");
     }
 }
@@ -140,7 +139,7 @@ export interface PendingStorageInput {
 
 export interface PendingSignAction {
   reference: string
-  dcr: sdk.StorageCreateTransactionSdkResult
+  dcr: sdk.StorageCreateActionResult
   args: sdk.ValidCreateActionArgs
   tx: Transaction
   amount: number

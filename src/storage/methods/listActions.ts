@@ -2,8 +2,9 @@ import * as bsv from "@bsv/sdk"
 import { StorageKnex, table } from ".."
 import { asString, sdk, verifyOne } from "../.."
 
-export async function listActionsSdk(
+export async function listActions(
     storage: StorageKnex,
+    auth: sdk.AuthId,
     vargs: sdk.ValidListActionsArgs,
     originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
 )
@@ -23,7 +24,7 @@ export async function listActionsSdk(
     if (vargs.labels.length > 0) {
         const q = k<table.TxLabel>('tx_labels')
             .where({
-                'userId': vargs.userId,
+                'userId': auth.userId,
                 'isDeleted': false
             })
             .whereNotNull('txLabelId')
@@ -55,7 +56,7 @@ export async function listActionsSdk(
                     AND m.txLabelId IN (${labelIds.join(',')}) 
                     ) AS lc
             FROM transactions AS t
-            WHERE t.userId = ${vargs.userId}
+            WHERE t.userId = ${auth.userId}
             AND t.status in (${stati.map(s => `'${s}'`).join(',')})
             `);
 

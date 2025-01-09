@@ -1,4 +1,4 @@
-import { entity } from "../..";
+import { entity, StorageBase } from "../..";
 import { maxDate, sdk, verifyId } from "../../..";
 import { EntityBase } from "./EntityBase";
 
@@ -11,7 +11,7 @@ export class MergeEntity<API extends sdk.EntityTimeStamp, DE extends EntityBase<
 
     constructor(
         public stateArray: API[] | undefined,
-        public find: (storage: sdk.WalletStorage, userId: number, ei: API, syncMap: entity.SyncMap, trx?: sdk.TrxToken) => Promise<{ found: boolean; eo: DE; eiId: number; }>,
+        public find: (storage: StorageBase, userId: number, ei: API, syncMap: entity.SyncMap, trx?: sdk.TrxToken) => Promise<{ found: boolean; eo: DE; eiId: number; }>,
         /** id map for primary id of API and DE object. */
         public esm: entity.EntitySyncMap
     ) {
@@ -30,7 +30,7 @@ export class MergeEntity<API extends sdk.EntityTimeStamp, DE extends EntityBase<
     /**
      * @param since date of current sync chunk
      */
-    async merge(since: Date | undefined, storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<{ inserts: number; updates: number; }> {
+    async merge(since: Date | undefined, storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<{ inserts: number; updates: number; }> {
         let inserts = 0, updates = 0;
         if (!this.stateArray) return { inserts, updates }
         for (const ei of this.stateArray) {

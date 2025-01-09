@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import { StorageBase } from "../StorageBase"
 import { entity, PostReqsToNetworkResult, sdk } from '../..'
-import { PostBeefResultForTxidApi } from './processActionSdk'
+import { PostBeefResultForTxidApi } from './processAction'
 
 /**
  * Attempt to post one or more `ProvenTxReq` with status 'unsent'

@@ -2,15 +2,16 @@ import * as bsv from "@bsv/sdk"
 import { StorageKnex, table } from ".."
 import { asString, sdk, verifyId, verifyOne } from "../.."
 
-export async function listOutputsSdk(
+export async function listOutputs(
     dsk: StorageKnex,
+    auth: sdk.AuthId,
     vargs: sdk.ValidListOutputsArgs,
     originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
 )
 : Promise<sdk.ListOutputsResult>
 {
     const trx: sdk.TrxToken | undefined = undefined
-    const userId = verifyId(vargs.userId)
+    const userId = verifyId(auth.userId)
     const limit = vargs.limit
     const offset = vargs.offset
 

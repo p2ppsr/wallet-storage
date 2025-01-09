@@ -1,6 +1,6 @@
 import { sdk, table, verifyOne, WalletSigner } from '../..'
 
-export async function relinquishOutputSdk(signer: WalletSigner, vargs: sdk.ValidRelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function relinquishOutputSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidRelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
   : Promise<sdk.RelinquishOutputResult> {
   const { txid, vout } = sdk.parseWalletOutpoint(vargs.output)
   const storage = signer.storage

@@ -1,6 +1,6 @@
 import { sdk, table, WalletSigner } from '../..'
 
-export async function acquireDirectCertificateSdk(signer: WalletSigner, vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function acquireDirectCertificateSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.AcquireCertificateResult>
 {
   const now = new Date()

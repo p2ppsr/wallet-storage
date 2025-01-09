@@ -1,32 +1,76 @@
 import * as bsv from '@bsv/sdk'
 import { sdk, table } from "..";
 
-export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
+export interface WalletStorage extends sdk.StorageSyncReader, sdk.SignerStorageAuth {
+
+   transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T>
+
+   purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
+   dropAllData(): Promise<void>
+
+   /////////////////////////////////////
+   /// START REMOTABLE SignerStorage API
+   /////////////////////////////////////
 
    isAvailable(): boolean
    makeAvailable(): Promise<void>
-
+   migrate(storageName: string): Promise<string>
    destroy(): Promise<void>
 
-   dropAllData(): Promise<void>
-   migrate(storageName: string): Promise<string>
-   purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
-
+   setServices(v: sdk.WalletServices) : void
+   getServices() : sdk.WalletServices
    getSettings(trx?: sdk.TrxToken): table.Settings
 
-   getServices() : sdk.WalletServices
-   setServices(v: sdk.WalletServices) : void
+   findUserByIdentityKey(identityKey: string) : Promise<table.User| undefined>
 
-   /////////////////
-   //
-   // WRITE OPERATIONS (state modifying methods)
-   //
-   /////////////////
+   abortAction(auth: sdk.AuthId, args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
+   createAction(auth: sdk.AuthId, args: sdk.CreateActionArgs): Promise<sdk.StorageCreateActionResult>
+   processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>
+   internalizeAction(auth: sdk.AuthId, sargs: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
 
-   internalizeActionSdk(sargs: sdk.StorageInternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
-   createTransactionSdk(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateTransactionSdkResult>
-   processActionSdk(params: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionSdkResults>
-   abortActionSdk(vargs: sdk.ValidAbortActionArgs): Promise<sdk.AbortActionResult>
+   findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
+   findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
+   findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+
+   listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
+   listCertificates(auth: sdk.AuthId, args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult>
+   listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+
+   insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>
+
+   relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs) : Promise<number>
+   relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs) : Promise<number>
+
+
+   ///////////////////////////////////
+   /// END REMOTABLE SignerStorage API
+   ///////////////////////////////////
+
+   ///////////////////////////////////
+   /// START StorageSyncReader
+   ///////////////////////////////////
+
+   requestSyncChunk(args: sdk.RequestSyncChunkArgs) : Promise<sdk.RequestSyncChunk>
+
+   findSyncStates(args: sdk.FindSyncStatesArgs ): Promise<table.SyncState[]>
+
+   findCertificateFields(args: sdk.FindCertificateFieldsArgs ): Promise<table.CertificateField[]>
+   findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
+   findCommissions(args: sdk.FindCommissionsArgs ): Promise<table.Commission[]>
+   findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
+   findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]>
+   findOutputTags(args: sdk.FindOutputTagsArgs ): Promise<table.OutputTag[]>
+   findTransactions(args: sdk.FindTransactionsArgs ): Promise<table.Transaction[]>
+   findTxLabels(args: sdk.FindTxLabelsArgs ): Promise<table.TxLabel[]>
+
+   getProvenTxsForUser(args: sdk.FindSincePagedArgs) : Promise<table.ProvenTx[]>
+   getProvenTxReqsForUser(args: sdk.FindSincePagedArgs) : Promise<table.ProvenTxReq[]>
+   getTxLabelMapsForUser(args: sdk.FindSincePagedArgs) : Promise<table.TxLabelMap[]>
+   getOutputTagMapsForUser(args: sdk.FindSincePagedArgs) : Promise<table.OutputTagMap[]>
+
+   ///////////////////////////////////
+   /// END StorageSyncReader
+   ///////////////////////////////////
 
    updateTransactionStatus(status: sdk.TransactionStatus, transactionId?: number, userId?: number, reference?: string, trx?: sdk.TrxToken)
 
@@ -57,7 +101,7 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
    insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken): Promise<number>
    insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken): Promise<void>
    insertUser(user: table.User, trx?: sdk.TrxToken): Promise<number>
-   insertWatchmanEvent(event: table.WatchmanEvent, trx?: sdk.TrxToken) : Promise<number>
+   insertMonitorEvent(event: table.MonitorEvent, trx?: sdk.TrxToken) : Promise<number>
 
    updateCertificate(id: number, update: Partial<table.Certificate>, trx?: sdk.TrxToken) : Promise<number>
    updateCertificateField(certificateId: number, fieldName: string, update: Partial<table.CertificateField>, trx?: sdk.TrxToken) : Promise<number>
@@ -73,36 +117,16 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
    updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken) : Promise<number>
    updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken) : Promise<number>
    updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken) : Promise<number>
-   updateWatchmanEvent(id: number, update: Partial<table.WatchmanEvent>, trx?: sdk.TrxToken): Promise<number> 
-
-   /////////////////
-   //
-   // READ OPERATIONS (state preserving methods)
-   //
-   /////////////////
+   updateMonitorEvent(id: number, update: Partial<table.MonitorEvent>, trx?: sdk.TrxToken): Promise<number> 
 
    getProvenOrRawTx(txid: string, trx?: sdk.TrxToken)
    getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken)
 
-   getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]>
-   getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]>
-   getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]>
-   getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]>
-
    getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
    getTagsForOutputId(outputId: number, trx?: sdk.TrxToken) : Promise<table.OutputTag[]>
 
-   transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T>
-
-   listActionsSdk(vargs: sdk.ValidListActionsArgs): Promise<sdk.ListActionsResult>
-   listOutputsSdk(vargs: sdk.ValidListOutputsArgs): Promise<sdk.ListOutputsResult>
-   listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
-
    findCertificateFields(args: FindCertificateFieldsArgs ): Promise<table.CertificateField[]>
-   findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findCommissions(args: FindCommissionsArgs ): Promise<table.Commission[]>
-   findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
-   findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
    findOutputTagMaps(args: FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
    findOutputTags(args: FindOutputTagsArgs ): Promise<table.OutputTag[]>
    findProvenTxReqs(args: FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>
@@ -112,9 +136,7 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
    findTxLabelMaps(args: FindTxLabelMapsArgs ): Promise<table.TxLabelMap[]>
    findTxLabels(args: FindTxLabelsArgs ): Promise<table.TxLabel[]>
    findUsers(args: FindUsersArgs ): Promise<table.User[]>
-   findWatchmanEvents(args: FindWatchmanEventsArgs ): Promise<table.WatchmanEvent[]>
-
-   findUserByIdentityKey(key: string, trx?: sdk.TrxToken) : Promise<table.User| undefined>
+   findMonitorEvents(args: FindMonitorEventsArgs ): Promise<table.MonitorEvent[]>
 
    findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined>
    findCommissionById(id: number, trx?: sdk.TrxToken) : Promise<table.Commission| undefined>
@@ -127,7 +149,7 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
    findTransactionById(id: number, trx?: sdk.TrxToken, noRawTx?: boolean) : Promise<table.Transaction| undefined>
    findTxLabelById(id: number, trx?: sdk.TrxToken) : Promise<table.TxLabel| undefined>
    findUserById(id: number, trx?: sdk.TrxToken) : Promise<table.User| undefined>
-   findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent| undefined>
+   findMonitorEventById(id: number, trx?: sdk.TrxToken): Promise<table.MonitorEvent| undefined>
 
     countCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<number>
     countCertificates(args: sdk.FindCertificatesArgs) : Promise<number>
@@ -143,7 +165,7 @@ export interface WalletStorage extends sdk.StorageSyncReader, sdk.UserStorage {
     countTxLabelMaps(args: sdk.FindTxLabelMapsArgs) : Promise<number>
     countTxLabels(args: sdk.FindTxLabelsArgs) : Promise<number>
     countUsers(args: sdk.FindUsersArgs) : Promise<number>
-    countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number>
+    countMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<number>
 }
 
 /**
@@ -177,7 +199,7 @@ export interface StorageCreateTransactionSdkOutput extends sdk.ValidCreateAction
    derivationSuffix?: string
 }
 
-export interface StorageCreateTransactionSdkResult {
+export interface StorageCreateActionResult {
    inputBeef?: number[]
    inputs: StorageCreateTransactionSdkInput[]
    outputs: StorageCreateTransactionSdkOutput[]
@@ -201,7 +223,7 @@ export interface StorageProcessActionArgs {
    log?: string
 }
 
-export interface StorageProcessActionSdkResults {
+export interface StorageProcessActionResults {
    sendWithResults?: sdk.SendWithResult[]
    log?: string
 }
@@ -233,9 +255,6 @@ export interface PurgeParams {
 export interface PurgeResults {
    count: number,
    log: string
-}
-
-export interface StorageInternalizeActionArgs extends sdk.ValidInternalizeActionArgs {
 }
 
 export interface StorageProvenOrReq { proven?: table.ProvenTx, req?: table.ProvenTxReq }
@@ -318,6 +337,6 @@ export interface FindTxLabelsArgs extends sdk.FindSincePagedArgs {
 export interface FindUsersArgs extends sdk.FindSincePagedArgs {
    partial: Partial<table.User>
 }
-export interface FindWatchmanEventsArgs extends sdk.FindSincePagedArgs {
-   partial: Partial<table.WatchmanEvent>
+export interface FindMonitorEventsArgs extends sdk.FindSincePagedArgs {
+   partial: Partial<table.MonitorEvent>
 }

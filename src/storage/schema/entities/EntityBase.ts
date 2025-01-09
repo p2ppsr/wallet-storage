@@ -1,4 +1,4 @@
-import { sdk } from "../../..";
+import { sdk, StorageBase } from "../../..";
 
 export abstract class EntityBase<T> {
     api: T;
@@ -51,7 +51,7 @@ export abstract class EntityBase<T> {
      * @param userId local userId 
      * @param syncMap 
      */
-    abstract mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<void>
+    abstract mergeNew(storage: StorageBase, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<void>
 
     /**
      * Perform a 'merge' / 'convergent' equality migration of state
@@ -61,7 +61,7 @@ export abstract class EntityBase<T> {
      * @param syncMap
      * @returns true iff entity state changed and was updated to storage
      */
-    abstract mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: T, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<boolean>
+    abstract mergeExisting(storage: StorageBase, since: Date | undefined, ei: T, syncMap: SyncMap, trx?: sdk.TrxToken) : Promise<boolean>
 
     /**
      * An entity may decode properties of the underlying Api object on construction.

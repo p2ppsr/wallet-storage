@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, optionalArraysEqual, sdk, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, optionalArraysEqual, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class Output extends EntityBase<table.Output> {
@@ -122,7 +122,7 @@ export class Output extends EntityBase<table.Output> {
         return true
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.Output, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: StorageBase, userId: number, ei: table.Output, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Output, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
         const basketId = ei.basketId ? syncMap.outputBasket.idMap[ei.basketId] : null
@@ -135,7 +135,7 @@ export class Output extends EntityBase<table.Output> {
     }
 
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.userId = userId
         this.basketId = this.basketId ? syncMap.outputBasket.idMap[this.basketId] : undefined
         this.transactionId = syncMap.transaction.idMap[this.transactionId]
@@ -144,7 +144,7 @@ export class Output extends EntityBase<table.Output> {
         this.outputId = await storage.insertOutput(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.Output, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.Output, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.spentBy = ei.spentBy ? syncMap.transaction.idMap[ei.spentBy] : undefined

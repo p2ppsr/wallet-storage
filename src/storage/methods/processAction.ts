@@ -2,40 +2,44 @@
 import * as bsv from '@bsv/sdk'
 import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
 
-export async function processActionSdk(dojo: StorageBase, params: sdk.StorageProcessActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-: Promise<sdk.StorageProcessActionSdkResults>
+export async function processAction(
+    storage: StorageBase,
+    auth: sdk.AuthId,
+    args: sdk.StorageProcessActionArgs
+)
+: Promise<sdk.StorageProcessActionResults>
 {
 
-    stampLog(params.log, `start dojo processActionSdk`)
+    stampLog(args.log, `start dojo processActionSdk`)
 
-    const userId = params.userId
-    const r: sdk.StorageProcessActionSdkResults = {
+    const userId = args.userId
+    const r: sdk.StorageProcessActionResults = {
         sendWithResults: undefined
     }
 
     let req: entity.ProvenTxReq | undefined
-    const txidsOfReqsToShareWithWorld: string[] = [...params.sendWith]
+    const txidsOfReqsToShareWithWorld: string[] = [...args.sendWith]
 
-    if (params.isNewTx) {
-        const vargs = await validateCommitNewTxToStorageArgs(dojo, userId, params);
-        ({ req, log: params.log } = await commitNewTxToStorage(dojo, userId, vargs));
+    if (args.isNewTx) {
+        const vargs = await validateCommitNewTxToStorageArgs(storage, userId, args);
+        ({ req, log: args.log } = await commitNewTxToStorage(storage, userId, vargs));
         if (!req) throw new sdk.WERR_INTERNAL()
         // Add the new txid to sendWith unless there are no others to send and the noSend option is set.
-        if (params.isNoSend && !params.isSendWith)
-            stampLog(params.log, `... dojo processActionSdk newTx committed noSend`)
+        if (args.isNoSend && !args.isSendWith)
+            stampLog(args.log, `... dojo processActionSdk newTx committed noSend`)
         else {
             txidsOfReqsToShareWithWorld.push(req.txid)
-            stampLog(params.log, `... dojo processActionSdk newTx committed sendWith ${req.txid}`)
+            stampLog(args.log, `... dojo processActionSdk newTx committed sendWith ${req.txid}`)
         }
     }
 
-    const swr = await shareReqsWithWorld(dojo, userId, txidsOfReqsToShareWithWorld, params.isDelayed)
+    const swr = await shareReqsWithWorld(storage, userId, txidsOfReqsToShareWithWorld, args.isDelayed)
 
-    if (params.isSendWith) {
+    if (args.isSendWith) {
         r.sendWithResults = swr
     }
 
-    stampLog(params.log, `end dojo processActionSdk`)
+    stampLog(args.log, `end dojo processActionSdk`)
 
     return r
 }
@@ -45,18 +49,18 @@ export async function processActionSdk(dojo: StorageBase, params: sdk.StoragePro
  * Assigns a batch identifier and updates all the provenTxReqs.
  * If not isDelayed, triggers an initial attempt to broadcast the batch and returns the results.
  * 
- * @param dojo 
+ * @param storage 
  * @param userId 
  * @param txids 
  * @param isDelayed 
  */
-async function shareReqsWithWorld(dojo: StorageBase, userId: number, txids: string[], isDelayed: boolean)
+async function shareReqsWithWorld(storage: StorageBase, userId: number, txids: string[], isDelayed: boolean)
 : Promise<sdk.SendWithResult[]>
 {
     if (txids.length < 1) return []
 
     // Collect what we know about these sendWith transaction txids from storage.
-    const r = await dojo.getReqsAndBeefToShareWithWorld(txids, [])
+    const r = await storage.getReqsAndBeefToShareWithWorld(txids, [])
 
     // Initialize aggregate results for each txid
     const ars: { txid: string, getReq: GetReqsAndBeefDetail, postBeef?: sdk.PostTxResultForTxid }[] = []
@@ -70,7 +74,7 @@ async function shareReqsWithWorld(dojo: StorageBase, userId: number, txids: stri
     // If there are reqs to send, verify that we have a valid aggregate beef for them.
     // If isDelayed, this (or a different beef) will have to be rebuilt at the time of sending.
     if (readyToSendReqs.length > 0) {
-        const beefIsValid = await r.beef.verify(await dojo.getServices().getChainTracker())
+        const beefIsValid = await r.beef.verify(await storage.getServices().getChainTracker())
         if (!beefIsValid)
             throw new sdk.WERR_INTERNAL(`merged Beef failed validation.`)
     }
@@ -81,9 +85,9 @@ async function shareReqsWithWorld(dojo: StorageBase, userId: number, txids: stri
     if (isDelayed) {
         // Just bump the req status to 'unsent' to enable background sending...
         if (readyToSendReqIds.length > 0) {
-            await dojo.transaction(async trx => {
-                await dojo.updateProvenTxReq(readyToSendReqIds, { status: 'unsent', batch }, trx)
-                await dojo.updateTransaction(transactionIds, { status: 'sending' }, trx)
+            await storage.transaction(async trx => {
+                await storage.updateProvenTxReq(readyToSendReqIds, { status: 'unsent', batch }, trx)
+                await storage.updateTransaction(transactionIds, { status: 'sending' }, trx)
             })
         }
         return createSendWithResults();
@@ -96,13 +100,13 @@ async function shareReqsWithWorld(dojo: StorageBase, userId: number, txids: stri
     if (batch) {
         // Keep batch values in sync...
         for (const req of readyToSendReqs) req.batch = batch
-        await dojo.updateProvenTxReq(readyToSendReqIds, { batch })
+        await storage.updateProvenTxReq(readyToSendReqIds, { batch })
     }
 
     //
     // Handle the NON-DELAYED-SEND-NOW case
     //
-    const prtn = await dojo.attemptToPostReqsToNetwork(readyToSendReqs)
+    const prtn = await storage.attemptToPostReqsToNetwork(readyToSendReqs)
     // merge the individual PostBeefResultForTxid results to postBeef in aggregate results.
     for (const ar of ars) {
         const d = prtn.details.find(d => d.txid === ar.txid)
@@ -162,11 +166,9 @@ interface ValidCommitNewTxToStorageArgs {
     postStatus?: ReqTxStatus
 }
 
-async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: number, params: sdk.StorageProcessActionArgs)
+async function validateCommitNewTxToStorageArgs(storage: StorageBase, userId: number, params: sdk.StorageProcessActionArgs)
 : Promise<ValidCommitNewTxToStorageArgs>
 {
-    const storage = dojo
-
     if (!params.reference || !params.txid || !params.rawTx)
         throw new sdk.WERR_INVALID_OPERATION('One or more expected params are undefined.')
     let tx: bsv.Transaction
@@ -177,7 +179,7 @@ async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: numbe
     }
     if (params.txid !== tx.id('hex'))
         throw new sdk.WERR_INVALID_OPERATION(`Hash of serialized transaction doesn't match expected txid`)
-    if (!(await dojo.getServices()).nLockTimeIsFinal(tx)) {
+    if (!(await storage.getServices()).nLockTimeIsFinal(tx)) {
         throw new sdk.WERR_INVALID_OPERATION(`This transaction is not final.
          Ensure that the transaction meets the rules for being a finalized
          which can be found at https://wiki.bitcoinsv.io/index.php/NLocktime_and_nSequence`)
@@ -196,7 +198,7 @@ async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: numbe
     const inputOutputs = await storage.findOutputs({ partial: { userId, spentBy: transactionId } })
 
     const commission = verifyOneOrNone(await storage.findCommissions({ partial: { transactionId, userId } }))
-    if (dojo.commissionSatoshis > 0) {
+    if (storage.commissionSatoshis > 0) {
         // A commission is required...
         if (!commission) throw new sdk.WERR_INTERNAL()
         const commissionValid = tx.outputs
@@ -278,7 +280,7 @@ async function validateCommitNewTxToStorageArgs(dojo: StorageBase, userId: numbe
             scriptLength: offset.length,
             scriptOffset: offset.offset,
         }
-        if (offset.length > (await dojo.getSettings()).maxOutputScript)
+        if (offset.length > (await storage.getSettings()).maxOutputScript)
             // Remove long lockingScript data from outputs table, will be read from rawTx in proven_tx or proven_tx_reqs tables.
             update.lockingScript = undefined
         vargs.outputUpdates.push({ id: o.outputId!, update })
@@ -293,7 +295,7 @@ export interface DojoCommitNewTxResults {
 }
 
 async function commitNewTxToStorage(
-    dojo: StorageBase,
+    storage: StorageBase,
     userId: number,
     vargs: ValidCommitNewTxToStorageArgs,
 )
@@ -302,8 +304,6 @@ async function commitNewTxToStorage(
     let log = vargs.log
 
     log = stampLog(log, `start dojo commitNewTxToStorage`)
-
-    const storage = dojo
 
     let req: entity.ProvenTxReq | undefined
 

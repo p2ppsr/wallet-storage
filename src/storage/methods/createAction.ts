@@ -1,10 +1,10 @@
 import * as bsv from '@bsv/sdk'
 import { asArray, asString, entity, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
-import { generateChangeSdk, GenerateChangeSdkChangeInput, GenerateChangeSdkParams } from './generateChangeSdk';
+import { generateChangeSdk, GenerateChangeSdkChangeInput, GenerateChangeSdkParams } from './generateChange';
 
-export async function createTransactinoSdk(storage: StorageBase, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-: Promise<sdk.StorageCreateTransactionSdkResult> {
-  stampLog(vargs, `start dojo createTransactionSdk`) 
+export async function createAction(storage: StorageBase, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+: Promise<sdk.StorageCreateActionResult> {
+  //stampLog(vargs, `start dojo createTransactionSdk`) 
 
   if (!vargs.isNewTx)
     // The purpose of this function is to create the initial storage records associated
@@ -26,7 +26,7 @@ export async function createTransactinoSdk(storage: StorageBase, vargs: sdk.Vali
    * - Create and return result.
    */
 
-  const userId = vargs.userId!
+  const userId = auth.userId!
   const { storageBeef, beef, xinputs } = await validateRequiredInputs(storage, userId, vargs)
   const xoutputs = validateRequiredOutputs(storage, userId, vargs);
 
@@ -55,7 +55,7 @@ export async function createTransactinoSdk(storage: StorageBase, vargs: sdk.Vali
 
   const inputs = await createNewInputs(storage, userId, vargs, ctx, allocatedChange)
 
-  const r: sdk.StorageCreateTransactionSdkResult = {
+  const r: sdk.StorageCreateActionResult = {
     reference: newTx.reference!,
     version: newTx.version!,
     lockTime: newTx.lockTime!,
@@ -66,7 +66,7 @@ export async function createTransactinoSdk(storage: StorageBase, vargs: sdk.Vali
     noSendChangeOutputVouts: vargs.isNoSend ? changeVouts : undefined
   }
 
-  stampLog(vargs, `end dojo createTransactionSdk`) 
+  //stampLog(vargs, `end dojo createTransactionSdk`) 
   return r
 }
 
@@ -451,7 +451,7 @@ function validateRequiredOutputs(dojo: StorageBase, userId: number, vargs: sdk.V
 async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs)
 : Promise<{storageBeef: bsv.Beef, beef: bsv.Beef, xinputs: XValidCreateActionInput[]}>
 {
-  stampLog(vargs, `start dojo verifyInputBeef`)
+  //stampLog(vargs, `start dojo verifyInputBeef`)
 
   const beef = new bsv.Beef()
 
@@ -494,7 +494,8 @@ async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: 
   }
 
   if (!await beef.verify(await dojo.getServices().getChainTracker(), true)) {
-    console.log(`verifyInputBeef failed, inputBEEF failed to verify.\n${stampLogFormat(vargs.log)}\n${beef.toLogString()}\n`)
+    console.log(`verifyInputBeef failed, inputBEEF failed to verify.\n${beef.toLogString()}\n`)
+    //console.log(`verifyInputBeef failed, inputBEEF failed to verify.\n${stampLogFormat(vargs.log)}\n${beef.toLogString()}\n`)
     throw new sdk.WERR_INVALID_PARAMETER('inputBEEF', 'valid Beef when factoring options.trustSelf')
   }
 
@@ -518,7 +519,7 @@ async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: 
       let btx = beef.findTxid(txid)!
       if (btx.isTxidOnly) {
         const { rawTx, proven } = await dojo.getProvenOrRawTx(txid)
-        stampLog(vargs, `... dojo verifyInputBeef getProvenOrRawTx ${txid} ${proven ? 'proven' : rawTx ? 'rawTx' : 'unknown'}`)
+        //stampLog(vargs, `... dojo verifyInputBeef getProvenOrRawTx ${txid} ${proven ? 'proven' : rawTx ? 'rawTx' : 'unknown'}`)
         if (!rawTx)
           throw new sdk.WERR_INVALID_PARAMETER('inputBEEF', `valid and contain proof data for ${txid}`);
         btx = beef.mergeRawTx(asArray(rawTx))

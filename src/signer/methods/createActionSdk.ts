@@ -1,7 +1,7 @@
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
 import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyTruthy, WalletSigner } from "../.."
 
-export async function createActionSdk(signer: WalletSigner, vargs: sdk.ValidCreateActionArgs)
+export async function createActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
 : Promise<sdk.CreateActionResult>
 {
   const r: sdk.CreateActionResult = {}
@@ -69,7 +69,7 @@ function makeSignableTransactionResult(prior: PendingSignAction, signer: WalletS
  */
 function makeChangeLock(
   out: sdk.StorageCreateTransactionSdkOutput,
-  dctr: sdk.StorageCreateTransactionSdkResult,
+  dctr: sdk.StorageCreateActionResult,
   args: sdk.ValidCreateActionArgs,
   changeKeys: sdk.KeyPair,
   signer: WalletSigner)
@@ -167,13 +167,13 @@ export async function processActionSdk(prior: PendingSignAction | undefined, sig
     rawTx: prior ? prior.tx.toBinary() : undefined,
     sendWith: vargs.isSendWith ? vargs.options.sendWith : [],
   }
-  const r: sdk.StorageProcessActionSdkResults = await signer.storage.processActionSdk(params)
+  const r: sdk.StorageProcessActionResults = await signer.storage.processActionSdk(params)
 
   return r.sendWithResults
 }
 
 function buildSignableTransaction(
-  dctr: sdk.StorageCreateTransactionSdkResult,
+  dctr: sdk.StorageCreateActionResult,
   args: sdk.ValidCreateActionArgs,
   signer: WalletSigner
 )

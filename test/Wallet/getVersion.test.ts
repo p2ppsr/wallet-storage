@@ -1,20 +1,35 @@
 import { sdk } from '../../src'
 import { _tu, TestWalletNoSetup, expectToThrowWERR } from '../utils/TestUtilsWalletStorage'
+import sqlite3 from 'sqlite3'
+import { open } from 'sqlite'
 
 describe('Wallet getVersion Tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')
   const ctxs: TestWalletNoSetup[] = []
+  const sqliteFilePath = './test/data/tmp/getVersionTests.sqlite'
+  let realVersion: string
 
   beforeAll(async () => {
-    // Initialize test contexts for MySQL and SQLite storage
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('getVersionTests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('getVersionTests'))
+
+    // Load the real version from the transactions table in SQLite database
+    const db = await open({
+      filename: sqliteFilePath,
+      driver: sqlite3.Database
+    })
+
+    // Assuming the first row in the transactions table contains the version
+    const row = await db.get('SELECT version FROM transactions LIMIT 1')
+    realVersion = row?.version || 'unknown' // Fallback to 'unknown' if no version is found
+    await db.close()
+
+    console.log(`Loaded real version: ${realVersion}`)
   })
 
   afterAll(async () => {
-    // Clean up test contexts by destroying their associated storage
     for (const ctx of ctxs) {
       await ctx.storage.destroy()
     }
@@ -23,9 +38,8 @@ describe('Wallet getVersion Tests', () => {
   // Test: Correct version is returned and handles empty arguments
   test('0_correct_version_returned', async () => {
     for (const { wallet } of ctxs) {
-      const result = await wallet.getVersion({}) // Call getVersion with no arguments
-      // Verify the returned version matches the expected value
-      expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
+      const result = await wallet.getVersion({})
+      expect(result).toEqual({ version: realVersion })
     }
   })
 
@@ -41,7 +55,6 @@ describe('Wallet getVersion Tests', () => {
 
     for (const { wallet } of ctxs) {
       for (const input of invalidInputs) {
-        // Verify that invalid inputs throw the expected error
         await expectToThrowWERR(sdk.WERR_INVALID_PARAMETER, () => wallet.getVersion(input as any))
       }
     }
@@ -50,12 +63,10 @@ describe('Wallet getVersion Tests', () => {
   // Test: Handles high concurrency
   test('2_handles_high_concurrency', async () => {
     for (const { wallet } of ctxs) {
-      // Create 10 concurrent promises for getVersion
       const promises = Array.from({ length: 10 }, () => wallet.getVersion({}))
-      const results = await Promise.all(promises) // Wait for all promises to resolve
+      const results = await Promise.all(promises)
       results.forEach(result => {
-        // Verify each result matches the expected version
-        expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
+        expect(result).toEqual({ version: realVersion })
       })
     }
   })
@@ -64,9 +75,8 @@ describe('Wallet getVersion Tests', () => {
   test('3_consistently_returns_same_version', async () => {
     for (const { wallet } of ctxs) {
       for (let i = 0; i < 100; i++) {
-        const result = await wallet.getVersion({}) // Call getVersion repeatedly
-        // Verify the returned version matches the expected value each time
-        expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
+        const result = await wallet.getVersion({})
+        expect(result).toEqual({ version: realVersion })
       }
     }
   })

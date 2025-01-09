@@ -34,7 +34,7 @@ export class SyncState extends EntityBase<table.SyncState> {
         }
     }
 
-    static async fromStorage(storage: sdk.SignerStorageAuth, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
+    static async fromStorage(storage: sdk.WalletStorageAuth, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
         const { user } = verifyTruthy(await storage.findOrInsertUser(userIdentityKey))
         let { syncState: api } = verifyTruthy(await storage.findOrInsertSyncStateAuth({ userId: user.userId, identityKey: userIdentityKey }, remoteSettings.storageIdentityKey, remoteSettings.storageName))
         const ss = new SyncState(api)
@@ -150,13 +150,15 @@ export class SyncState extends EntityBase<table.SyncState> {
         return false
     }
 
-    makeRequestSyncChunkArgs(forIdentityKey: string, maxRoughSize?: number, maxItems?: number) : sdk.RequestSyncChunkArgs {
+    makeRequestSyncChunkArgs(forIdentityKey: string, forStorageIdentityKey: string, maxRoughSize?: number, maxItems?: number) : sdk.RequestSyncChunkArgs {
         const a: sdk.RequestSyncChunkArgs = {
             identityKey: forIdentityKey,
             maxRoughSize: maxRoughSize || 100000,
             maxItems: maxItems || 1000,
             offsets: [],
-            since: this.when
+            since: this.when,
+            fromStorageIdentityKey: this.storageIdentityKey,
+            toStorageIdentityKey: forStorageIdentityKey
         }
         for (const ess of [
             this.syncMap.provenTx,

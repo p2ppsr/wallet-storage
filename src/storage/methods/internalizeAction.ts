@@ -40,13 +40,12 @@ export interface StorageInternalizeActionResult extends sdk.InternalizeActionRes
  */
 export async function internalizeActionSdk(
     storage: StorageBase,
-    sargs: sdk.StorageInternalizeActionArgs,
-    originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    auth: sdk.AuthId,
+    args: sdk.InternalizeActionArgs
 ) : Promise<sdk.InternalizeActionResult>
 {
-  stampLog(sargs, `start dojo internalizeActionSdk`) 
 
-  const ctx = new InternalizeActionContext(storage, sargs, originator)
+  const ctx = new InternalizeActionContext(storage, auth, args)
   await ctx.asyncSetup()
 
   if (ctx.isMerge)
@@ -54,7 +53,6 @@ export async function internalizeActionSdk(
   else
     await ctx.newInternalize() 
 
-  stampLog(sargs, `end dojo createTransactionSdk`) 
   return ctx.r
 
 }
@@ -102,10 +100,11 @@ class InternalizeActionContext {
 
   constructor(
     public storage: StorageBase,
-    public sargs: sdk.StorageInternalizeActionArgs,
+    public auth: sdk.AuthId,
+    public args: sdk.InternalizeActionArgs,
     public originator?: sdk.OriginatorDomainNameStringUnder250Bytes
   ) {
-    this.userId = sargs.userId!
+    this.userId = auth.userId!
     this.r = {
       accepted: true,
       isMerge: false,
@@ -134,9 +133,9 @@ class InternalizeActionContext {
   }
 
   async asyncSetup() {
-    ({ ab: this.ab, tx: this.tx, txid: this.txid } = await this.validateAtomicBeef(this.sargs.tx));
+    ({ ab: this.ab, tx: this.tx, txid: this.txid } = await this.validateAtomicBeef(this.args.tx));
 
-    for (const o of this.sargs.outputs) {
+    for (const o of this.args.outputs) {
       if (o.outputIndex < 0 || o.outputIndex >= this.tx.outputs.length)
         throw new sdk.WERR_INVALID_PARAMETER('outputIndex', `a valid output index in range 0 to ${this.tx.outputs.length - 1}`);
       const txo = this.tx.outputs[o.outputIndex]
@@ -246,7 +245,7 @@ class InternalizeActionContext {
       reference: randomBytesBase64(7),
       userId: this.userId,
       isOutgoing: false,
-      description: this.sargs.description,
+      description: this.args.description,
 
       inputBEEF: undefined,
       txid: this.txid,
@@ -289,7 +288,7 @@ class InternalizeActionContext {
 
     // transaction record for user is new, but the txid may not be new to storage
     // make sure storage pursues getting a proof for it.
-    const newReq = entity.ProvenTxReq.fromTxid(this.txid, this.tx.toBinary(), this.sargs.tx)
+    const newReq = entity.ProvenTxReq.fromTxid(this.txid, this.tx.toBinary(), this.args.tx)
     newReq.status = 'unmined'
     newReq.addHistoryNote({ what: 'internalizeAction', userId: this.userId })
     newReq.addNotifyTransactionId(transactionId)
@@ -307,7 +306,7 @@ class InternalizeActionContext {
   }
 
   async addLabels(transactionId: number) {
-    for (const label of this.sargs.labels) {
+    for (const label of this.args.labels) {
       const txLabel = await this.storage.findOrInsertTxLabel(this.userId, label);
       await this.storage.findOrInsertTxLabelMap(verifyId(transactionId), verifyId(txLabel.txLabelId));
     }
@@ -337,7 +336,7 @@ class InternalizeActionContext {
       type: 'P2PKH',
       providedBy: 'dojo',
       purpose: 'change',
-      derivationPrefix: this.sargs.commonDerivationPrefix!,
+      derivationPrefix: this.args.commonDerivationPrefix!,
       derivationSuffix: payment.derivationSuffix,
 
       change: true,
@@ -360,7 +359,7 @@ class InternalizeActionContext {
       providedBy: 'dojo',
       purpose: 'change',
       senderIdentityKey: payment.senderIdentityKey,
-      derivationPrefix: this.sargs.commonDerivationPrefix,
+      derivationPrefix: this.args.commonDerivationPrefix,
       derivationSuffix: payment.derivationSuffix,
     }
     await this.storage.updateOutput(outputId, update)

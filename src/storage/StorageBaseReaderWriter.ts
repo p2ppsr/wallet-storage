@@ -1,5 +1,4 @@
-import { DBType, sdk, StorageBaseOptions, StorageBaseReader, table, validateSecondsSinceEpoch, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
-import { requestSyncChunk } from "./methods/requestSyncChunk";
+import { sdk, StorageBaseReader, table, verifyId, verifyOne, verifyOneOrNone } from "..";
 
 export abstract class StorageBaseReaderWriter extends StorageBaseReader {
 
@@ -230,6 +229,15 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
             }
         }
     }
+
+    findOrInsertSyncStateAuth(auth: sdk.AuthId, storageIdentityKey: string, storageName: string): Promise<{ syncState: table.SyncState; isNew: boolean; }> {
+        throw new Error('Method not implemented.');
+    }
+    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> {
+        throw new Error('Method not implemented.');
+        //const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+    }
+
 
     async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> {
         await this.transaction(async trx => {

@@ -5,8 +5,7 @@ import { asString, sdk, verifyOne } from "../.."
 export async function listActions(
     storage: StorageKnex,
     auth: sdk.AuthId,
-    vargs: sdk.ValidListActionsArgs,
-    originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
+    vargs: sdk.ValidListActionsArgs
 )
 : Promise<sdk.ListActionsResult>
 {
@@ -73,7 +72,7 @@ export async function listActions(
     }
 
     const makeWithoutLabelsQueries = () => {
-        const q = k('transactions').where('userId', vargs.userId).whereIn('status', stati)
+        const q = k('transactions').where('userId', auth.userId).whereIn('status', stati)
         const qcount = q.clone().count('transactionId as total')
         return { q, qcount }
     }

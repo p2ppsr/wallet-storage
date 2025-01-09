@@ -1,5 +1,5 @@
 import { Transaction } from "@bsv/sdk";
-import { sdk, table, verifyOne, verifyOneOrNone, WalletServices, WalletStorage } from "..";
+import { sdk } from "..";
 import { createActionSdk } from "./methods/createActionSdk";
 import { getDecorators } from "typescript";
 import { internalizeActionSdk } from "./methods/internalizeActionSdk";
@@ -8,20 +8,21 @@ import { proveCertificateSdk } from "./methods/proveCertificateSdk";
 import { relinquishCertificateSdk } from "./methods/relinquishCertificateSdk";
 import { acquireDirectCertificateSdk } from "./methods/acquireDirectCertificateSdk";
 import { signActionSdk } from "./methods/signActionSdk";
-import { SignerStorage } from "../storage/SignerStorage";
+import { WalletStorage } from "../storage/WalletStorage";
 
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
     keyDeriver: sdk.KeyDeriverApi
-    storage: SignerStorage
+    storage: WalletStorage
     storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
     identityKey: string
 
     pendingSignActions: Record<string, PendingSignAction>
 
-    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: SignerStorage) {
-        if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`)
+    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorage) {
+        if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`);
+        if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey as the keyDeriver.`);
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage

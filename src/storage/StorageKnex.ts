@@ -14,7 +14,7 @@ export interface StorageKnexOptions extends StorageBaseOptions {
   knex: Knex
 }
 
-export class StorageKnex extends StorageBase implements sdk.WalletStorage {
+export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
   knex: Knex
 
   constructor(options: StorageKnexOptions) {

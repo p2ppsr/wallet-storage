@@ -15,7 +15,7 @@ export interface StorageSyncReader {
 
    getSettings(): table.Settings
 
-   requestSyncChunk(args: RequestSyncChunkArgs) : Promise<SyncChunk>
+   getSyncChunk(args: RequestSyncChunkArgs) : Promise<SyncChunk>
 
    findUserByIdentityKey(key: string) : Promise<table.User| undefined>
 
@@ -50,6 +50,15 @@ export type SyncStatus = 'success' | 'error' | 'identified' | 'updated' | 'unkno
 export type SyncProtocolVersion = '0.1.0'
 
 export interface RequestSyncChunkArgs {
+    /**
+     * The storageIdentityKey of the storage supplying the update SyncChunk data.
+     */
+    fromStorageIdentityKey: string
+    /**
+     * The storageIdentityKey of the storage consuming the update SyncChunk data.
+     */
+    toStorageIdentityKey: string
+
     /**
      * The identity of whose data is being requested
      */
@@ -99,6 +108,10 @@ export interface RequestSyncChunkArgs {
  * If all properties are empty arrays the sync process has received all available new and updated items.
  */
 export interface SyncChunk {
+    fromStorageIdentityKey: string
+    toStorageIdentityKey: string
+    userIdentityKey: string
+
     provenTxs?: table.ProvenTx[]
     provenTxReqs?: table.ProvenTxReq[]
     outputBaskets?: table.OutputBasket[]

@@ -9,7 +9,7 @@ import { sdk, table } from "..";
 import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
-import { SignerStorage } from "./SignerStorage" // Adjust this import path to where your local interface is declared
+import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
 
 export class StorageClient implements sdk.WalletStorage {
     private endpointUrl: string

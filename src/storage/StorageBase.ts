@@ -6,7 +6,7 @@ import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
 
-export abstract class StorageBase extends StorageBaseReaderWriter implements sdk.WalletStorage {
+export abstract class StorageBase extends StorageBaseReaderWriter implements sdk.WalletStorageAuth {
 
     isDirty = false
     _services?: sdk.WalletServices
@@ -48,6 +48,7 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
 
     abstract listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
     abstract listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+
 
     abstract countChangeInputs(userId: number, basketId: number, excludeSending: boolean): Promise<number>
 

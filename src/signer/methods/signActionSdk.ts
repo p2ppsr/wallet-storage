@@ -3,7 +3,7 @@
 import * as bsv from '@bsv/sdk'
 import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
 import { PendingSignAction, WalletSigner } from "../WalletSigner"
-import { processActionSdk } from "./createActionSdk"
+import { processActionSdk } from "./createAction"
 
 export async function signActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidSignActionArgs)
 : Promise<sdk.SignActionResult>

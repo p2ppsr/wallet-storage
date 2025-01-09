@@ -1,5 +1,5 @@
 import { DBType, sdk, StorageBaseOptions, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "..";
-import { requestSyncChunk } from "./methods/requestSyncChunk";
+import { getSyncChunk } from "./methods/getSyncChunk";
 
 /**
  * The `StorageBaseReader` abstract class is the base of the concrete wallet storage provider classes.
@@ -74,8 +74,8 @@ export abstract class StorageBaseReader implements sdk.StorageSyncReader {
         return verifyOneOrNone(await this.findUsers({ partial: { identityKey: key } }))
     }
 
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunk> {
-        return requestSyncChunk(this, args)
+    async getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk> {
+        return getSyncChunk(this, args)
     }
 
     /**

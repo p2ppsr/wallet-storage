@@ -1,5 +1,4 @@
 import { DBType, sdk, StorageBaseOptions, StorageBaseReader, table, validateSecondsSinceEpoch, verifyTruthy } from "..";
-import { requestSyncChunk } from "./methods/requestSyncChunk";
 
 /**
  * The `StorageSyncReader` non-abstract class must be used when authentication checking access to the methods of a `StorageBaseReader` is required.
@@ -30,11 +29,11 @@ export class StorageSyncReader implements sdk.StorageSyncReader {
     getSettings(): table.Settings {
         return this.storage.getSettings()
     }
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunk> {
+    async getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk> {
         if (!this.auth.userId) await this.makeAvailable()
         if (args.identityKey !== this.auth.identityKey)
             throw new sdk.WERR_UNAUTHORIZED()
-        return await this.storage.requestSyncChunk(args)
+        return await this.storage.getSyncChunk(args)
     }
     async findUserByIdentityKey(key: string): Promise<table.User | undefined> {
         if (!this.auth.userId) await this.makeAvailable()

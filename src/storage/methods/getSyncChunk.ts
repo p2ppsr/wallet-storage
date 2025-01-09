@@ -1,6 +1,22 @@
 import { sdk, StorageBaseReader, table, verifyOne, verifyTruthy } from '../..'
-export async function requestSyncChunk(storage: StorageBaseReader, args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunk> {
-    const r: sdk.RequestSyncChunk = {}
+
+/**
+ * Gets the next sync chunk of updated data from un-remoted storage (could be using a remote DB connection).
+ * @param storage 
+ * @param args 
+ * @returns 
+ */
+export async function getSyncChunk(
+    storage: StorageBaseReader,
+    args: sdk.RequestSyncChunkArgs
+)
+: Promise<sdk.SyncChunk>
+{
+    const r: sdk.SyncChunk = {
+        fromStorageIdentityKey: '',
+        toStorageIdentityKey: '',
+        userIdentityKey: args.identityKey
+    }
 
     let itemCount = args.maxItems
     let roughSize = args.maxRoughSize

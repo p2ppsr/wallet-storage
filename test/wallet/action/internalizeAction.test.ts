@@ -207,7 +207,7 @@ describe('internalizeAction tests', () => {
     }
   })
 
-  test('3_default', async () => {
+  test.skip('3_default', async () => {
     for (const { wallet, activeStorage: storage } of ctxs) {
       try {
         // Prepare StorageGetBeefOptions

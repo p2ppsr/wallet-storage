@@ -5,6 +5,7 @@ import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './met
 import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
+import { internalizeAction } from './methods/internalizeAction';
 
 export abstract class StorageBase extends StorageBaseReaderWriter implements sdk.WalletStorageAuth {
 
@@ -95,8 +96,7 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
     }
 
     async internalizeAction(auth: sdk.AuthId, args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        const vargs = sdk.validateInternalizeActionArgs(args)
-        throw new sdk.WERR_NOT_IMPLEMENTED()
+        return await internalizeAction(this, auth, args)
     }
 
     /**
@@ -318,10 +318,9 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
         }, trx)
     }
 
-    async createAction(auth: sdk.AuthId, args: sdk.CreateActionArgs): Promise<sdk.StorageCreateActionResult> {
+    async createAction(auth: sdk.AuthId, args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult> {
         if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
-        const vargs = sdk.validateCreateActionArgs(args)
-        return await createAction(this, auth, vargs)
+        return await createAction(this, auth, args)
     }
     async processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults> {
         if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
@@ -332,9 +331,8 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
         return await attemptToPostReqsToNetwork(this, reqs, trx)
     }
 
-    async listCertificates(auth: sdk.AuthId, args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        const vargs = sdk.validateListCertificatesArgs(args)
-        return await listCertificates(this, auth, vargs)
+    async listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+        return await listCertificates(this, auth, args)
     }
 
     async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken): Promise<boolean> {

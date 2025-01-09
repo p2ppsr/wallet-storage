@@ -21,16 +21,16 @@ export interface WalletStorage {
    findOrInsertUser(identityKey: string) : Promise<{ user: table.User, isNew: boolean}>
 
    abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
-   createAction(args: sdk.CreateActionArgs): Promise<sdk.StorageCreateActionResult>
+   createAction(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult>
    processAction(args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>
-   internalizeAction(sargs: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
+   internalizeAction(args: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
 
    findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
 
    listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
-   listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult>
+   listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
    listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
 
    insertCertificate(certificate: table.CertificateX): Promise<number>
@@ -57,16 +57,16 @@ export interface WalletStorageAuth {
    findOrInsertSyncStateAuth(auth: sdk.AuthId, storageIdentityKey: string, storageName: string) : Promise<{ syncState: table.SyncState, isNew: boolean}>
 
    abortAction(auth: sdk.AuthId, args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
-   createAction(auth: sdk.AuthId, args: sdk.CreateActionArgs): Promise<sdk.StorageCreateActionResult>
+   createAction(auth: sdk.AuthId, args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult>
    processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>
-   internalizeAction(auth: sdk.AuthId, sargs: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
+   internalizeAction(auth: sdk.AuthId, args: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
 
    findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
 
    listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
-   listCertificates(auth: sdk.AuthId, args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult>
+   listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
    listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
 
    insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>

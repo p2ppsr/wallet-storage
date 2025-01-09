@@ -38,7 +38,7 @@ export interface StorageInternalizeActionResult extends sdk.InternalizeActionRes
  * 1. Targetting an existing change "default" basket output results in a no-op. No error. No alterations made.
  * 2. Targetting a previously "custom" non-change output converts it into a change output. This alters the transaction's `satoshis`, and the wallet balance.
  */
-export async function internalizeActionSdk(
+export async function internalizeAction(
     storage: StorageBase,
     auth: sdk.AuthId,
     args: sdk.InternalizeActionArgs
@@ -97,13 +97,14 @@ class InternalizeActionContext {
   /** all the wallet payments from incoming outputs array */
   walletPayments: WalletPayment[]
   userId: number
+  vargs: sdk.ValidInternalizeActionArgs
 
   constructor(
     public storage: StorageBase,
     public auth: sdk.AuthId,
     public args: sdk.InternalizeActionArgs,
-    public originator?: sdk.OriginatorDomainNameStringUnder250Bytes
   ) {
+    this.vargs = sdk.validateInternalizeActionArgs(args)
     this.userId = auth.userId!
     this.r = {
       accepted: true,
@@ -306,7 +307,7 @@ class InternalizeActionContext {
   }
 
   async addLabels(transactionId: number) {
-    for (const label of this.args.labels) {
+    for (const label of this.vargs.labels) {
       const txLabel = await this.storage.findOrInsertTxLabel(this.userId, label);
       await this.storage.findOrInsertTxLabelMap(verifyId(transactionId), verifyId(txLabel.txLabelId));
     }
@@ -336,7 +337,7 @@ class InternalizeActionContext {
       type: 'P2PKH',
       providedBy: 'dojo',
       purpose: 'change',
-      derivationPrefix: this.args.commonDerivationPrefix!,
+      derivationPrefix: this.vargs.commonDerivationPrefix!,
       derivationSuffix: payment.derivationSuffix,
 
       change: true,
@@ -359,7 +360,7 @@ class InternalizeActionContext {
       providedBy: 'dojo',
       purpose: 'change',
       senderIdentityKey: payment.senderIdentityKey,
-      derivationPrefix: this.args.commonDerivationPrefix,
+      derivationPrefix: this.vargs.commonDerivationPrefix,
       derivationSuffix: payment.derivationSuffix,
     }
     await this.storage.updateOutput(outputId, update)

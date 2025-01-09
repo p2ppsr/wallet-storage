@@ -34,31 +34,32 @@ import { WalletSigner } from "../WalletSigner";
  * @param originator 
  * @returns 
  */
-export async function internalizeActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidInternalizeActionArgs)
+export async function internalizeAction(
+  signer: WalletSigner,
+  auth: sdk.AuthId,
+  args: sdk.InternalizeActionArgs
+)
 : Promise<sdk.InternalizeActionResult> {
+  const vargs = sdk.validateInternalizeActionArgs(args)
 
   const { ab, tx, txid } = await validateAtomicBeef();
   const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
-
-  const sargs: sdk.StorageInternalizeActionArgs = {
-    ...vargs
-  }
 
   for (const o of vargs.outputs) {
     if (o.outputIndex < 0 || o.outputIndex >= tx.outputs.length)
       throw new sdk.WERR_INVALID_PARAMETER('outputIndex', `a valid output index in range 0 to ${tx.outputs.length - 1}`);
     switch (o.protocol) {
-      case 'basket insertion': setupBasketInsertionForOutput(o, sargs); break;
-      case 'wallet payment': setupWalletPaymentForOutput(o, sargs); break;
+      case 'basket insertion': setupBasketInsertionForOutput(o, vargs); break;
+      case 'wallet payment': setupWalletPaymentForOutput(o, vargs); break;
       default: throw new sdk.WERR_INTERNAL(`unexpected protocol ${o.protocol}`)
     }
   }
 
-  const r: sdk.InternalizeActionResult = await signer.storage.internalizeActionSdk(sargs)
+  const r: sdk.InternalizeActionResult = await signer.storage.internalizeAction(args)
 
   return r
 
-  function setupWalletPaymentForOutput(o: sdk.InternalizeOutput, dargs: sdk.StorageInternalizeActionArgs) {
+  function setupWalletPaymentForOutput(o: sdk.InternalizeOutput, dargs: sdk.ValidInternalizeActionArgs) {
     const p = o.paymentRemittance
     const output = tx.outputs[o.outputIndex]
     if (!p) throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `valid for protocol ${o.protocol}`);
@@ -66,17 +67,14 @@ export async function internalizeActionSdk(signer: WalletSigner, auth: sdk.AuthI
       throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `the same derivationPrefix ${dargs.commonDerivationPrefix} vs ${p.derivationPrefix}`);
 
     const keyID = `${dargs.commonDerivationPrefix} ${p.derivationSuffix}`
-    const forSelf = false
 
     const privKey = signer.keyDeriver!.derivePrivateKey(brc29ProtocolID, keyID, p.senderIdentityKey)
     const expectedLockScript = new bsv.P2PKH().lock(privKey.toAddress())
     if (output.lockingScript.toHex() !== expectedLockScript.toHex())
       throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `locked by script conforming to BRC-29`);
-
-
   }
 
-  function setupBasketInsertionForOutput(o: sdk.InternalizeOutput, dargs: sdk.StorageInternalizeActionArgs) {
+  function setupBasketInsertionForOutput(o: sdk.InternalizeOutput, dargs: sdk.ValidInternalizeActionArgs) {
     /*
     No additional validations...
     */

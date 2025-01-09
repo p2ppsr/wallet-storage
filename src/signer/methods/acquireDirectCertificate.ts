@@ -1,6 +1,10 @@
 import { sdk, table, WalletSigner } from '../..'
 
-export async function acquireDirectCertificateSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function acquireDirectCertificate(
+  signer: WalletSigner,
+  auth: sdk.AuthId,
+  vargs: sdk.ValidAcquireDirectCertificateArgs
+)
 : Promise<sdk.AcquireCertificateResult>
 {
   const now = new Date()
@@ -8,7 +12,7 @@ export async function acquireDirectCertificateSdk(signer: WalletSigner, auth: sd
     certificateId: 0, // replaced by storage insert
     created_at: now,
     updated_at: now,
-    userId: vargs.userId!,
+    userId: auth.userId!,
     type: vargs.type,
     subject: vargs.subject,
     verifier: vargs.keyringRevealer === 'certifier' ? undefined : vargs.keyringRevealer,
@@ -24,7 +28,7 @@ export async function acquireDirectCertificateSdk(signer: WalletSigner, auth: sd
       certificateId: 0, // replaced by storage insert
       created_at: now,
       updated_at: now,
-      userId: vargs.userId!,
+      userId: auth.userId!,
       fieldName: name,
       fieldValue: value,
       masterKey: vargs.keyringForSubject[name] || ''

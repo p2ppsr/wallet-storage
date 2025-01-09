@@ -1,11 +1,13 @@
 import { sdk, WalletSigner } from '../..'
 
-export async function proveCertificateSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidProveCertificateArgs)
+export async function proveCertificate(
+  signer: WalletSigner,
+  auth: sdk.AuthId,
+  vargs: sdk.ValidProveCertificateArgs
+)
 : Promise<sdk.ProveCertificateResult>
 {
   const lcargs: sdk.ValidListCertificatesArgs = {
-    userIdentityKey: vargs.userIdentityKey,
-    userId: vargs.userId,
     partial: {
       type: vargs.type,
       serialNumber: vargs.serialNumber,
@@ -21,7 +23,7 @@ export async function proveCertificateSdk(signer: WalletSigner, auth: sdk.AuthId
     privileged: false
   }
 
-  const lcr = await signer.storage.listCertificatesSdk(lcargs)
+  const lcr = await signer.storage.listCertificates(lcargs)
   if (lcr.certificates.length != 1)
     throw new sdk.WERR_INVALID_PARAMETER('args', `a unique certificate match`)
   const storageCert = lcr.certificates[0]

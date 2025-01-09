@@ -92,12 +92,10 @@ export class WalletStorage implements sdk.WalletStorage {
         const vargs = sdk.validateAbortActionArgs(args)
         return await this.getActive().abortAction(await this.getAuth(), args)
     }
-    async createAction(args: sdk.CreateActionArgs): Promise<sdk.StorageCreateActionResult> {
-        const vargs = sdk.validateCreateActionArgs(args)
+    async createAction(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult> {
         return await this.getActive().createAction(await this.getAuth(), args)
     }
     async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
-        const vargs = sdk.validateInternalizeActionArgs(args)
         return await this.getActive().internalizeAction(await this.getAuth(), args)
     }
 
@@ -105,8 +103,7 @@ export class WalletStorage implements sdk.WalletStorage {
         const vargs = sdk.validateListActionsArgs(args)
         return await this.getActive().listActions(await this.getAuth(), args)
     }
-   async listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        const vargs = sdk.validateListCertificatesArgs(args)
+   async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
         return await this.getActive().listCertificates(await this.getAuth(), args)
    }
     async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {

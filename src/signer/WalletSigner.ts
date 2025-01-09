@@ -1,14 +1,11 @@
 import { Transaction } from "@bsv/sdk";
 import { sdk } from "..";
-import { createActionSdk } from "./methods/createActionSdk";
-import { getDecorators } from "typescript";
-import { internalizeActionSdk } from "./methods/internalizeActionSdk";
-import { relinquishOutputSdk } from "./methods/relinquishOutputSdk";
-import { proveCertificateSdk } from "./methods/proveCertificateSdk";
-import { relinquishCertificateSdk } from "./methods/relinquishCertificateSdk";
-import { acquireDirectCertificateSdk } from "./methods/acquireDirectCertificateSdk";
-import { signActionSdk } from "./methods/signActionSdk";
 import { WalletStorage } from "../storage/WalletStorage";
+import { createAction } from "./methods/createAction";
+import { signAction } from "./methods/signAction";
+import { internalizeAction } from "./methods/internalizeAction";
+import { acquireDirectCertificate } from "./methods/acquireDirectCertificate";
+import { proveCertificate } from "./methods/proveCertificate";
 
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
@@ -62,69 +59,69 @@ export class WalletSigner implements sdk.WalletSigner {
     }
     
     async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
-        const { auth } = this.validateAuthAndArgs(args, sdk.validateListActionsArgs)
-        const r = await this.storage.listActions(auth, args)
+        this.validateAuthAndArgs(args, sdk.validateListActionsArgs)
+        const r = await this.storage.listActions(args)
         return r
     }
     async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
-        const { auth } = this.validateAuthAndArgs(args, sdk.validateListOutputsArgs)
-        const r = await this.storage.listOutputs(auth, args)
+        this.validateAuthAndArgs(args, sdk.validateListOutputsArgs)
+        const r = await this.storage.listOutputs(args)
         return r
     }
     async listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
-        const { auth } = this.validateAuthAndArgs(args, sdk.validateListCertificatesArgs)
-        const r = await this.storage.listCertificates(auth, args)
+        const { vargs } = this.validateAuthAndArgs(args, sdk.validateListCertificatesArgs)
+        const r = await this.storage.listCertificates(vargs)
         return r
     }
 
     async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
         const { auth } = this.validateAuthAndArgs(args, sdk.validateAbortActionArgs)
-        const r = await this.storage.abortAction(auth, args)
+        const r = await this.storage.abortAction(args)
         return r
     }
     async createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateCreateActionArgs)
-        const r = await createActionSdk(this, auth, vargs)
+        const r = await createAction(this, auth, vargs)
         return r
     }
 
     async signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateSignActionArgs)
-        const r = await signActionSdk(this, auth, vargs)
+        const r = await signAction(this, auth, vargs)
         return r
     }
     async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateInternalizeActionArgs)
-        const r = await internalizeActionSdk(this, auth, vargs)
+        const r = await internalizeAction(this, auth, args)
         return r
     }
     async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> {
-        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateRelinquishOutputArgs)
-        const r = await relinquishOutputSdk(this, auth, vargs)
-        return r
+        const { vargs } = this.validateAuthAndArgs(args, sdk.validateRelinquishOutputArgs)
+        const r = await this.storage.relinquishOutput(args)
+        return { relinquished: true }
+    }
+    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
+        this.validateAuthAndArgs(args, sdk.validateRelinquishCertificateArgs)
+        const r = await this.storage.relinquishCertificate(args)
+        return { relinquished: true }
     }
     async acquireDirectCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateAcquireDirectCertificateArgs)
-        const r = await acquireDirectCertificateSdk(this, auth, vargs)
+        const r = await acquireDirectCertificate(this, auth, vargs)
         return r
     }
     async proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateProveCertificateArgs)
-        const r = await proveCertificateSdk(this, auth, vargs)
-        return r
-    }
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> {
-        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateRelinquishCertificateArgs)
-        const r = await relinquishCertificateSdk(this, auth, vargs)
+        const r = await proveCertificate(this, auth, vargs)
         return r
     }
 
     async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> {
-        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateDiscoverByIdentityKeyArgs)
+        this.validateAuthAndArgs(args, sdk.validateDiscoverByIdentityKeyArgs)
         throw new Error("Method not implemented.");
     }
     async discoverByAttributes(args: sdk.DiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult> {
-        const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateDiscoverByAttributesArgs)
+        this.validateAuthAndArgs(args, sdk.validateDiscoverByAttributesArgs)
         throw new Error("Method not implemented.");
     }
 }

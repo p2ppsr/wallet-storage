@@ -1,7 +1,7 @@
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
 import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyTruthy, WalletSigner } from "../.."
 
-export async function createActionSdk(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
+export async function createAction(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
 : Promise<sdk.CreateActionResult>
 {
   const r: sdk.CreateActionResult = {}
@@ -23,7 +23,7 @@ export async function createActionSdk(signer: WalletSigner, auth: sdk.AuthId, va
       r.tx = makeAtomicBeef(prior.tx, prior.dcr.inputBeef!)
   }
 
-  r.sendWithResults = await processActionSdk(prior, signer, vargs)
+  r.sendWithResults = await processAction(prior, signer, auth, vargs)
 
   return r
 }
@@ -32,7 +32,7 @@ async function createNewTx(signer: WalletSigner, args: sdk.ValidCreateActionArgs
 : Promise<PendingSignAction>
 {
   const storageArgs = removeUnlockScripts(args);
-  const dcr = await signer.storage.createTransactionSdk(storageArgs)
+  const dcr = await signer.storage.createAction(storageArgs)
 
   const reference = dcr.reference
 
@@ -153,11 +153,11 @@ function removeUnlockScripts(args: sdk.ValidCreateActionArgs) {
   return storageArgs;
 }
 
-export async function processActionSdk(prior: PendingSignAction | undefined, signer: WalletSigner, vargs: sdk.ValidProcessActionArgs)
+export async function processAction(prior: PendingSignAction | undefined, signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidProcessActionArgs)
 : Promise<sdk.SendWithResult[] | undefined>
 {
-  const params: sdk.StorageProcessActionArgs = {
-    userId: vargs.userId!,
+  const args: sdk.StorageProcessActionArgs = {
+    userId: auth.userId!,
     isNewTx: vargs.isNewTx,
     isSendWith: vargs.isSendWith,
     isNoSend: vargs.isNoSend,
@@ -167,7 +167,7 @@ export async function processActionSdk(prior: PendingSignAction | undefined, sig
     rawTx: prior ? prior.tx.toBinary() : undefined,
     sendWith: vargs.isSendWith ? vargs.options.sendWith : [],
   }
-  const r: sdk.StorageProcessActionResults = await signer.storage.processActionSdk(params)
+  const r: sdk.StorageProcessActionResults = await signer.storage.processAction(args)
 
   return r.sendWithResults
 }

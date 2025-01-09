@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk } from '../../../src'
+import { sdk, StorageKnex } from '../../../src'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
 const noLog = false
@@ -428,16 +428,19 @@ describe('createAction test', () => {
     }
   })
 
-  test.skip('9_Transaction with Large Input Set', async () => {
+  test('9_Transaction with Real Data Large Input Set', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
-    const inputs = Array.from({ length: 50 }, (_, i) => ({
-      outpoint: `${kp.address}.0.${i}`,
-      inputDescription: `Input ${i + 1}`,
-      unlockingScriptLength: 107 // Example length
-    }))
 
-    for (const { wallet } of ctxs) {
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const dbInputs = await fetchInputsFromDatabase(storage)
+
+      const inputs = dbInputs.map(input => ({
+        outpoint: input.outpoint,
+        inputDescription: input.inputDescription,
+        unlockingScriptLength: input.unlockingScriptLength
+      }))
+
       const createArgs: sdk.CreateActionArgs = {
         description: 'Large Input Set Transaction',
         inputs,
@@ -462,6 +465,8 @@ describe('createAction test', () => {
       expect(cr.signableTransaction).toBeTruthy()
 
       const st = cr.signableTransaction!
+      const atomicBeef = bsv.Beef.fromBinary(st.tx)
+      expect(atomicBeef.txs[atomicBeef.txs.length - 1].tx.inputs.length).toBe(inputs.length)
     }
   })
 
@@ -640,3 +645,29 @@ describe('createAction test', () => {
     }
   })
 })
+
+/**
+ * Fetch a large set of inputs from the database for testing.
+ *
+ * @param {StorageKnex} storage - The storage object providing database access.
+ * @returns {Promise<Array<{ outpoint: string, inputDescription: string, unlockingScriptLength: number }>>} Fetched input data.
+ */
+async function fetchInputsFromDatabase(storage: StorageKnex) {
+  const db = storage.toDb()
+
+  // Fetch inputs with txid, vout, and unlocking script length
+  const results = await db
+    .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
+    .from('outputs')
+    .where('spendable', 1)
+    .orderBy('created_at')
+    .limit(50)
+
+  if (!results.length) {
+    throw new Error('No spendable inputs found in the database.')
+  }
+
+  if (!noLog) console.log('Fetched inputs from the database:', results)
+
+  return results
+}

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class TxLabelMap extends EntityBase<table.TxLabelMap> {
@@ -47,7 +47,7 @@ export class TxLabelMap extends EntityBase<table.TxLabelMap> {
         return true
     }
 
-    static async mergeFind(storage: StorageBase, userId: number, ei: table.TxLabelMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.TxLabelMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.TxLabelMap, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
         const txLabelId = syncMap.txLabel.idMap[ei.txLabelId]
@@ -59,13 +59,13 @@ export class TxLabelMap extends EntityBase<table.TxLabelMap> {
         }
     }
 
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.transactionId = syncMap.transaction.idMap[this.transactionId]
         this.txLabelId = syncMap.txLabel.idMap[this.txLabelId]
         await storage.insertTxLabelMap(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.TxLabelMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.TxLabelMap, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.isDeleted = ei.isDeleted

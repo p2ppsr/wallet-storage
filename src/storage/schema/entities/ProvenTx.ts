@@ -1,5 +1,5 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 import { ChaintracksClientApi } from "../../../services/chaintracker";
 
@@ -138,7 +138,7 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
         return true
     }
 
-    static async mergeFind(storage: StorageBase, userId: number, ei: table.ProvenTx, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.ProvenTx, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.ProvenTx, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findProvenTxs({ partial: { txid: ei.txid }, trx }))
         return {
@@ -148,13 +148,13 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
         }
     }
 
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.provenTxId = 0
         // TODO: Since these records are a shared resource, the record must be validated before accepting it...
         this.provenTxId = await storage.insertProvenTx(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.ProvenTx, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.ProvenTx, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         // ProvenTxs are never updated.
         return false
     }

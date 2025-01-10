@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, StorageBase, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices } from ".."
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices } from ".."
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskValidate } from './tasks/TaskValidate'
 import { TaskPurge } from './tasks/TaskPurge'
@@ -13,13 +13,15 @@ import { WalletMonitorTask } from './tasks/WalletMonitorTask'
 import { TaskClock } from './tasks/TaskClock'
 import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
+export type MonitorStorage = sdk.StorageSyncReaderWriter
+
 export interface WalletMonitorOptions {
 
     chain: sdk.Chain
 
     services: WalletServices
 
-    storage: StorageBase
+    storage: MonitorStorage
 
     chaintracks: ChaintracksClientApi
 
@@ -44,7 +46,7 @@ export interface WalletMonitorOptions {
 export class WalletMonitor {
     static createDefaultWalletMonitorOptions(
         chain: sdk.Chain,
-        storage: StorageBase,
+        storage: MonitorStorage,
         services?: WalletServices
     ): WalletMonitorOptions {
         services ||= new WalletServices(chain)
@@ -67,7 +69,7 @@ export class WalletMonitor {
     options: WalletMonitorOptions
     services: WalletServices
     chain: sdk.Chain
-    storage: StorageBase
+    storage: MonitorStorage
     chaintracks: ChaintracksClientApi
 
     constructor(options: WalletMonitorOptions) {

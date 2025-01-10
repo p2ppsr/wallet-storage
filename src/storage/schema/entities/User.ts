@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class User extends EntityBase<table.User> {
@@ -35,9 +35,9 @@ export class User extends EntityBase<table.User> {
     override equals(ei: table.User, syncMap?: entity.SyncMap | undefined): boolean {
         return false
     }
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
     }
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.User, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.User, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         return false
     }
 }

@@ -1,5 +1,5 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class OutputBasket extends EntityBase<table.OutputBasket> {
@@ -60,7 +60,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
         return true
     }
     
-    static async mergeFind(storage: StorageBase, userId: number, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: OutputBasket, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findOutputBaskets({ partial: { name: ei.name, userId }, trx }))
         return {
@@ -71,7 +71,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<void> {
         this.userId = userId
         this.name ||= 'default'
         this.basketId = 0
@@ -79,7 +79,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             // basket name is its identity, should not change

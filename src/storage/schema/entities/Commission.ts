@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, StorageBase, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
 import { EntityBase } from ".";
 
 export class Commission extends EntityBase<table.Commission> {
@@ -60,7 +60,7 @@ export class Commission extends EntityBase<table.Commission> {
         return true
     }
 
-    static async mergeFind(storage: StorageBase, userId: number, ei: table.Commission, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.Commission, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.Commission, eiId: number }> {
         const transactionId = syncMap.transaction.idMap[ei.transactionId]
         const ef = verifyOneOrNone(await storage.findCommissions({ partial: { transactionId, userId }, trx }))
@@ -71,14 +71,14 @@ export class Commission extends EntityBase<table.Commission> {
         }
     }
 
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         if (this.transactionId) this.transactionId = syncMap.transaction.idMap[this.transactionId]
         this.userId = userId
         this.commissionId = 0
         this.commissionId = await storage.insertCommission(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.Commission, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.Commission, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.isRedeemed = ei.isRedeemed

@@ -1,5 +1,5 @@
 import { createSyncMap, EntityBase, EntitySyncMap, MergeEntity, SyncError, SyncMap } from "."
-import { entity, maxDate, sdk, StorageBase, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../.."
+import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../.."
 
 export class SyncState extends EntityBase<table.SyncState> {
     constructor(api?: table.SyncState) {
@@ -47,7 +47,7 @@ export class SyncState extends EntityBase<table.SyncState> {
      * @param notSyncMap if not new and true, excludes updating syncMap in storage.
      * @param trx 
      */
-    async updateStorage(storage: StorageBase, notSyncMap?: boolean, trx?: sdk.TrxToken) {
+    async updateStorage(storage: entity.EntityStorage, notSyncMap?: boolean, trx?: sdk.TrxToken) {
         this.updated_at = new Date()
         this.updateApi(notSyncMap && this.id > 0)
         if (this.id === 0) {
@@ -143,10 +143,10 @@ export class SyncState extends EntityBase<table.SyncState> {
         return false
     }
 
-    override async mergeNew(storage: StorageBase, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<void> {
     }
 
-    override async mergeExisting(storage: StorageBase, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         return false
     }
 
@@ -179,7 +179,7 @@ export class SyncState extends EntityBase<table.SyncState> {
         return a
     }
 
-    async processRequestSyncChunkResult(writer: StorageBase, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
+    async processRequestSyncChunkResult(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
     : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
 

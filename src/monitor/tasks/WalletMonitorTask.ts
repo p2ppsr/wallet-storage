@@ -1,5 +1,4 @@
-import { StorageBase } from '../../storage';
-import { WalletMonitor } from '../WalletMonitor';
+import { MonitorStorage, WalletMonitor } from '../WalletMonitor';
 
 /**
  * A monitor task performs some periodic or state triggered maintenance function
@@ -24,7 +23,7 @@ export abstract class WalletMonitorTask {
      */
     lastRunMsecsSinceEpoch = 0;
 
-    storage: StorageBase;
+    storage: MonitorStorage;
 
     constructor(
         public monitor: WalletMonitor,

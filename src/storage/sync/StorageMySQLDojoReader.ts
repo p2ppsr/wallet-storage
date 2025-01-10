@@ -13,11 +13,11 @@ import {
     verifyOptionalHexString,
     verifyTruthy
 } from "../..";
-import { DBType, StorageKnexOptions, StorageSyncReader, table } from ".."
+import { table } from ".."
 
 import { Knex } from "knex";
-import { MerklePath } from "@bsv/sdk";
 import { isHexString } from '../../sdk';
+import { StorageBaseReader } from '../StorageBaseReader';
 
 export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOptions {
     chain: sdk.Chain
@@ -28,7 +28,7 @@ export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOpti
 }
 
 
-export class StorageMySQLDojoReader extends StorageSyncReader {
+export class StorageMySQLDojoReader extends StorageBaseReader {
     knex: Knex
 
     constructor(options: StorageMySQLDojoReaderOptions) {
@@ -351,20 +351,20 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return this.validateEntities(rs)
     }
 
-    getProvenTxsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const k = this.toDb(trx)
+    getProvenTxsForUserQuery(args: sdk.FindForUserSincePagedArgs) : Knex.QueryBuilder {
+        const k = this.toDb(args.trx)
         let q = k('proven_txs').where(function() {
-            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_txs.provenTxId = transactions.provenTxId and transactions.userId = ${userId}`))
+            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_txs.provenTxId = transactions.provenTxId and transactions.userId = ${args.userId}`))
         })
-        if (paged) {
-            q = q.limit(paged.limit)
-            q = q.offset(paged.offset || 0)
+        if (args.paged) {
+            q = q.limit(args.paged.limit)
+            q = q.offset(args.paged.offset || 0)
         }
-        if (since) q = q.where('updated_at', '>=', since)
+        if (args.since) q = q.where('updated_at', '>=', args.since)
         return q
     }
-    async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]> {
-        const q = this.getProvenTxsForUserQuery(userId, since, paged, trx)
+    async getProvenTxsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.ProvenTx[]> {
+        const q = this.getProvenTxsForUserQuery(args)
         const ds = await q
         const rs: table.ProvenTx[] = []
         for (const d of ds) {
@@ -393,21 +393,21 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return this.validateEntities(rs)
     }
 
-    getProvenTxReqsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const k = this.toDb(trx)
+    getProvenTxReqsForUserQuery(args: sdk.FindForUserSincePagedArgs) : Knex.QueryBuilder {
+        const k = this.toDb(args.trx)
         let q = k('proven_tx_reqs').where(function() {
-            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_tx_reqs.txid = transactions.txid and transactions.userId = ${userId}`))
+            this.whereExists(k.select('*').from('transactions').whereRaw(`proven_tx_reqs.txid = transactions.txid and transactions.userId = ${args.userId}`))
         })
-        if (paged) {
-            q = q.limit(paged.limit)
-            q = q.offset(paged.offset || 0)
+        if (args.paged) {
+            q = q.limit(args.paged.limit)
+            q = q.offset(args.paged.offset || 0)
         }
-        if (since) q = q.where('updated_at', '>=', since)
+        if (args.since) q = q.where('updated_at', '>=', args.since)
         return q
     }
 
-    async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]> {
-        const q = this.getProvenTxReqsForUserQuery(userId, since, paged, trx)
+    async getProvenTxReqsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.ProvenTxReq[]> {
+        const q = this.getProvenTxReqsForUserQuery(args)
         const ds = await q
         const rs: table.ProvenTxReq[] = []
         for (const d of ds) {
@@ -431,20 +431,20 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return this.validateEntities(rs, undefined, ['notified'])
     }
 
-    getTxLabelMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const k = this.toDb(trx)
+    getTxLabelMapsForUserQuery(args: sdk.FindForUserSincePagedArgs) : Knex.QueryBuilder {
+        const k = this.toDb(args.trx)
         let q = k('tx_labels_map')
-            .whereExists(k.select('*').from('tx_labels').whereRaw(`tx_labels.txLabelId = tx_labels_map.txLabelId and tx_labels.userId = ${userId}`))
-        if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
-        if (paged) {
-            q = q.limit(paged.limit)
-            q = q.offset(paged.offset || 0)
+            .whereExists(k.select('*').from('tx_labels').whereRaw(`tx_labels.txLabelId = tx_labels_map.txLabelId and tx_labels.userId = ${args.userId}`))
+        if (args.since) q = q.where('updated_at', '>=', this.validateDateForWhere(args.since))
+        if (args.paged) {
+            q = q.limit(args.paged.limit)
+            q = q.offset(args.paged.offset || 0)
         }
         return q
     }
 
-    async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]> {
-        const q = this.getTxLabelMapsForUserQuery(userId, since, paged, trx)
+    async getTxLabelMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.TxLabelMap[]> {
+        const q = this.getTxLabelMapsForUserQuery(args)
         const ds = await q
         const rs: table.TxLabelMap[] = []
         for (const d of ds) {
@@ -460,20 +460,20 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
         return this.validateEntities(rs, undefined, ['isDeleted'])
     }
 
-    getOutputTagMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Knex.QueryBuilder {
-        const k = this.toDb(trx)
+    getOutputTagMapsForUserQuery(args: sdk.FindForUserSincePagedArgs) : Knex.QueryBuilder {
+        const k = this.toDb(args.trx)
         let q = k('output_tags_map')
-            .whereExists(k.select('*').from('output_tags').whereRaw(`output_tags.outputTagId = output_tags_map.outputTagId and output_tags.userId = ${userId}`))
-        if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
-        if (paged) {
-            q = q.limit(paged.limit)
-            q = q.offset(paged.offset || 0)
+            .whereExists(k.select('*').from('output_tags').whereRaw(`output_tags.outputTagId = output_tags_map.outputTagId and output_tags.userId = ${args.userId}`))
+        if (args.since) q = q.where('updated_at', '>=', this.validateDateForWhere(args.since))
+        if (args.paged) {
+            q = q.limit(args.paged.limit)
+            q = q.offset(args.paged.offset || 0)
         }
         return q
     }
 
-    async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]> {
-        const q = this.getOutputTagMapsForUserQuery(userId, since, paged, trx)
+    async getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.OutputTagMap[]> {
+        const q = this.getOutputTagMapsForUserQuery(args)
         const ds = await q
         const rs: table.OutputTagMap[] = []
         for (const d of ds) {
@@ -487,6 +487,37 @@ export class StorageMySQLDojoReader extends StorageSyncReader {
             rs.push(r)
         }
         return this.validateEntities(rs, undefined, ['isDeleted'])
+    }
+
+    override countCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countCertificates(args: sdk.FindCertificatesArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countCommissions(args: sdk.FindCommissionsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countOutputs(args: sdk.FindOutputsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countOutputTags(args: sdk.FindOutputTagsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countSyncStates(args: sdk.FindSyncStatesArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countTransactions(args: sdk.FindTransactionsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countTxLabels(args: sdk.FindTxLabelsArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override countUsers(args: sdk.FindUsersArgs): Promise<number> {
+        throw new Error('Method not implemented.');
     }
 }
 

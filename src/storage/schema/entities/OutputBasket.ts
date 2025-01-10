@@ -60,7 +60,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
         return true
     }
     
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: OutputBasket, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findOutputBaskets({ partial: { name: ei.name, userId }, trx }))
         return {
@@ -71,7 +71,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<void> {
         this.userId = userId
         this.name ||= 'default'
         this.basketId = 0
@@ -79,7 +79,7 @@ export class OutputBasket extends EntityBase<table.OutputBasket> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.OutputBasket, syncMap: entity.SyncMap, trx?: sdk.TrxToken) : Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             // basket name is its identity, should not change

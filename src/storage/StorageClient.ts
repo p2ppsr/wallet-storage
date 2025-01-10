@@ -9,9 +9,9 @@ import { sdk, table } from "..";
 import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
-import { SignerStorage } from "./SignerStorage" // Adjust this import path to where your local interface is declared
+import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
 
-export class StorageClient implements sdk.WalletStorage {
+export class StorageClient implements sdk.WalletStorageAuth {
     private endpointUrl: string
     private nextId = 1
     private authClient: AuthFetch
@@ -94,16 +94,8 @@ export class StorageClient implements sdk.WalletStorage {
         return this.rpcCall<void>("destroy", [])
     }
 
-    async dropAllData(): Promise<void> {
-        return this.rpcCall<void>("dropAllData", [])
-    }
-
     async migrate(storageName: string): Promise<string> {
         return this.rpcCall<string>("migrate", [storageName])
-    }
-
-    async purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
-        return this.rpcCall<sdk.PurgeResults>("purgeData", [params, trx])
     }
 
     getServices(): sdk.WalletServices {
@@ -120,482 +112,123 @@ export class StorageClient implements sdk.WalletStorage {
         throw new Error("setServices() not implemented in remote client.")
     }
 
-    async updateTransactionStatus(
-        status: sdk.TransactionStatus,
-        transactionId?: number,
-        userId?: number,
-        reference?: string,
-        trx?: sdk.TrxToken
-    ): Promise<void> {
-        return this.rpcCall<void>("updateTransactionStatus", [status, transactionId, userId, reference, trx])
-    }
-
-    async internalizeActionSdk(
-        sargs: sdk.StorageInternalizeActionArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    async internalizeAction(
+        auth: sdk.AuthId,
+        args: sdk.InternalizeActionArgs,
     ): Promise<sdk.InternalizeActionResult> {
-        return this.rpcCall<sdk.InternalizeActionResult>("internalizeActionSdk", [sargs, originator])
+        return this.rpcCall<sdk.InternalizeActionResult>("internalizeAction", [auth, args])
     }
 
-    async createTransactionSdk(
+    async createAction(
+        auth: sdk.AuthId,
         args: sdk.ValidCreateActionArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
-    ): Promise<sdk.StorageCreateTransactionSdkResult> {
-        return this.rpcCall<sdk.StorageCreateTransactionSdkResult>("createTransactionSdk", [args, originator])
+    ): Promise<sdk.StorageCreateActionResult> {
+        return this.rpcCall<sdk.StorageCreateActionResult>("createAction", [auth, args])
     }
 
-    async processActionSdk(
-        params: sdk.StorageProcessActionSdkParams,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
-    ): Promise<sdk.StorageProcessActionSdkResults> {
-        return this.rpcCall<sdk.StorageProcessActionSdkResults>("processActionSdk", [params, originator])
+    async processAction(
+        auth: sdk.AuthId,
+        args: sdk.StorageProcessActionArgs,
+    ): Promise<sdk.StorageProcessActionResults> {
+        return this.rpcCall<sdk.StorageProcessActionResults>("processAction", [auth, args])
     }
 
-    async abortActionSdk(
-        vargs: sdk.ValidAbortActionArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    async abortAction(
+        auth: sdk.AuthId,
+        args: sdk.AbortActionArgs,
     ): Promise<sdk.AbortActionResult> {
-        return this.rpcCall<sdk.AbortActionResult>("abortActionSdk", [vargs, originator])
+        return this.rpcCall<sdk.AbortActionResult>("abortAction", [auth, args])
     }
 
-    async getProvenOrReq(txid: string, newReq?: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<sdk.StorageProvenOrReq> {
-        return this.rpcCall<sdk.StorageProvenOrReq>("getProvenOrReq", [txid, newReq, trx])
+    async findOrInsertUser(
+        identityKey
+    ): Promise<{ user: table.User; isNew: boolean; }> {
+        return this.rpcCall<{ user: table.User; isNew: boolean }>("findOrInsertUser", [identityKey])
     }
 
-    async findOrInsertUser(newUser: table.User, trx?: sdk.TrxToken): Promise<{ user: table.User; isNew: boolean; }> {
-        return this.rpcCall<{ user: table.User; isNew: boolean }>("findOrInsertUser", [newUser, trx])
+    async findOrInsertSyncStateAuth(
+        auth: sdk.AuthId,
+        storageIdentityKey: string,
+        storageName: string
+    ): Promise<{ syncState: table.SyncState; isNew: boolean; }> {
+        return this.rpcCall<{ syncState: table.SyncState; isNew: boolean }>("findOrInsertSyncStateAuth", [auth, storageIdentityKey, storageName])
     }
 
-    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<{ req: table.ProvenTxReq; isNew: boolean; }> {
-        return this.rpcCall<{ req: table.ProvenTxReq; isNew: boolean }>("findOrInsertProvenTxReq", [newReq, trx])
-    }
-
-    async findOrInsertTransaction(
-        newTx: table.Transaction,
-        trx?: sdk.TrxToken
-    ): Promise<{ tx: table.Transaction; isNew: boolean }> {
-        return this.rpcCall<{ tx: table.Transaction; isNew: boolean }>("findOrInsertTransaction", [newTx, trx])
-    }
-
-    async findOrInsertOutputBasket(userId: number, name: string, trx?: sdk.TrxToken): Promise<table.OutputBasket> {
-        return this.rpcCall<table.OutputBasket>("findOrInsertOutputBasket", [userId, name, trx])
-    }
-
-    async findOrInsertTxLabel(userId: number, label: string, trx?: sdk.TrxToken): Promise<table.TxLabel> {
-        return this.rpcCall<table.TxLabel>("findOrInsertTxLabel", [userId, label, trx])
-    }
-
-    async findOrInsertTxLabelMap(
-        transactionId: number,
-        txLabelId: number,
-        trx?: sdk.TrxToken
-    ): Promise<table.TxLabelMap> {
-        return this.rpcCall<table.TxLabelMap>("findOrInsertTxLabelMap", [transactionId, txLabelId, trx])
-    }
-
-    async findOrInsertOutputTag(userId: number, tag: string, trx?: sdk.TrxToken): Promise<table.OutputTag> {
-        return this.rpcCall<table.OutputTag>("findOrInsertOutputTag", [userId, tag, trx])
-    }
-
-    async findOrInsertOutputTagMap(outputId: number, outputTagId: number, trx?: sdk.TrxToken): Promise<table.OutputTagMap> {
-        return this.rpcCall<table.OutputTagMap>("findOrInsertOutputTagMap", [outputId, outputTagId, trx])
-    }
-
-    async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> {
-        return this.rpcCall<void>("tagOutput", [partial, tag, trx])
-    }
-
-    // Insert / Update methods
-
-    async insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertCertificate", [certificate, trx])
-    }
-    async insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken): Promise<void> {
-        return this.rpcCall<void>("insertCertificateField", [certificateField, trx])
-    }
-    async insertCommission(commission: table.Commission, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertCommission", [commission, trx])
-    }
-    async insertOutput(output: table.Output, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertOutput", [output, trx])
-    }
-    async insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertOutputBasket", [basket, trx])
-    }
-    async insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertOutputTag", [tag, trx])
-    }
-    async insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken): Promise<void> {
-        return this.rpcCall<void>("insertOutputTagMap", [tagMap, trx])
-    }
-    async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertProvenTx", [tx, trx])
-    }
-    async insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertProvenTxReq", [tx, trx])
-    }
-    async insertSyncState(syncState: table.SyncState, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertSyncState", [syncState, trx])
-    }
-    async insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertTransaction", [tx, trx])
-    }
-    async insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertTxLabel", [label, trx])
-    }
-    async insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken): Promise<void> {
-        return this.rpcCall<void>("insertTxLabelMap", [labelMap, trx])
-    }
-    async insertUser(user: table.User, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertUser", [user, trx])
-    }
-    async insertWatchmanEvent(event: table.WatchmanEvent, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("insertWatchmanEvent", [event, trx])
-    }
-
-    async updateCertificate(id: number, update: Partial<table.Certificate>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateCertificate", [id, update, trx])
-    }
-    async updateCertificateField(
-        certificateId: number,
-        fieldName: string,
-        update: Partial<table.CertificateField>,
-        trx?: sdk.TrxToken
+    async insertCertificateAuth(
+        auth: sdk.AuthId,
+        certificate: table.CertificateX
     ): Promise<number> {
-        return this.rpcCall<number>("updateCertificateField", [certificateId, fieldName, update, trx])
+        return this.rpcCall<number>("insertCertificateAuth", [auth, certificate])
     }
-    async updateCommission(id: number, update: Partial<table.Commission>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateCommission", [id, update, trx])
-    }
-    async updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateOutput", [id, update, trx])
-    }
-    async updateOutputBasket(id: number, update: Partial<table.OutputBasket>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateOutputBasket", [id, update, trx])
-    }
-    async updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateOutputTag", [id, update, trx])
-    }
-    async updateOutputTagMap(
-        outputId: number,
-        tagId: number,
-        update: Partial<table.OutputTagMap>,
-        trx?: sdk.TrxToken
-    ): Promise<number> {
-        return this.rpcCall<number>("updateOutputTagMap", [outputId, tagId, update, trx])
-    }
-    async updateProvenTxReq(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateProvenTxReq", [id, update, trx])
-    }
-    async updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateProvenTx", [id, update, trx])
-    }
-    async updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateSyncState", [id, update, trx])
-    }
-    async updateTransaction(id: number, update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateTransaction", [id, update, trx])
-    }
-    async updateTxLabelMap(
-        transactionId: number,
-        txLabelId: number,
-        update: Partial<table.TxLabelMap>,
-        trx?: sdk.TrxToken
-    ): Promise<number> {
-        return this.rpcCall<number>("updateTxLabelMap", [transactionId, txLabelId, update, trx])
-    }
-    async updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateTxLabel", [id, update, trx])
-    }
-    async updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateUser", [id, update, trx])
-    }
-    async updateWatchmanEvent(id: number, update: Partial<table.WatchmanEvent>, trx?: sdk.TrxToken): Promise<number> {
-        return this.rpcCall<number>("updateWatchmanEvent", [id, update, trx])
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-    // READ OPERATIONS
-    //////////////////////////////////////////////////////////////////////////////
 
     _settings?: table.Settings
 
-    getSettings(trx?: sdk.TrxToken): table.Settings {
+    getSettings(): table.Settings {
         if (!this._settings)
             throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
         return this._settings!
     }
 
-    async getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx> {
-        return this.rpcCall<sdk.ProvenOrRawTx>("getProvenOrRawTx", [txid, trx])
-    }
-
-    async getRawTxOfKnownValidTransaction(
-        txid?: string,
-        offset?: number,
-        length?: number,
-        trx?: sdk.TrxToken
-    ): Promise<number[] | undefined> {
-        return this.rpcCall<number[] | undefined>("getRawTxOfKnownValidTransaction", [txid, offset, length, trx])
-    }
-
-    async getProvenTxsForUser(
-        userId: number,
-        since?: Date,
-        paged?: sdk.Paged,
-        trx?: sdk.TrxToken
-    ): Promise<table.ProvenTx[]> {
-        return this.rpcCall<table.ProvenTx[]>("getProvenTxsForUser", [userId, since, paged, trx])
-    }
-
-    async getProvenTxReqsForUser(
-        userId: number,
-        since?: Date,
-        paged?: sdk.Paged,
-        trx?: sdk.TrxToken
-    ): Promise<table.ProvenTxReq[]> {
-        return this.rpcCall<table.ProvenTxReq[]>("getProvenTxReqsForUser", [userId, since, paged, trx])
-    }
-
-    async getTxLabelMapsForUser(
-        userId: number,
-        since?: Date,
-        paged?: sdk.Paged,
-        trx?: sdk.TrxToken
-    ): Promise<table.TxLabelMap[]> {
-        return this.rpcCall<table.TxLabelMap[]>("getTxLabelMapsForUser", [userId, since, paged, trx])
-    }
-
-    async getOutputTagMapsForUser(
-        userId: number,
-        since?: Date,
-        paged?: sdk.Paged,
-        trx?: sdk.TrxToken
-    ): Promise<table.OutputTagMap[]> {
-        return this.rpcCall<table.OutputTagMap[]>("getOutputTagMapsForUser", [userId, since, paged, trx])
-    }
-
-    async getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]> {
-        return this.rpcCall<table.TxLabel[]>("getLabelsForTransactionId", [transactionId, trx])
-    }
-
-    async getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]> {
-        return this.rpcCall<table.OutputTag[]>("getTagsForOutputId", [outputId, trx])
-    }
-
-    async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
-        // Typically you'd have to do a more advanced approach to hold open a remote transaction.
-        // This code is a naive approach: we don't truly hold a transaction open. 
-        // If you truly need "distributed transactions", you must adapt. 
-        // For demonstration, we just call `scope(undefined)`.
-        //
-        // Another approach: create a remote "beginTransaction" / "commit" / "rollback" if your server
-        // can handle it.
-        return scope(undefined as unknown as sdk.TrxToken)
-    }
-
-    async listActionsSdk(
-        vargs: sdk.ValidListActionsArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    async listActions(
+        auth: sdk.AuthId,
+        args: sdk.ListActionsArgs,
     ): Promise<sdk.ListActionsResult> {
-        return this.rpcCall<sdk.ListActionsResult>("listActionsSdk", [vargs, originator])
+        return this.rpcCall<sdk.ListActionsResult>("listActions", [auth, args])
     }
 
-    async listOutputsSdk(
-        vargs: sdk.ValidListOutputsArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    async listOutputs(
+        auth: sdk.AuthId,
+        args: sdk.ListOutputsArgs,
     ): Promise<sdk.ListOutputsResult> {
-        return this.rpcCall<sdk.ListOutputsResult>("listOutputsSdk", [vargs, originator])
+        return this.rpcCall<sdk.ListOutputsResult>("listOutputs", [auth, args])
     }
 
-    async listCertificatesSdk(
-        vargs: sdk.ValidListCertificatesArgs,
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+    async listCertificates(
+        auth: sdk.AuthId,
+        args: sdk.ValidListCertificatesArgs,
     ): Promise<sdk.ListCertificatesResult> {
-        return this.rpcCall<sdk.ListCertificatesResult>("listCertificatesSdk", [vargs, originator])
+        return this.rpcCall<sdk.ListCertificatesResult>("listCertificates", [auth, args])
     }
 
-    async findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]> {
-        return this.rpcCall<table.CertificateField[]>("findCertificateFields", [args])
+    async findCertificatesAuth(
+        auth: sdk.AuthId,
+        args: sdk.FindCertificatesArgs
+    ): Promise<table.Certificate[]> {
+        return this.rpcCall<table.Certificate[]>("findCertificatesAuth", [auth, args])
     }
 
-    async findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
-        return this.rpcCall<table.Certificate[]>("findCertificates", [args])
+    async findOutputBasketsAuth(
+        auth: sdk.AuthId,
+        args: sdk.FindOutputBasketsArgs
+    ): Promise<table.OutputBasket[]> {
+        return this.rpcCall<table.OutputBasket[]>("findOutputBaskets", [auth, args])
     }
 
-    async findCommissions(args: sdk.FindCommissionsArgs): Promise<table.Commission[]> {
-        return this.rpcCall<table.Commission[]>("findCommissions", [args])
+    async findOutputsAuth(
+        auth: sdk.AuthId,
+        args: sdk.FindOutputsArgs
+    ): Promise<table.Output[]> {
+        return this.rpcCall<table.Output[]>("findOutputsAuth", [auth, args])
     }
 
-    async findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
-        return this.rpcCall<table.OutputBasket[]>("findOutputBaskets", [args])
+    async relinquishCertificate(
+        auth: sdk.AuthId,
+        args: sdk.RelinquishCertificateArgs
+    ): Promise<number> {
+        return this.rpcCall<number>("relinquishCertificate", [auth, args])
     }
 
-    async findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]> {
-        return this.rpcCall<table.Output[]>("findOutputs", [args])
+    async relinquishOutput(
+        auth: sdk.AuthId,
+        args: sdk.RelinquishOutputArgs
+    ): Promise<number> {
+        return this.rpcCall<number>("relinquishOutput", [auth, args])
     }
 
-    async findOutputTagMaps(args: sdk.FindOutputTagMapsArgs): Promise<table.OutputTagMap[]> {
-        return this.rpcCall<table.OutputTagMap[]>("findOutputTagMaps", [args])
-    }
-
-    async findOutputTags(args: sdk.FindOutputTagsArgs): Promise<table.OutputTag[]> {
-        return this.rpcCall<table.OutputTag[]>("findOutputTags", [args])
-    }
-
-    async findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]> {
-        return this.rpcCall<table.ProvenTxReq[]>("findProvenTxReqs", [args])
-    }
-
-    async findProvenTxs(args: sdk.FindProvenTxsArgs): Promise<table.ProvenTx[]> {
-        return this.rpcCall<table.ProvenTx[]>("findProvenTxs", [args])
-    }
-
-    async findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]> {
-        return this.rpcCall<table.SyncState[]>("findSyncStates", [args])
-    }
-
-    async findTransactions(args: sdk.FindTransactionsArgs): Promise<table.Transaction[]> {
-        return this.rpcCall<table.Transaction[]>("findTransactions", [args])
-    }
-
-    async findTxLabelMaps(args: sdk.FindTxLabelMapsArgs): Promise<table.TxLabelMap[]> {
-        return this.rpcCall<table.TxLabelMap[]>("findTxLabelMaps", [args])
-    }
-
-    async findTxLabels(args: sdk.FindTxLabelsArgs): Promise<table.TxLabel[]> {
-        return this.rpcCall<table.TxLabel[]>("findTxLabels", [args])
-    }
-
-    async findUsers(args: sdk.FindUsersArgs): Promise<table.User[]> {
-        return this.rpcCall<table.User[]>("findUsers", [args])
-    }
-
-    async findWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<table.WatchmanEvent[]> {
-        return this.rpcCall<table.WatchmanEvent[]>("findWatchmanEvents", [args])
-    }
-
-    async findUserByIdentityKey(key: string, trx?: sdk.TrxToken): Promise<table.User | undefined> {
-        return this.rpcCall<table.User | undefined>("findUserByIdentityKey", [key, trx])
-    }
-
-    async findCertificateById(id: number, trx?: sdk.TrxToken): Promise<table.Certificate | undefined> {
-        return this.rpcCall<table.Certificate | undefined>("findCertificateById", [id, trx])
-    }
-
-    async findCommissionById(id: number, trx?: sdk.TrxToken): Promise<table.Commission | undefined> {
-        return this.rpcCall<table.Commission | undefined>("findCommissionById", [id, trx])
-    }
-
-    async findOutputBasketById(id: number, trx?: sdk.TrxToken): Promise<table.OutputBasket | undefined> {
-        return this.rpcCall<table.OutputBasket | undefined>("findOutputBasketById", [id, trx])
-    }
-
-    async findOutputById(
-        id: number,
-        trx?: sdk.TrxToken,
-        noScript?: boolean
-    ): Promise<table.Output | undefined> {
-        return this.rpcCall<table.Output | undefined>("findOutputById", [id, trx, noScript])
-    }
-
-    async findOutputTagById(id: number, trx?: sdk.TrxToken): Promise<table.OutputTag | undefined> {
-        return this.rpcCall<table.OutputTag | undefined>("findOutputTagById", [id, trx])
-    }
-
-    async findProvenTxById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTx | undefined> {
-        return this.rpcCall<table.ProvenTx | undefined>("findProvenTxById", [id, trx])
-    }
-
-    async findProvenTxReqById(id: number, trx?: sdk.TrxToken | undefined): Promise<table.ProvenTxReq | undefined> {
-        return this.rpcCall<table.ProvenTxReq | undefined>("findProvenTxReqById", [id, trx])
-    }
-
-    async findSyncStateById(id: number, trx?: sdk.TrxToken): Promise<table.SyncState | undefined> {
-        return this.rpcCall<table.SyncState | undefined>("findSyncStateById", [id, trx])
-    }
-
-    async findTransactionById(
-        id: number,
-        trx?: sdk.TrxToken,
-        noRawTx?: boolean
-    ): Promise<table.Transaction | undefined> {
-        return this.rpcCall<table.Transaction | undefined>("findTransactionById", [id, trx, noRawTx])
-    }
-
-    async findTxLabelById(id: number, trx?: sdk.TrxToken): Promise<table.TxLabel | undefined> {
-        return this.rpcCall<table.TxLabel | undefined>("findTxLabelById", [id, trx])
-    }
-
-    async findUserById(id: number, trx?: sdk.TrxToken): Promise<table.User | undefined> {
-        return this.rpcCall<table.User | undefined>("findUserById", [id, trx])
-    }
-
-    async findWatchmanEventById(id: number, trx?: sdk.TrxToken): Promise<table.WatchmanEvent | undefined> {
-        return this.rpcCall<table.WatchmanEvent | undefined>("findWatchmanEventById", [id, trx])
-    }
-
-    async countCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<number> {
-        return this.rpcCall<number>("countCertificateFields", [args])
-    }
-
-    async countCertificates(args: sdk.FindCertificatesArgs): Promise<number> {
-        return this.rpcCall<number>("countCertificates", [args])
-    }
-
-    async countCommissions(args: sdk.FindCommissionsArgs): Promise<number> {
-        return this.rpcCall<number>("countCommissions", [args])
-    }
-
-    async countOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<number> {
-        return this.rpcCall<number>("countOutputBaskets", [args])
-    }
-
-    async countOutputs(args: sdk.FindOutputsArgs): Promise<number> {
-        return this.rpcCall<number>("countOutputs", [args])
-    }
-
-    async countOutputTagMaps(args: sdk.FindOutputTagMapsArgs): Promise<number> {
-        return this.rpcCall<number>("countOutputTagMaps", [args])
-    }
-
-    async countOutputTags(args: sdk.FindOutputTagsArgs): Promise<number> {
-        return this.rpcCall<number>("countOutputTags", [args])
-    }
-
-    async countProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<number> {
-        return this.rpcCall<number>("countProvenTxReqs", [args])
-    }
-
-    async countProvenTxs(args: sdk.FindProvenTxsArgs): Promise<number> {
-        return this.rpcCall<number>("countProvenTxs", [args])
-    }
-
-    async countSyncStates(args: sdk.FindSyncStatesArgs): Promise<number> {
-        return this.rpcCall<number>("countSyncStates", [args])
-    }
-
-    async countTransactions(args: sdk.FindTransactionsArgs): Promise<number> {
-        return this.rpcCall<number>("countTransactions", [args])
-    }
-
-    async countTxLabelMaps(args: sdk.FindTxLabelMapsArgs): Promise<number> {
-        return this.rpcCall<number>("countTxLabelMaps", [args])
-    }
-
-    async countTxLabels(args: sdk.FindTxLabelsArgs): Promise<number> {
-        return this.rpcCall<number>("countTxLabels", [args])
-    }
-
-    async countUsers(args: sdk.FindUsersArgs): Promise<number> {
-        return this.rpcCall<number>("countUsers", [args])
-    }
-
-    async countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number> {
-        return this.rpcCall<number>("countWatchmanEvents", [args])
-    }
-
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
-        return this.rpcCall<sdk.RequestSyncChunkResult>("requestSyncChunk", [args])
+    async processSyncChunk(
+        args: sdk.RequestSyncChunkArgs,
+        chunk: sdk.SyncChunk
+    ): Promise<sdk.ProcessSyncChunkResult> {
+        return this.rpcCall<sdk.ProcessSyncChunkResult>("processSyncChunk", [args, chunk])
     }
 }

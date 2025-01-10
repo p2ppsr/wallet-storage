@@ -5,33 +5,30 @@ import { sdk } from "..";
  * the `NinjaWallet` implementation of the `Wallet.interface` API
  */
 export interface WalletSigner {
-  chain?: sdk.Chain
-  isAuthenticated(): boolean;
-  getClientChangeKeyPair(): KeyPair;
-  keyDeriver?: sdk.KeyDeriverApi
-  storageIdentity?: StorageIdentity
+  chain: sdk.Chain
+  keyDeriver: sdk.KeyDeriverApi
+  storageIdentity: StorageIdentity
 
   setServices(v: sdk.WalletServices) : void
   getServices() : sdk.WalletServices
 
-  authenticate(identityKey?: string, addIfNew?: boolean): Promise<void>
+  listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
+  listOutputs(args: sdk.ListOutputsArgs, knwonTxids: string[]): Promise<sdk.ListOutputsResult>
+  createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult>
+  signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult>
+  abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
+  internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult>
+  relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<sdk.RelinquishOutputResult>
 
-  listActions(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult>
-  listOutputs(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult>
-  createActionSdk(vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult>
-  signActionSdk(vargs: sdk.ValidSignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult>
-  abortActionSdk(vargs: sdk.ValidAbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult>
-  internalizeActionSdk(vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult>
-  relinquishOutputSdk(vargs: sdk.ValidRelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.RelinquishOutputResult>
-
-  acquireCertificateSdk(vargs: sdk.ValidAcquireDirectCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.AcquireCertificateResult>
-  listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes) : Promise<sdk.ListCertificatesResult>
-  proveCertificateSdk(vargs: sdk.ValidProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ProveCertificateResult>
-  relinquishCertificateSdk(vargs: sdk.ValidRelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishCertificateResult>
-  discoverByIdentityKeySdk(vargs: sdk.ValidDiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
-  discoverByAttributesSdk(vargs: sdk.ValidDiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult>
+  acquireDirectCertificate(args: sdk.AcquireCertificateArgs) : Promise<sdk.AcquireCertificateResult>
+  listCertificates(args: sdk.ListCertificatesArgs) : Promise<sdk.ListCertificatesResult>
+  proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult>
+  relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult>
+  discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult>
+  discoverByAttributes(args: sdk.DiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult>
 
   getChain(): Promise<sdk.Chain>
+  getClientChangeKeyPair(): KeyPair;
 }
 
 export interface KeyPair {

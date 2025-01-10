@@ -54,7 +54,7 @@ export class TxLabel extends EntityBase<table.TxLabel> {
         return true
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.TxLabel, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.TxLabel, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.TxLabel, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findTxLabels({ partial: { label: ei.label, userId }, trx }))
         return {
@@ -64,13 +64,13 @@ export class TxLabel extends EntityBase<table.TxLabel> {
         }
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.userId = userId
         this.txLabelId = 0
         this.txLabelId = await storage.insertTxLabel(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.TxLabel, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.TxLabel, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.isDeleted = ei.isDeleted

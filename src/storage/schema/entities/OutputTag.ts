@@ -54,7 +54,7 @@ export class OutputTag extends EntityBase<table.OutputTag> {
         return true
     }
 
-    static async mergeFind(storage: sdk.WalletStorage, userId: number, ei: table.OutputTag, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
+    static async mergeFind(storage: entity.EntityStorage, userId: number, ei: table.OutputTag, syncMap: entity.SyncMap, trx?: sdk.TrxToken)
     : Promise<{ found: boolean, eo: entity.OutputTag, eiId: number }> {
         const ef = verifyOneOrNone(await storage.findOutputTags({ partial: { tag: ei.tag, userId }, trx }))
         return {
@@ -64,13 +64,13 @@ export class OutputTag extends EntityBase<table.OutputTag> {
         }
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
         this.userId = userId
         this.outputTagId = 0
         this.outputTagId = await storage.insertOutputTag(this.toApi(), trx)
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.OutputTag, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.OutputTag, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
         if (ei.updated_at > this.updated_at) {
             this.isDeleted = ei.isDeleted

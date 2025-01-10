@@ -231,4 +231,10 @@ export class StorageClient implements sdk.WalletStorageAuth {
     ): Promise<sdk.ProcessSyncChunkResult> {
         return this.rpcCall<sdk.ProcessSyncChunkResult>("processSyncChunk", [args, chunk])
     }
+
+    async getSyncChunk(
+        args: sdk.RequestSyncChunkArgs
+    ): Promise<sdk.SyncChunk> {
+        return this.rpcCall<sdk.SyncChunk>("getSyncChunk", [args])
+    }
 }

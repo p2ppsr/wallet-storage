@@ -57,6 +57,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
     async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListActionsResult> {
+        sdk.validateOriginator(originator)
         sdk.validateListActionsArgs(args)
         const r = await this.signer.listActions(args)
         return r
@@ -64,6 +65,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
     async listOutputs(args: sdk.ListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListOutputsResult> {
+        sdk.validateOriginator(originator)
         sdk.validateListOutputsArgs(args)
         const knownTxids = this.getKnownTxids()
         const r = await this.signer.listOutputs(args, knownTxids)
@@ -75,6 +77,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
     async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListCertificatesResult> {
+        sdk.validateOriginator(originator)
         sdk.validateListCertificatesArgs(args)
         const r = await this.signer.listCertificates(args)
         return r

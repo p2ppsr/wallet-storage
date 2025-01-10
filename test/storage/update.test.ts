@@ -46,7 +46,7 @@ describe('update tests', () => {
     transactions: { primaryKey: 'txid' },
     outputs: { primaryKey: 'outputId' },
     labels: { primaryKey: 'labelId' },
-    watchmanEvents: { primaryKey: 'eventId' }
+    monitorEvents: { primaryKey: 'eventId' }
   }
 
   test('0 update ProvenTx', async () => {

@@ -37,7 +37,10 @@ export async function listOutputs(
     let basketId: number | undefined = undefined
     const basketsById: Record<number, table.OutputBasket> = {}
     if (vargs.basket) {
-        const basket = verifyOne(await dsk.findOutputBaskets({ partial: { userId, name: vargs.basket }, trx }))
+        const baskets = await dsk.findOutputBaskets({ partial: { userId, name: vargs.basket }, trx })
+        if (baskets.length !== 1)
+            throw new sdk.WERR_INVALID_PARAMETER('basket', 'valid basket name.')
+        const basket = baskets[0]
         basketId = basket.basketId!
         basketsById[basketId!] = basket
     }

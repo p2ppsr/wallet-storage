@@ -23,7 +23,7 @@ export function createDefaultWalletServicesOptions(chain: sdk.Chain): sdk.Wallet
             }
         },
         fiatUpdateMsecs: 1000 * 60 * 60 * 24, // 24 hours
-        disableMapiCallback: true, // Rely on DojoWatchman by default.
+        disableMapiCallback: true, // Rely on WalletMonitor by default.
         exchangeratesapiKey: 'bd539d2ff492bcb5619d5f27726a766f',
         chaintracksFiatExchangeRatesUrl: `https://npm-registry.babbage.systems:${chain === 'main' ? 8084 : 8083}/getFiatExchangeRates`,
         chaintracks: new ChaintracksServiceClient(chain, `https://npm-registry.babbage.systems:${chain === 'main' ? 8084 : 8083}`)

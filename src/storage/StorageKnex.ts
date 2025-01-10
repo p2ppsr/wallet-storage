@@ -270,7 +270,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
   override async insertMonitorEvent(event: table.MonitorEvent, trx?: sdk.TrxToken): Promise<number> {
     const e = await this.validateEntityForInsert(event, trx)
     if (e.id === 0) delete e.id
-    const [id] = await this.toDb(trx)<table.MonitorEvent>('watchman_events').insert(e)
+    const [id] = await this.toDb(trx)<table.MonitorEvent>('monitor_events').insert(e)
     event.id = id
     return event.id
   }
@@ -359,7 +359,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
   }
   override async updateMonitorEvent(id: number, update: Partial<table.MonitorEvent>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.MonitorEvent>('watchman_events').where({ id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.MonitorEvent>('monitor_events').where({ id }).update(this.validatePartialForUpdate(update))
   }
 
   setupQuery<T extends object>(table: string, args: sdk.FindPartialSincePagedArgs<T>): Knex.QueryBuilder {
@@ -448,7 +448,7 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
     return this.setupQuery('users', args)
   }
   findMonitorEventsQuery(args: sdk.FindMonitorEventsArgs): Knex.QueryBuilder {
-    return this.setupQuery('watchman_events', args)
+    return this.setupQuery('monitor_events', args)
   }
 
   override async findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {

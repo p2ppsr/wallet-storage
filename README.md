@@ -6371,30 +6371,30 @@ Create Action facilitates the creation of transactions in a wallet environment, 
 Overview
 This function operates in several stages:
 
-Transaction Creation: If a new transaction is requested, it invokes the createNewTx method, which prepares the transaction with the provided inputs and outputs. The transaction is either returned as a signable transaction or completed directly, depending on the provided options.
+Transaction Creation: If a new transaction is requested, it invokes the `createNewTx` method, which prepares the transaction with the provided `inputs` and `outputs`. The transaction is either returned as a signable transaction or completed directly, depending on the provided options.
 Transaction Signing: If signing is required, the function integrates user-provided unlocking scripts or storage-supplied SABPPP templates for signing storage inputs. This ensures the transaction is valid and ready for broadcasting.
-Broadcasting: For immediate broadcasting, the function processes the transaction using the processActionSdk function, which handles broadcasting details and ensures the transaction reaches the Bitcoin network.
+Broadcasting: For immediate broadcasting, the function processes the transaction using the `processActionSdk` function, which handles broadcasting details and ensures the transaction reaches the Bitcoin network.
 
 Key Features
 
 Customizable Inputs and Outputs: Supports a variety of input and output types, including user-defined and storage-provided inputs. Outputs can include standard payments, change outputs, and commission outputs.
 Transaction Signing: Uses a mix of explicit unlocking scripts and SABPPP templates to sign inputs securely, ensuring compliance with wallet and protocol requirements.
 
-Flexible Options: Allows for options such as noSend, signAndProcess, and acceptDelayedBroadcast to control transaction behavior during and after creation.
+Flexible Options: Allows for options such as noSend, `signAndProcess`, and `acceptDelayedBroadcast` to control transaction behavior during and after creation.
 Integration with Storage: Interacts with the wallet's storage layer to fetch inputs, validate data, and store completed transactions, ensuring consistency and traceability.
 
 Core Components
 
-createNewTx
+`createNewTx`
 Prepares a new transaction by combining user-provided arguments with storage data. The transaction is built incrementally with properly validated inputs, outputs, and change keys.
 
-completeSignedTransaction
+`completeSignedTransaction`
 Finalizes a transaction by inserting unlocking scripts for user-supplied inputs and SABPPP templates for storage-supplied inputs. This step ensures the transaction is fully signed and ready for broadcasting.
 
-processActionSdk
+`processActionSdk`
 Handles broadcasting and post-processing of the transaction, ensuring the transaction is sent to the Bitcoin network or prepared for delayed broadcasting.
 
-buildSignableTransaction
+`buildSignableTransaction`
 Constructs the transaction object by iterating over validated inputs and outputs. This ensures outputs are added in the correct order and that inputs are matched to their corresponding outputs.
 
 Use Cases
@@ -6402,6 +6402,7 @@ Creating new Bitcoin transactions with custom inputs and outputs.
 Managing wallet transactions that involve change outputs or SABPPP-signed inputs.
 Signing and processing transactions directly from the wallet environment.
 Broadcasting transactions to the Bitcoin network with configurable options.
+
 This function forms a robust and flexible foundation for managing transaction creation, signing, and broadcasting workflows in a Bitcoin wallet system.
 
 ```ts
@@ -6594,32 +6595,14 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: internalizeActionSdk
 
-Internalize Action allows a wallet to take ownership of outputs in a pre-existing transaction.
-The transaction may, or may not already be known to both the storage and user.
+Internalize Action enables a wallet to assume ownership of specific outputs in an existing transaction. These transactions may or may not already be recorded in the wallet's storage. The function processes two types of outputs: `wallet payments` and `basket insertions`.
 
-Two types of outputs are handled: "wallet payments" and "basket insertions".
+`Basket Insertion` outputs are treated as custom outputs and do not impact the wallet's balance. Certain merge rules apply, such as disallowing the "default" basket as the insertion target.  
+`Wallet Payment` outputs contribute to the wallet's change balance and are assigned to the "default" basket. Specific validation ensures that outputs conform to the BRC-29 protocol and proper locking scripts.
 
-A "basket insertion" output is considered a custom output and has no effect on the wallet's "balance".
+The function begins by validating the transaction using AtomicBEEF and processes outputs based on their protocol. If the transaction is already recorded, it updates the description without altering its outgoing status.
 
-A "wallet payment" adds an outputs value to the wallet's change "balance". These outputs are assigned to the "default" basket.
-
-Processing starts with simple validation and then checks for a pre-existing transaction.
-If the transaction is already known to the user, then the outputs are reviewed against the existing outputs treatment,
-and merge rules are added to the arguments passed to the storage layer.
-The existing transaction must be in the 'unproven' or 'completed' status. Any other status is an error.
-
-When the transaction already exists, the description is updated. The isOutgoing sense is not changed.
-
-"basket insertion" Merge Rules:
-
-1. The "default" basket may not be specified as the insertion basket.
-2. A change output in the "default" basket may not be target of an insertion into a different basket.
-3. These baskets do not affect the wallet's balance and are typed "custom".
-
-"wallet payment" Merge Rules:
-
-1. Targetting an existing change "default" basket output results in a no-op. No error. No alterations made.
-2. Targetting a previously "custom" non-change output converts it into a change output. This alters the transaction's `amount`, and the wallet balance.
+This function ensures secure integration of pre-existing transaction outputs into the wallet, enforcing strict validation rules for consistency and integrity.
 
 ```ts
 export async function internalizeActionSdk(signer: WalletSigner, vargs: sdk.ValidInternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult>
@@ -6967,7 +6950,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: relinquishCertificateSdk
 
-Relinquish Certificate Sdk marks a specified certificate as relinquished by setting its `isDeleted` status to `true` in the wallet storage. This operation ensures that the certificate is no longer considered active or valid within the system.
+Relinquish Certificate marks a specified certificate as relinquished by setting its `isDeleted` status to `true` in the wallet storage. This operation ensures that the certificate is no longer considered active or valid within the system.
 
 ### Key Features
 

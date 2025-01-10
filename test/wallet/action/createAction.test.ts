@@ -185,6 +185,7 @@ describe('createAction test', () => {
                 const createArgs: sdk.CreateActionArgs = {
                     description: `${kp.address} of ${root}`,
                     options: {
+                        acceptDelayedBroadcast: false,
                         sendWith: [txid1, txid2]
                     }
                 }

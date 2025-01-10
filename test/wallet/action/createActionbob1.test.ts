@@ -3,6 +3,7 @@ import * as bsv from '@bsv/sdk'
 import { sdk, StorageKnex } from '../../../src'
 
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
+import { parseWalletOutpoint } from '../../../src/sdk'
 
 const noLog = false
 
@@ -214,8 +215,12 @@ describe('createAction test', () => {
       const formattedInputs = inputs.map(row => ({
         outpoint: row.outpoint,
         inputDescription: row.inputDescription,
-        unlockingScriptLength: row.unlockingScriptLength
+        unlockingScript: bsv.Utils.toHex(row.lockingScript),
+        //unlockingScriptLength: row.unlockingScriptLength
       }))
+
+      const { txid, vout } = parseWalletOutpoint(formattedInputs[0].outpoint)
+      const beef = await storage.getBeefForTransaction(txid, { ignoreServices: true })
 
       const createArgs: sdk.CreateActionArgs = {
         description: 'Large Input Set Transaction',
@@ -227,8 +232,9 @@ describe('createAction test', () => {
             outputDescription: 'Output from Large Input Set'
           }
         ],
+        inputBEEF: beef.toBinary(),
         options: {
-          signAndProcess: true, // Sign and process the transaction
+          //signAndProcess: true, // Sign and process the transaction
           acceptDelayedBroadcast: false, // Enforce immediate broadcast
           noSend: false // Allow the transaction to be broadcast
         }

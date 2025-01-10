@@ -91,7 +91,7 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
 
         for (let retry = 0; ; retry++) {
             try {
-                user = verifyOneOrNone(await this.findUsers({ partial: {} , trx }))
+                user = verifyOneOrNone(await this.findUsers({ partial: { identityKey } , trx }))
                 if (user) break;
                 user = {
                     created_at: new Date(),

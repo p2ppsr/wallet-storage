@@ -1,25 +1,25 @@
-import { DBType, sdk, StorageBaseOptions, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "..";
+import { DBType, sdk, StorageProviderOptions, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "..";
 import { getSyncChunk } from "./methods/getSyncChunk";
 
 /**
- * The `StorageBaseReader` abstract class is the base of the concrete wallet storage provider classes.
+ * The `StorageReader` abstract class is the base of the concrete wallet storage provider classes.
  * 
  * It is the minimal interface required to read all wallet state records and is the base class for sync readers.
  * 
- * The next class in the heirarchy is the `StorageBaseReaderWriter` which supports sync readers and writers.
+ * The next class in the heirarchy is the `StorageReaderWriter` which supports sync readers and writers.
  * 
- * The last class in the heirarchy is the `StorageBase` class which supports all active wallet operations.
+ * The last class in the heirarchy is the `Storage` class which supports all active wallet operations.
  * 
  * The ability to construct a properly configured instance of this class implies authentication.
  * As such there are no user specific authenticated access checks implied in the implementation of any of these methods. 
  */
-export abstract class StorageBaseReader implements sdk.StorageSyncReader {
+export abstract class StorageReader implements sdk.StorageSyncReader {
     chain: sdk.Chain
     _settings?: table.Settings
     whenLastAccess?: Date
     get dbtype(): DBType | undefined { return this._settings?.dbtype }
 
-    constructor(options: sdk.StorageSyncReaderOptions) {
+    constructor(options: StorageReaderOptions) {
         this.chain = options.chain
     }
 
@@ -45,6 +45,7 @@ export abstract class StorageBaseReader implements sdk.StorageSyncReader {
     abstract findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]>
     abstract findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]>
     abstract findCommissions(args: sdk.FindCommissionsArgs): Promise<table.Commission[]>
+    abstract findMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<table.MonitorEvent[]>
     abstract findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]>
     abstract findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]>
     abstract findOutputTags(args: sdk.FindOutputTagsArgs): Promise<table.OutputTag[]>
@@ -56,6 +57,7 @@ export abstract class StorageBaseReader implements sdk.StorageSyncReader {
     abstract countCertificateFields(args: sdk.FindCertificateFieldsArgs) : Promise<number>
     abstract countCertificates(args: sdk.FindCertificatesArgs) : Promise<number>
     abstract countCommissions(args: sdk.FindCommissionsArgs) : Promise<number>
+    abstract countMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<number>
     abstract countOutputBaskets(args: sdk.FindOutputBasketsArgs) : Promise<number>
     abstract countOutputs(args: sdk.FindOutputsArgs) : Promise<number>
     abstract countOutputTags(args: sdk.FindOutputTagsArgs) : Promise<number>
@@ -198,4 +200,8 @@ export abstract class StorageBaseReader implements sdk.StorageSyncReader {
         return r
     }
 
+}
+
+export interface StorageReaderOptions {
+    chain: sdk.Chain
 }

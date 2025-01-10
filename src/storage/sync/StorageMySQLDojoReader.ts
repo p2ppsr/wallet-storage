@@ -17,9 +17,9 @@ import { table } from ".."
 
 import { Knex } from "knex";
 import { isHexString } from '../../sdk';
-import { StorageBaseReader } from '../StorageBaseReader';
+import { StorageReader, StorageReaderOptions } from '../StorageReader';
 
-export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOptions {
+export interface StorageMySQLDojoReaderOptions extends StorageReaderOptions {
     chain: sdk.Chain
     /**
      * Knex database interface initialized with valid connection configuration.
@@ -28,7 +28,7 @@ export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOpti
 }
 
 
-export class StorageMySQLDojoReader extends StorageBaseReader {
+export class StorageMySQLDojoReader extends StorageReader {
     knex: Knex
 
     constructor(options: StorageMySQLDojoReaderOptions) {
@@ -517,6 +517,12 @@ export class StorageMySQLDojoReader extends StorageBaseReader {
         throw new Error('Method not implemented.');
     }
     override countUsers(args: sdk.FindUsersArgs): Promise<number> {
+        throw new Error('Method not implemented.');
+    }
+    override findMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<table.MonitorEvent[]> {
+        throw new Error('Method not implemented.');
+    }
+    override countMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<number> {
         throw new Error('Method not implemented.');
     }
 }

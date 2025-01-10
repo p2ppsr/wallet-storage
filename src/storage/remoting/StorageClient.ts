@@ -5,13 +5,13 @@
  * by sending JSON-RPC calls to a configured remote WalletStorageServer.
  */
 
-import { sdk, table } from "..";
+import { sdk, table } from "../..";
 import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
-import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
+import { WalletStorageManager } from "../WalletStorageManager" // Adjust this import path to where your local interface is declared
 
-export class StorageClient implements sdk.WalletStorageAuth {
+export class StorageClient implements sdk.WalletStorageProvider {
     private endpointUrl: string
     private nextId = 1
     private authClient: AuthFetch

@@ -6,9 +6,9 @@ import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
 import { internalizeAction } from './methods/internalizeAction';
-import { StorageBaseReaderWriter } from './StorageBaseReaderWriter';
+import { StorageReaderWriter, StorageReaderWriterOptions } from './StorageReaderWriter';
 
-export abstract class StorageBase extends StorageBaseReaderWriter implements sdk.WalletStorageAuth {
+export abstract class StorageProvider extends StorageReaderWriter implements sdk.WalletStorageProvider {
 
     isDirty = false
     _services?: sdk.WalletServices
@@ -25,15 +25,15 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
         }
     }
 
-    static createStorageBaseOptions(chain: sdk.Chain): StorageBaseOptions {
-        const options: StorageBaseOptions = {
-            ...StorageBase.defaultOptions(),
+    static createStorageBaseOptions(chain: sdk.Chain): StorageProviderOptions {
+        const options: StorageProviderOptions = {
+            ...StorageProvider.defaultOptions(),
             chain,
         }
         return options
     }
 
-    constructor(options: StorageBaseOptions) {
+    constructor(options: StorageProviderOptions) {
         super(options)
         this.feeModel = options.feeModel
         this.commissionPubKeyHex = options.commissionPubKeyHex
@@ -51,18 +51,12 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
     abstract listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
     abstract listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
 
-
     abstract countChangeInputs(userId: number, basketId: number, excludeSending: boolean): Promise<number>
 
     abstract findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
     abstract findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
     abstract findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
     abstract insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>
-
-    abstract insertMonitorEvent(event: table.MonitorEvent, trx?: sdk.TrxToken): Promise<number>
-    abstract updateMonitorEvent(id: number, update: Partial<table.MonitorEvent>, trx?: sdk.TrxToken): Promise<number>
-    abstract findMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<table.MonitorEvent[]>
-    abstract countMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<number>
 
     setServices(v: sdk.WalletServices) { this._services = v }
     getServices(): sdk.WalletServices {
@@ -222,38 +216,6 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
         return r
     }
 
-    /**
-     * Attempts to find transaction record with matching txid and userId as in newTx.
-     * If found, returns existing record.
-     * If not found, inserts the new transaction and returns it with new transactionId.
-     * 
-     * This is safe "findOrInsert" operation using retry if unique index constraint
-     * is violated by a race condition insert.
-     * 
-     * @param newReq 
-     * @param trx 
-     * @returns 
-     */
-    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken)
-        : Promise<{ req: table.ProvenTxReq, isNew: boolean }> {
-        let req: table.ProvenTxReq | undefined
-        let isNew = false
-
-        for (let retry = 0; ; retry++) {
-            try {
-                req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid: newReq.txid }, trx }))
-                if (req) break;
-                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
-                isNew = true
-                req = newReq
-                break;
-            } catch (eu: unknown) {
-                if (retry > 0) throw eu;
-            }
-        }
-
-        return { req, isNew }
-    }
 
     /**
      * For all `status` values besides 'failed', just updates the transaction records status property.
@@ -417,7 +379,7 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
 
 }
 
-export interface StorageBaseOptions {
+export interface StorageProviderOptions extends StorageReaderWriterOptions {
     chain: sdk.Chain
     feeModel: sdk.StorageFeeModel
     /**

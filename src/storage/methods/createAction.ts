@@ -1,8 +1,8 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
+import { asArray, asString, entity, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
 import { generateChangeSdk, GenerateChangeSdkChangeInput, GenerateChangeSdkParams } from './generateChange';
 
-export async function createAction(storage: StorageBase, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function createAction(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.StorageCreateActionResult> {
   //stampLog(vargs, `start dojo createTransactionSdk`) 
 
@@ -125,7 +125,7 @@ function makeDefaultOutput(userId: number, transactionId: number, satoshis: numb
   return output
 }
 
-async function createNewInputs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs,
+async function createNewInputs(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs,
   ctx: CreateTransactionSdkContext,
   allocatedChange: table.Output[]
 )
@@ -195,7 +195,7 @@ async function createNewInputs(dojo: StorageBase, userId: number, vargs: sdk.Val
   return r
 }
 
-async function createNewOutputs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs,
+async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs,
   ctx: CreateTransactionSdkContext,
   changeOutputs: table.Output[]
 )
@@ -338,7 +338,7 @@ async function createNewOutputs(dojo: StorageBase, userId: number, vargs: sdk.Va
   return {outputs, changeVouts}
 }
 
-async function createNewTxRecord(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs, storageBeef: bsv.Beef)
+async function createNewTxRecord(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs, storageBeef: bsv.Beef)
 : Promise<table.Transaction>
 {
   const now = new Date()
@@ -390,7 +390,7 @@ async function createNewTxRecord(dojo: StorageBase, userId: number, vargs: sdk.V
  * @param vargs 
  * @returns xoutputs
  */
-function validateRequiredOutputs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs) : XValidCreateActionOutput[]
+function validateRequiredOutputs(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs) : XValidCreateActionOutput[]
 {
   const xoutputs: XValidCreateActionOutput[] = []
   let vout = -1;
@@ -448,7 +448,7 @@ function validateRequiredOutputs(dojo: StorageBase, userId: number, vargs: sdk.V
  * @returns {beef} containing verified validity proof data for all required inputs.
  * @returns {xinputs} extended validated required inputs.
  */
-async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs)
+async function validateRequiredInputs(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs)
 : Promise<{storageBeef: bsv.Beef, beef: bsv.Beef, xinputs: XValidCreateActionInput[]}>
 {
   //stampLog(vargs, `start dojo verifyInputBeef`)
@@ -538,7 +538,7 @@ async function validateRequiredInputs(dojo: StorageBase, userId: number, vargs: 
   return { beef, storageBeef, xinputs }
 }
 
-async function validateNoSendChange(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs, changeBasket: table.OutputBasket) : Promise<table.Output[]> {
+async function validateNoSendChange(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs, changeBasket: table.OutputBasket) : Promise<table.Output[]> {
     const r: table.Output[] = []
 
     if (!vargs.isNoSend) return []
@@ -568,7 +568,7 @@ async function validateNoSendChange(dojo: StorageBase, userId: number, vargs: sd
     return r
 }
 
-async function fundNewTransactionSdk(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs, ctx: CreateTransactionSdkContext)
+async function fundNewTransactionSdk(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs, ctx: CreateTransactionSdkContext)
 : Promise<{allocatedChange: table.Output[], changeOutputs: table.Output[], derivationPrefix: string}>
 {
   const params: GenerateChangeSdkParams = {
@@ -682,7 +682,7 @@ function trimInputBeef(beef: bsv.Beef, vargs: sdk.ValidCreateActionArgs): number
   return beef.toBinary()
 }
 
-async function mergeAllocatedChangeBeefs(dojo: StorageBase, userId: number, vargs: sdk.ValidCreateActionArgs,
+async function mergeAllocatedChangeBeefs(dojo: StorageProvider, userId: number, vargs: sdk.ValidCreateActionArgs,
   allocatedChange: table.Output[],
   beef: bsv.Beef
 )

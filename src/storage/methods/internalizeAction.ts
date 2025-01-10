@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as bsv from '@bsv/sdk'
-import { entity, randomBytesBase64, sdk, stampLog, StorageBase, table, verifyId, verifyOne, verifyOneOrNone } from "../.."
+import { entity, randomBytesBase64, sdk, stampLog, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone } from "../.."
 
 export interface StorageInternalizeActionResult extends sdk.InternalizeActionResult {
   /** true if internalizing outputs on an existing storage transaction */
@@ -39,7 +39,7 @@ export interface StorageInternalizeActionResult extends sdk.InternalizeActionRes
  * 2. Targetting a previously "custom" non-change output converts it into a change output. This alters the transaction's `satoshis`, and the wallet balance.
  */
 export async function internalizeAction(
-    storage: StorageBase,
+    storage: StorageProvider,
     auth: sdk.AuthId,
     args: sdk.InternalizeActionArgs
 ) : Promise<sdk.InternalizeActionResult>
@@ -100,7 +100,7 @@ class InternalizeActionContext {
   vargs: sdk.ValidInternalizeActionArgs
 
   constructor(
-    public storage: StorageBase,
+    public storage: StorageProvider,
     public auth: sdk.AuthId,
     public args: sdk.InternalizeActionArgs,
   ) {

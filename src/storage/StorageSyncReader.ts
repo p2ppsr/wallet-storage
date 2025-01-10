@@ -1,5 +1,5 @@
 import { sdk, table } from "..";
-import { StorageBaseReader } from "./StorageBaseReader";
+import { StorageReader } from "./StorageReader";
 
 /**
  * The `StorageSyncReader` non-abstract class must be used when authentication checking access to the methods of a `StorageBaseReader` is required.
@@ -9,7 +9,7 @@ import { StorageBaseReader } from "./StorageBaseReader";
  */
 export class StorageSyncReader implements sdk.StorageSyncReader {
 
-    constructor(public auth: sdk.AuthId, public storage: StorageBaseReader) {
+    constructor(public auth: sdk.AuthId, public storage: StorageReader) {
     }
 
     isAvailable(): boolean {

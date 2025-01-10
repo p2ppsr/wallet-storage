@@ -1,12 +1,12 @@
 import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
 
 describe('find tests', () => {
     jest.setTimeout(99999999)
 
-    const storages: StorageBase[] = []
+    const storages: StorageProvider[] = []
     const chain: sdk.Chain = 'test'
-    const setups: { setup: TestSetup1, storage: StorageBase }[] = []
+    const setups: { setup: TestSetup1, storage: StorageProvider }[] = []
     const env = _tu.getEnv(chain)
 
     beforeAll(async () => {

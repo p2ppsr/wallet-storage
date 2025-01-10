@@ -1,10 +1,10 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)
 
-    const storages: StorageBase[] = []
+    const storages: StorageProvider[] = []
     const chain: sdk.Chain = 'test'
     const env = _tu.getEnv(chain)
 

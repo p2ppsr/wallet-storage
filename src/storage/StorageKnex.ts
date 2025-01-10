@@ -2,19 +2,19 @@ import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '..'
 import { KnexMigrations, table } from '.'
 
 import { Knex } from 'knex'
-import { StorageBase, StorageBaseOptions } from './StorageBase'
+import { StorageProvider, StorageProviderOptions } from './StorageProvider'
 import { purgeData } from './methods/purgeData'
 import { listActions } from './methods/listActions'
 import { listOutputs } from './methods/listOutputs'
 
-export interface StorageKnexOptions extends StorageBaseOptions {
+export interface StorageKnexOptions extends StorageProviderOptions {
   /**
    * Knex database interface initialized with valid connection configuration.
    */
   knex: Knex
 }
 
-export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
+export class StorageKnex extends StorageProvider implements sdk.WalletStorageProvider {
   knex: Knex
 
   constructor(options: StorageKnexOptions) {

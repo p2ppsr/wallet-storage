@@ -16,14 +16,14 @@ import { entity, sdk, StorageSyncReader, table } from "..";
  * Some storage services do not support multiple writers. `SignerStorage` manages wait-blocking write requests
  * for these services.
  */
-export class WalletStorage implements sdk.WalletStorage {
+export class WalletStorageManager implements sdk.WalletStorage {
 
-    stores: sdk.WalletStorageAuth[] = []
+    stores: sdk.WalletStorageProvider[] = []
     _authId: sdk.AuthId
     _services?: sdk.WalletServices
     _userIdentityKeyToId: Record<string, number> = {}
 
-    constructor(identityKey: string, active: sdk.WalletStorageAuth, backups?: sdk.WalletStorageAuth[]) {
+    constructor(identityKey: string, active: sdk.WalletStorageProvider, backups?: sdk.WalletStorageProvider[]) {
         this.stores = [ active ]
         if (backups) this.stores.concat(backups);
         this._authId = { identityKey }
@@ -47,7 +47,7 @@ export class WalletStorage implements sdk.WalletStorage {
         return this._authId
     }
 
-    getActive(): sdk.WalletStorageAuth { return this.stores[0] }
+    getActive(): sdk.WalletStorageProvider { return this.stores[0] }
 
     isAvailable(): boolean {
         return this.getActive().isAvailable()
@@ -170,7 +170,7 @@ export class WalletStorage implements sdk.WalletStorage {
         }
     }
     
-    async syncToWriter(identityKey: string, writer: sdk.WalletStorageAuth) : Promise<void> {
+    async syncToWriter(identityKey: string, writer: sdk.WalletStorageProvider) : Promise<void> {
         const auth = await this.getAuth()
         if (identityKey !== auth.identityKey)
             throw new sdk.WERR_UNAUTHORIZED()

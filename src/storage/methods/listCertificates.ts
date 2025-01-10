@@ -1,9 +1,9 @@
 import * as bsv from "@bsv/sdk"
-import { StorageBase, StorageKnex, table } from ".."
+import { StorageProvider, StorageKnex, table } from ".."
 import { asString, sdk, verifyOne } from "../.."
 
 export async function listCertificates(
-    storage: StorageBase,
+    storage: StorageProvider,
     auth: sdk.AuthId,
     vargs: sdk.ValidListCertificatesArgs,
     originator?: sdk.OriginatorDomainNameStringUnder250Bytes,

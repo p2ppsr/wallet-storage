@@ -1,5 +1,5 @@
 import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, verifyOne } from '../../src'
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table, verifyOne } from '../../src'
 import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, MonitorEvent, SyncState } from '../../src/storage/schema/tables'
@@ -10,9 +10,9 @@ setLogging(false)
 describe('update tests', () => {
   jest.setTimeout(99999999)
 
-  const storages: StorageBase[] = []
+  const storages: StorageProvider[] = []
   const chain: sdk.Chain = 'test'
-  const setups: { setup: TestSetup1; storage: StorageBase }[] = []
+  const setups: { setup: TestSetup1; storage: StorageProvider }[] = []
   const env = _tu.getEnv(chain)
 
   beforeAll(async () => {

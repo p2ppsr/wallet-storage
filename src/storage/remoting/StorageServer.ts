@@ -10,12 +10,12 @@ import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
 import { ProtoWallet, Wallet } from '@bsv/sdk'
-import { sdk } from '..'
+import { sdk } from '../..'
 
 // You have your local or imported `WalletStorage` interface:
 import { SignerStorage } from './SignerStorage' // adjust import path
 // Or your known local implementation:
-import { StorageKnex } from './StorageKnex' // adjust path as needed
+import { StorageKnex } from '../StorageKnex' // adjust path as needed
 
 export interface WalletStorageServerOptions {
   port: number

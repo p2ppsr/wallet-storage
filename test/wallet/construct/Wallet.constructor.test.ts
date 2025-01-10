@@ -1,5 +1,5 @@
 import * as bsv from "@bsv/sdk"
-import { sdk, StorageKnex, Wallet, WalletSigner, WalletStorage } from "../../../src"
+import { sdk, StorageKnex, Wallet, WalletSigner, WalletStorageManager } from "../../../src"
 import { KeyDeriver } from "../../../src/sdk"
 import { _tu, TestSetup1Wallet } from "../../utils/TestUtilsWalletStorage"
 

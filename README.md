@@ -6657,6 +6657,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: makeErrorResult
 
+Make Error Result generates a standardized error result for a failed transaction processing operation. It accepts a `WalletError`, a miner configuration (`ArcServiceConfig`), proof data (`beef`), an array of transaction IDs (`txids`), and optional post-beef data (`ArcMinerPostBeefDataApi`).
+
+The function creates a `PostBeefResult` object with the error details, miner name, and associated transaction results. For each transaction ID, it checks if detailed post-beef data matches the current transaction and updates the transaction result with additional information like block hash, height, and Merkle path if available. The final result provides a comprehensive summary of the error and related transactions.
+
 ```ts
 export function makeErrorResult(error: sdk.WalletError, miner: ArcServiceConfig, beef: number[], txids: string[], dd?: ArcMinerPostBeefDataApi): sdk.PostBeefResult
 ```
@@ -6668,6 +6672,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: makeGetMerklePathFromTaalARC
+
+Make Get Merkle Path From Taal ARC creates a `GetMerklePathService` using the provided Taal ARC service configuration, allowing retrieval of Merkle paths for transactions via the specified configuration and wallet services.
 
 ```ts
 export function makeGetMerklePathFromTaalARC(config: ArcServiceConfig): sdk.GetMerklePathService
@@ -6681,6 +6687,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: makePostBeefResult
 
+Make Post Beef Result constructs a `PostBeefResult` based on the response data from an ARC miner post request. It handles various HTTP status codes, mapping them to appropriate success or error results. Depending on the status, it either invokes `makeSuccessResult` for successful cases or `makeErrorResult` for error scenarios, providing detailed information about the response, including the status, title, and relevant transaction data.
+
 ```ts
 export function makePostBeefResult(dd: ArcMinerPostBeefDataApi, miner: ArcServiceConfig, beef: number[], txids: string[]): sdk.PostBeefResult
 ```
@@ -6692,6 +6700,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: makePostBeefToTaalARC
+
+Make Post Beef To Taal ARC creates a `PostBeefService` that posts a Beef object to a Taal ARC miner. It leverages the provided ARC service configuration, transaction IDs, and wallet services to facilitate the interaction. This function acts as a wrapper, delegating the actual posting process to the `postBeefToTaalArcMiner` function, ensuring consistent integration with the Taal ARC infrastructure.
 
 ```ts
 export function makePostBeefToTaalARC(config: ArcServiceConfig): sdk.PostBeefService
@@ -6705,6 +6715,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: makePostTxsToTaalARC
 
+MakePostTxsToTaalARC creates a `PostTxsService` for posting transactions to a Taal ARC miner. Using the provided ARC service configuration, transaction IDs, and wallet services, it serves as a wrapper to delegate the actual posting of transactions to the `postTxsToTaalArcMiner` function. This ensures seamless communication with the Taal ARC infrastructure for transaction processing.
+
 ```ts
 export function makePostTxsToTaalARC(config: ArcServiceConfig): sdk.PostTxsService
 ```
@@ -6717,6 +6729,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: maxDate
 
+MaxDate determines the later of two provided dates. If both `d1` and `d2` are defined, it compares them and returns the maximum. If only one date is provided, it returns that date. If neither is defined, the function returns `undefined`.
+
 ```ts
 export function maxDate(d1?: Date, d2?: Date): Date | undefined
 ```
@@ -6727,6 +6741,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: optionalArraysEqual
 
+Optional Arrays Equal compares two optional arrays of numbers for equality. It returns `true` if both arrays are `undefined` or if their contents are identical. If only one array is `undefined` or their contents differ, it returns `false`. This function relies on `arraysEqual` for comparing the arrays when both are defined.
+
 ```ts
 export function optionalArraysEqual(arr1?: Number[], arr2?: Number[])
 ```
@@ -6736,6 +6752,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: parseWalletOutpoint
+
+Parse Wallet Outpoint extracts the transaction ID (`txid`) and output index (`vout`) from a string representation of a wallet outpoint in the format `txid.vout`. It splits the string at the dot (`.`) separator and returns an object containing the `txid` as a string and `vout` as a number.
 
 ```ts
 export function parseWalletOutpoint(outpoint: string): {
@@ -6750,6 +6768,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: postBeefToArcMiner
 
+Post Beef To Arc Miner sends a serialized `Beef` object along with transaction IDs (`txids`) to an ARC miner service for processing. The function constructs an HTTP POST request with appropriate headers, including authorization and deployment ID, and streams the serialized `Beef` data to the service.
+
+It handles the response by parsing the returned data and generating a result using `makePostBeefResult`. In case of an error, it constructs a detailed error result using `makeErrorResult`. The function ensures proper error handling for missing or malformed response data, unauthorized access, and service failures, providing robust support for interacting with ARC miner services.
+
 ```ts
 export async function postBeefToArcMiner(beef: bsv.Beef, txids: string[], config: ArcServiceConfig): Promise<sdk.PostBeefResult>
 ```
@@ -6762,6 +6784,15 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: postBeefToTaalArcMiner
 
+Post Beef To Taal Arc Miner facilitates the posting of serialized `Beef` objects to the Taal ARC miner service for transaction processing. It initially attempts to send the full `Beef` data using the `postBeefToArcMiner` function and returns the result if successful.
+
+In case the service fails to process multiple transactions in a single `Beef`, the function handles these scenarios by:
+
+1. Sending an atomic `Beef` containing only the last transaction ID, if applicable.
+2. Breaking down multiple transactions into individual atomic `Beefs` and sending them sequentially.
+
+The function aggregates the results from each operation, updating the response status and data accordingly. It ensures robust handling of transaction batching and fallback mechanisms for atomic processing to align with service requirements.
+
 ```ts
 export async function postBeefToTaalArcMiner(beef: bsv.Beef, txids: string[], config: ArcServiceConfig, services: sdk.WalletServices): Promise<sdk.PostBeefResult>
 ```
@@ -6773,6 +6804,19 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: postTxsToTaalArcMiner
+
+Post Txs To Taal Arc Miner broadcasts a collection of transactions to the Taal ARC miner service using serialized `Beef` data and transaction IDs. The service processes the transactions and assigns statuses based on their successful inclusion in the blockchain.
+
+### Key Features
+
+- Source Transactions Resolution: Ensures all inputs in the transactions have valid source transactions by either extracting them from the provided `Beef` or retrieving them using an external service.
+- Broadcast Transactions: Utilizes the Taal ARC service to broadcast transactions serialized in EF format, which is required for compatibility with the service.
+- Validation and Error Handling: Ensures all required transaction data is present in the `Beef` or fetched externally, throwing descriptive errors if missing.
+- Result Aggregation: Collects the results for each transaction ID, including block metadata (e.g., block hash, height, and Merkle path), and marks transactions with errors if any part of the process fails.
+
+### Use Case
+
+This function is ideal for scenarios where transactions need to be validated, completed with source transactions, and then broadcast to the blockchain via the Taal ARC miner. It ensures robust processing and error handling for seamless integration with blockchain services.
 
 ```ts
 export async function postTxsToTaalArcMiner(beef: bsv.Beef, txids: string[], config: ArcServiceConfig, services: sdk.WalletServices): Promise<sdk.PostTxsResult>
@@ -6827,6 +6871,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: randomBytes
 
+Random Bytes generates a cryptographically secure random sequence of bytes and returns them as a `number[]`. This ensures randomness suitable for cryptographic operations or other use cases requiring high levels of entropy.
+
+### Key Features
+
+- **Cryptographic Security:** Generats random bytes using a secure algorithm to ensure unpredictability.
+- **Customizable Length:** Accepts the desired byte count as an input parameter.
+- **Flexible Output:** Returns the result as an array of numbers, making it suitable for a wide range of applications.
+
+### Use Case
+
+This function is ideal for generating secure random values needed for cryptographic keys, tokens, or other scenarios requiring robust randomness.
+
 ```ts
 export function randomBytes(count: number): number[]
 ```
@@ -6846,6 +6902,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: randomBytesBase64
+
+Random Bytes Base64 generates a cryptographically secure random sequence of bytes, encodes it as a Base64 string, and returns the result. This function is designed for use cases requiring secure, encoded random values.
+
+### Key Features
+
+- **Cryptographic Security:** Utilizes a secure algorithm to generate a sequence of random bytes.
+- **Base64 Encoding:** Encodes the generated bytes into a Base64 string for compact and widely compatible representation.
+- **Customizable Length:** Accepts a parameter to specify the desired number of random bytes.
+
+### Use Case
+
+This function is ideal for generating secure random tokens, keys, or identifiers that need to be represented as a Base64 string for storage, transmission, or interoperability.
 
 ```ts
 export function randomBytesBase64(count: number): string
@@ -6867,6 +6935,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: randomBytesHex
 
+Random Bytes Hex generates a cryptographically secure random sequence of bytes, encodes it as a hexadecimal string, and returns the result. This function ensures security while providing a widely used and human-readable format.
+
+### Key Features
+
+- **Cryptographic Security:** Generates random bytes using a secure algorithm.
+- **Hexadecimal Encoding:** Encodes the random bytes into a hex string, making it suitable for various cryptographic and data representation needs.
+- **Customizable Length:** Allows specification of the number of random bytes to generate.
+
+### Use Case
+
+This function is ideal for creating secure random tokens, cryptographic keys, or identifiers in a hexadecimal format, commonly used in blockchain systems, APIs, and secure communications.
+
 ```ts
 export function randomBytesHex(count: number): string
 ```
@@ -6886,6 +6966,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: relinquishCertificateSdk
+
+Relinquish Certificate Sdk marks a specified certificate as relinquished by setting its `isDeleted` status to `true` in the wallet storage. This operation ensures that the certificate is no longer considered active or valid within the system.
+
+### Key Features
+
+- **Certificate Identification:** Locates the target certificate based on parameters like user ID, type, serial number, and certifier.
+- **Safe Update:** Updates the certificate's status to indicate it has been relinquished while ensuring the operation affects only the intended certificate.
+- **Error Handling:** Throws an error if the certificate cannot be found or the update operation fails.
+
+### Use Case
+
+This function is useful for scenarios where a user needs to invalidate or remove a certificate from their wallet storage, ensuring it is no longer accessible or valid for use.
 
 ```ts
 export async function relinquishCertificateSdk(signer: WalletSigner, vargs: sdk.ValidRelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishCertificateResult>
@@ -7041,6 +7133,17 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: toWalletNetwork
 
+To Wallet Network maps a given blockchain `Chain` to its corresponding wallet network type.
+
+### Key Features
+
+- **Chain Mapping:** Converts the chain identifier (`main` or other values) to the appropriate wallet network type (`mainnet` or `testnet`).
+- **Simple and Efficient:** Ensures consistent network type representation throughout the wallet system.
+
+### Use Case
+
+This function is essential for ensuring compatibility between the blockchain chain type and the wallet network configuration, enabling seamless transaction processing and interaction with blockchain services.
+
 ```ts
 export function toWalletNetwork(chain: Chain): sdk.WalletNetwork
 ```
@@ -7052,6 +7155,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: updateBsvExchangeRate
+
+Update Bsv Exchange Rate retrieves and updates the Bitcoin SV (BSV) exchange rate in USD, ensuring the rate is current and valid based on a configurable freshness interval.
+
+### Key Features
+
+- **Rate Validation:** Checks if the provided rate is stale using a default or user-defined update interval (default: 15 minutes).
+- **External Rate Fetching:** Fetches the latest exchange rate from Whatsonchain if the current rate is deemed outdated.
+- **Redundant Service Compatibility (TODO):** Designed for future expansion to include redundant services with caching for reliability.
+
+### Use Case
+
+This function is critical for applications requiring up-to-date BSV exchange rates for transaction calculations, pricing, or analytics. It ensures the rate remains accurate while minimizing unnecessary external requests.
 
 ```ts
 export async function updateBsvExchangeRate(rate?: sdk.BsvExchangeRate, updateMsecs?: number): Promise<sdk.BsvExchangeRate>
@@ -7065,6 +7180,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: updateChaintracksFiatExchangeRates
 
+Update Chaintracks Fiat Exchange Rates retrieves updated fiat exchange rates for a set of target currencies from the Chaintracks service.
+
+### Key Features
+
+- **Targeted Rates:** Fetches rates for the specified target currencies from the URL defined in the `options.chaintracksFiatExchangeRatesUrl`.
+- **Validation:** Ensures the fetched data is valid, with successful status and timestamp parsing.
+- **Integration with Chaintracks:** Leverages Chaintracks' exchange rate API for accurate and reliable fiat rate updates.
+
+### Use Case
+
+This function is designed for applications requiring up-to-date fiat exchange rates to support multi-currency calculations, conversions, or pricing based on Bitcoin SV (BSV) transactions.
+
 ```ts
 export async function updateChaintracksFiatExchangeRates(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRates>
 ```
@@ -7076,6 +7203,19 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: updateExchangeratesapi
+
+Update Exchange rates api updates fiat exchange rates for a specified list of target currencies using the ExchangeRates API.
+
+### Key Features
+
+- **API Integration:** Connects to the ExchangeRates API with a valid API key provided in `options.exchangeratesapiKey`.
+- **Accurate Rate Calculation:** Converts exchange rates to a USD base using the API's provided base and rates for "USD".
+- **Targeted Updates:** Ensures only the specified target currencies are updated.
+- **Validation:** Validates API success, the presence of required rates, and the completeness of updates for all target currencies.
+
+### Use Case
+
+This function is suitable for applications that need real-time fiat exchange rates for multiple currencies to support financial calculations, price conversions, or currency comparisons. It ensures consistency by recalculating rates relative to a USD base for compatibility.
 
 ```ts
 export async function updateExchangeratesapi(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRates>
@@ -7089,6 +7229,18 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateAbortActionArgs
 
+Validate Abort Action Args validates the arguments provided for aborting an action and returns a structured object of type `ValidAbortActionArgs`.
+
+### Key Features
+
+- **Input Validation:** Ensures that the `reference` argument is a valid Base64 string and throws an error if it is not.
+- **Structured Output:** Returns an object containing the validated `reference`, with `userId` initialized as `undefined` and `log` as an empty string.
+- **Error Handling:** Relies on the `validateBase64String` utility to ensure the integrity of the `reference` value.
+
+### Use Case
+
+This function is designed for applications where user actions need to be aborted securely and accurately, ensuring that the reference provided is valid and formatted correctly for further processing.
+
 ```ts
 export function validateAbortActionArgs(args: sdk.AbortActionArgs): ValidAbortActionArgs
 ```
@@ -7100,6 +7252,27 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateAcquireCertificateArgs
+
+Validate Acquire Certificate Args validates and processes arguments for acquiring a certificate. It ensures the provided data is properly formatted, adheres to protocol-specific rules, and meets any conditions required for certificate acquisition.
+
+### Key Features
+
+- **Input Validation:**
+  - Validates `type`, `serialNumber`, `certifier`, and other fields using utility functions like `validateBase64String` and `validateHexString`.
+  - Ensures optional fields like `revocationOutpoint`, `keyringRevealer`, and `keyringForSubject` are correctly formatted if provided.
+- **Privileged Access:**
+  - Enforces additional checks when `privileged` is set to `true`, requiring a valid `privilegedReason` with a length between 5 and 50 characters.
+- **Protocol-Specific Rules:**
+  - For the `direct` acquisition protocol, ensures `serialNumber`, `signature`, and `revocationOutpoint` are present and valid.
+- **Structured Output:** Returns an object of type `ValidAcquireCertificateArgs` with all validated and processed fields.
+
+### Error Handling
+
+- Throws specific errors for missing or invalid parameters, such as when required fields are absent for the `direct` acquisition protocol.
+
+### Use Case
+
+This function is essential for scenarios where certificates need to be securely acquired, ensuring all arguments are thoroughly validated and adhere to both general and protocol-specific requirements.
 
 ```ts
 export async function validateAcquireCertificateArgs(args: sdk.AcquireCertificateArgs): Promise<ValidAcquireCertificateArgs>
@@ -7124,6 +7297,26 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateAcquireDirectCertificateArgs
 
+Validate Acquire Direct Certificate Args validates arguments for acquiring a certificate using the `direct` acquisition protocol. This function ensures all required fields are present and correctly formatted, enforcing strict validation rules specific to this protocol.
+
+### Key Features
+
+- **Protocol Enforcement:** Ensures the `acquisitionProtocol` is strictly set to `direct`. Any other protocol results in an error.
+- **Field Validation:**
+  - Verifies mandatory fields like `serialNumber`, `signature`, `revocationOutpoint`, `keyringRevealer`, and `keyringForSubject` are present and valid.
+  - Uses helper functions (`validateBase64String`, `validateHexString`, etc.) for field-specific checks.
+- **Privileged Access Validation:** If the `privileged` flag is `true`, validates the presence and length of the `privilegedReason` field (5 to 50 characters).
+- **Structured Output:** Returns a fully validated `ValidAcquireDirectCertificateArgs` object, ensuring all fields are sanitized and ready for further processing.
+
+### Error Handling
+
+- Throws specific exceptions for missing or invalid parameters, providing clarity on which field failed validation and why.
+- Ensures robust error reporting, particularly for the strict requirements of the `direct` acquisition protocol.
+
+### Use Case
+
+This function is ideal for workflows requiring secure and precise validation of certificate acquisition requests under the `direct` protocol. By enforcing strict validation rules, it ensures the integrity and reliability of the certificate acquisition process.
+
 ```ts
 export function validateAcquireDirectCertificateArgs(args: sdk.AcquireCertificateArgs): ValidAcquireDirectCertificateArgs
 ```
@@ -7135,6 +7328,25 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateBasketInsertion
+
+Validate Basket Insertion validates arguments for a basket insertion operation, ensuring that all fields meet the required constraints and formats. This function is designed to handle optional basket insertion arguments and returns a fully validated object or `undefined` if no arguments are provided.
+
+### Key Features
+
+- **Optional Handling:** Returns `undefined` if no arguments are passed, making it suitable for optional basket insertion scenarios.
+- **Field Validation:**
+  - Validates the `basket` field using the `validateBasket` function, ensuring the basket is correctly formatted.
+  - Ensures `customInstructions` are within an acceptable length (up to 1000 characters by default, subject to future updates).
+  - Processes the `tags` field, validating each tag using the `validateTag` function and defaulting to an empty array if none are provided.
+- **Structured Output:** Returns a `ValidBasketInsertion` object containing sanitized and validated fields.
+
+### Error Handling
+
+- Provides detailed validation for each field, throwing errors for invalid formats, lengths, or missing required fields.
+
+### Use Case
+
+This function is useful for scenarios where basket insertion details need to be validated before being processed further. By ensuring all fields are valid and properly formatted, it prevents invalid data from entering the system.
 
 ```ts
 export function validateBasketInsertion(args?: sdk.BasketInsertion): ValidBasketInsertion | undefined
@@ -7148,6 +7360,26 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateCreateActionArgs
 
+Validate Create Action Args ensures that all parameters provided for creating a new blockchain action are valid and correctly formatted. It performs comprehensive validation of the input and output data, transaction options, and supporting details to prepare a well-structured and secure action.
+
+### Key Features
+
+- **Comprehensive Validation:**
+
+  - Validates the `description` to be between 5 and 50 characters.
+  - Processes the `inputs` and `outputs` by mapping through validation functions to ensure correct formatting.
+  - Checks optional parameters like `lockTime`, `version`, and `labels`, assigning default values where necessary.
+  - Validates complex action options using `validateCreateActionOptions`.
+
+- **Automatic Property Initialization:**
+  - Dynamically sets internal flags (`isSendWith`, `isNewTx`, `isSignAction`, `isDelayed`, and `isNoSend`) based on the presence and configuration of inputs, outputs, and transaction options.
+- **Error Handling:**
+  - Throws a `WERR_INVALID_PARAMETER` error if neither inputs, outputs, nor `sendWith` parameters are provided, ensuring that at least one actionable item is present.
+
+### Use Case
+
+This function is critical when initiating blockchain actions such as creating transactions, sending funds, or processing custom blockchain operations. By validating the structure and logic of the action, it prevents malformed or incomplete transactions from being processed, reducing the risk of transaction failure or security issues.
+
 ```ts
 export function validateCreateActionArgs(args: sdk.CreateActionArgs): ValidCreateActionArgs
 ```
@@ -7159,6 +7391,31 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateCreateActionInput
+
+Validate Create Action Input ensures that each input provided for a blockchain action is valid and properly formatted. This validation is critical for constructing secure and error-free transactions by verifying the consistency and integrity of input data.
+
+### Key Features
+
+- **Unlocking Script Validation:**  
+  Validates that either the `unlockingScript` or `unlockingScriptLength` is provided. If both are present, their lengths must be consistent. Throws a `WERR_INVALID_PARAMETER` error if neither is valid.
+
+- **Outpoint Parsing:**  
+  Converts the provided outpoint string into a structured object with a transaction ID and output index using `parseWalletOutpoint`.
+
+- **Descriptive Input Handling:**  
+  Validates the `inputDescription` to ensure it is between 5 and 50 characters, enforcing clear and concise descriptions for inputs.
+
+- **Default Value Assignment:**  
+  Assigns a default `sequenceNumber` of `0xffffffff` if not provided, ensuring correct transaction sequencing.
+
+### Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if both `unlockingScript` and `unlockingScriptLength` are missing.
+- Ensures `unlockingScriptLength` matches the length of `unlockingScript` when both are provided.
+
+### Use Case
+
+This function is essential for preparing inputs in transaction creation workflows. By enforcing input consistency and structure, it reduces the risk of transaction malformation, ensuring reliable blockchain operations.
 
 ```ts
 export function validateCreateActionInput(i: sdk.CreateActionInput): ValidCreateActionInput
@@ -7189,6 +7446,37 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateCreateActionOutput
 
+Validate Create Action Output ensures that each output specified for a blockchain action is correctly structured and valid. This validation is essential for creating secure and compliant transactions by confirming that all output parameters meet the required standards.
+
+### Key Features
+
+- **Locking Script Validation:**  
+  Validates that the `lockingScript` is a properly formatted hexadecimal string, ensuring the output can be securely locked.
+
+- **Satoshis Validation:**  
+  Confirms that the `satoshis` value is a valid amount, preventing incorrect or unintended fund transfers.
+
+- **Output Description Validation:**  
+  Ensures the `outputDescription` is between 5 and 50 characters, providing clear and descriptive context for the output.
+
+- **Optional Basket Assignment:**  
+  Validates the optional `basket` parameter, if provided, to ensure it aligns with expected basket configurations.
+
+- **Custom Instructions Handling:**  
+  Accepts `customInstructions` for additional output behavior, allowing for more complex transaction logic when necessary.
+
+- **Tag Validation:**  
+  Validates any tags associated with the output, ensuring they are correctly formatted for categorization or tracking purposes.
+
+### Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the `lockingScript` or `satoshis` values are invalid.
+- Ensures the `outputDescription` adheres to the required length constraints.
+
+### Use Case
+
+This function is vital for preparing outputs in transaction creation workflows. It ensures that all output parameters are consistent and secure, reducing the risk of transaction errors and enabling reliable interactions with the blockchain.
+
 ```ts
 export function validateCreateActionOutput(o: sdk.CreateActionOutput): ValidCreateActionOutput
 ```
@@ -7200,6 +7488,34 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateDiscoverByAttributesArgs
+
+Validate Create Action Input is responsible for verifying the integrity and correctness of input data used in blockchain transaction actions. This validation ensures that each input is properly structured and contains the necessary unlocking information to authorize spending of funds.
+
+### Key Features
+
+- **Unlocking Script Validation:**  
+  Ensures that either `unlockingScript` or `unlockingScriptLength` is provided. If both are specified, it checks that the provided length matches the script's actual size.
+
+- **Outpoint Parsing:**  
+  Converts the `outpoint` string into a structured object containing the transaction ID (`txid`) and output index (`vout`), ensuring correct referencing of UTXOs.
+
+- **Input Description Validation:**  
+  Validates that the `inputDescription` is between 5 and 50 characters, ensuring meaningful and consistent input descriptions.
+
+- **Unlocking Script Length Verification:**  
+  Calculates or confirms the `unlockingScriptLength` to ensure it matches the provided script, preventing transaction construction errors.
+
+- **Sequence Number Defaulting:**  
+  Assigns a default sequence number of `0xffffffff` if none is provided, ensuring proper transaction sequencing.
+
+### Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if neither `unlockingScript` nor `unlockingScriptLength` is provided.
+- Throws a `WERR_INVALID_PARAMETER` error if the `unlockingScriptLength` does not match the actual length of the `unlockingScript`.
+
+### Use Case
+
+This function is essential for validating each input of a transaction before it is signed and broadcasted. It ensures that all inputs are correctly formatted, authorized, and ready for processing, preventing transaction failures and improving security.
 
 ```ts
 export function validateDiscoverByAttributesArgs(args: sdk.DiscoverByAttributesArgs): ValidDiscoverByAttributesArgs
@@ -7213,6 +7529,29 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateDiscoverByIdentityKeyArgs
 
+Validate Discover By Identity Key Args is designed to validate the input parameters for discovering blockchain entities using an identity key. It ensures that all provided arguments are correctly formatted and fall within the acceptable ranges, preventing errors during the discovery process.
+
+### Key Features
+
+- **Identity Key Validation:**  
+  Confirms that the `identityKey` is a valid 66-character hexadecimal string, ensuring proper identification in the blockchain system.
+
+- **Limit Validation:**  
+  Ensures that the `limit` parameter is an integer between 1 and 10,000, preventing excessive or insufficient data retrieval.
+
+- **Offset Validation:**  
+  Validates that the `offset` is a positive integer or zero, with a default of zero if not provided, supporting paginated data retrieval.
+
+- **Seek Permission Defaulting:**  
+  Defaults the `seekPermission` flag to `false` if not specified, managing access permissions during the discovery process.
+
+- **User Context Initialization:**  
+  Sets the `userId` to `undefined` for further context-specific assignment and initializes a `log` string for capturing process logs.
+
+### Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the `identityKey` is not a valid 66-character hexadecim
+
 ```ts
 export function validateDiscoverByIdentityKeyArgs(args: sdk.DiscoverByIdentityKeyArgs): ValidDiscoverByIdentityKeyArgs
 ```
@@ -7225,6 +7564,32 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateInteger
 
+Validate Integer ensures that a provided value is a valid integer within an optional specified range. This function is used to enforce strict type and range checks on numeric inputs, helping prevent invalid or out-of-bound values in critical operations.
+
+### Key Features
+
+- **Type Validation:**  
+  Confirms that the input value is an integer. If the value is not an integer, a `WERR_INVALID_PARAMETER` error is thrown.
+
+- **Default Value Assignment:**  
+  If the input value is `undefined` and a `defaultValue` is provided, it returns the default. If no default is provided, it throws a `WERR_INVALID_PARAMETER` error.
+
+- **Range Enforcement:**
+  - Validates that the value is not less than the specified `min` (if provided).
+  - Validates that the value is not greater than the specified `max` (if provided).  
+    If either of these conditions is violated, a `WERR_INVALID_PARAMETER` error is thrown with an appropriate message.
+
+### Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the value is not an integer.
+- Throws a `WERR_INVALID_PARAMETER` error if the value is below the specified `min`.
+- Throws a `WERR_INVALID_PARAMETER` error if the value exceeds the specified `max`.
+- Throws a `WERR_INVALID_PARAMETER` error if the value is `undefined` and no default is provided.
+
+### Use Case
+
+This function is ideal for validating user inputs or configuration values where integer constraints are required, such as setting pagination limits, specifying transaction amounts, or defining configuration thresholds. By enforcing strict type and range validation, it ensures robust and predictable behavior in the system.
+
 ```ts
 export function validateInteger(v: number | undefined, name: string, defaultValue?: number, min?: number, max?: number): number
 ```
@@ -7234,6 +7599,37 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateInternalizeActionArgs
+
+Validate Internalize Action Args validates the parameters provided for the internalization of a transaction within the wallet. This process allows the wallet to take ownership of outputs from an existing transaction by confirming that all provided arguments meet strict validation requirements.
+
+### Key Features
+
+- **Transaction Validation:**  
+  Ensures that the provided transaction (`tx`) is valid and properly formatted.
+
+- **Output Validation:**  
+  Each output in the `outputs` array is individually validated using the `validateInternalizeOutput` function to guarantee correctness.
+
+- **Description Validation:**  
+  The `description` field must be a string between 5 and 50 characters, ensuring meaningful context is provided for the internalization process.
+
+- **Label Validation:**  
+  Optional labels are validated for consistency and format, providing metadata for transaction categorization.
+
+- **Permission Handling:**  
+  The `seekPermission` flag is set to `true` by default unless explicitly overridden, ensuring that permission requirements are respected.
+
+- **Common Derivation Prefix Enforcement:**  
+  For outputs marked as `"wallet payment"`, the function ensures that all such outputs share the same `derivationPrefix`. If different prefixes are detected, a `WERR_INVALID_PARAMETER` error is thrown.
+
+### Error Handling
+
+- Throws `WERR_INVALID_PARAMETER` if output derivation prefixes for `"wallet payment"` outputs are inconsistent.
+- Throws validation errors if the `description` or `labels` do not meet the required criteria.
+
+### Use Case
+
+This function is critical when integrating externally created transactions into a wallet's storage. It validates all necessary parameters to ensure that the wallet correctly internalizes ownership of the transaction outputs. This is particularly important for handling `"wallet payment"` outputs, ensuring consistent derivation paths and proper metadata tagging for tracking and security.
 
 ```ts
 export function validateInternalizeActionArgs(args: sdk.InternalizeActionArgs): ValidInternalizeActionArgs
@@ -7247,6 +7643,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateInternalizeOutput
 
+Validate Internalize Output verifies the parameters of an internalized transaction output. It ensures that the `protocol` is either `"basket insertion"` or `"wallet payment"` and validates the associated remittance details.
+
+### Key Validations
+
+- **Protocol Check:** Must be either `"basket insertion"` or `"wallet payment"`.
+- **Output Index:** Validates that `outputIndex` is a non-negative integer.
+- **Remittance Validation:** Verifies `paymentRemittance` for wallet payments and `insertionRemittance` for basket insertions.
+
+### Error Handling
+
+- Throws `WERR_INVALID_PARAMETER` if the `protocol` is invalid.
+
+### Use Case
+
+Used to confirm that transaction outputs conform to the expected structure for internalization into the wallet.
+
 ```ts
 export function validateInternalizeOutput(args: sdk.InternalizeOutput): ValidInternalizeOutput
 ```
@@ -7258,6 +7670,10 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateListActionsArgs
+
+Validate List Actions Args ensures that the parameters provided for filtering and retrieving wallet actions are properly structured and meet defined constraints. It validates filters such as labels, inclusion options for detailed data (inputs, outputs, and scripts), and pagination controls like limit and offset. Additionally, it checks permission settings to determine whether user consent is required for the operation.
+
+This function is critical for securely and accurately querying wallet actions, ensuring only valid and well-defined input parameters are processed, and preventing incorrect or unauthorized data retrieval.
 
 ```ts
 export function validateListActionsArgs(args: sdk.ListActionsArgs): ValidListActionsArgs
@@ -7302,6 +7718,23 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateListCertificatesArgs
 
+Validate List Certificates Args validates input parameters for retrieving a list of certificates from storage. It ensures that filters and pagination options are correctly formatted and within allowed limits.
+
+### Key Validations
+
+- **Certifiers:** Validates each certifier as a properly formatted hexadecimal string.
+- **Types:** Validates each certificate type as a properly formatted Base64 string.
+- **Limit and Offset:** Ensures `limit` is between 1 and 10,000, and `offset` is zero or a positive integer.
+- **Privileged Access:** Defaults to `false`. If set to `true`, a valid `privilegedReason` (5–50 characters) must be provided.
+
+### Error Handling
+
+- Throws `WERR_INVALID_PARAMETER` if any input fails validation.
+
+### Use Case
+
+Used to filter and paginate certificate records based on certifiers, types, and access permissions.
+
 ```ts
 export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs): ValidListCertificatesArgs
 ```
@@ -7313,6 +7746,8 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateListOutputsArgs
+
+Validate List Outputs Args ensures that the parameters provided for listing outputs from a specified basket are valid and meet the required constraints. It validates the basket name, filters outputs based on optional tags, and verifies filtering modes (any or all). Additionally, it checks optional inclusion flags for locking scripts, entire transactions, custom instructions, tags, and labels. The function enforces limits and offsets for pagination and ensures that user permissions are correctly handled. This robust validation process guarantees that only well-formed and logically consistent arguments are passed for listing outputs.
 
 ```ts
 export function validateListOutputsArgs(args: sdk.ListOutputsArgs): ValidListOutputsArgs
@@ -7357,6 +7792,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateOptionalInteger
 
+Validate Optional Integer validates an optional numeric input by ensuring it is an integer within a specified range. If the input is `undefined`, it is accepted without validation. If a value is provided, it must be an integer and optionally conform to defined minimum and maximum boundaries.
+
+## Key Validations
+
+- **Optional Input:** Allows `undefined` values, supporting optional parameters.
+- **Integer Check:** Ensures the provided value is an integer.
+- **Range Enforcement:** Confirms the value falls within the optional `min` and `max` limits if specified.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the provided value is not an integer or does not meet the specified range constraints.
+
+## Use Case
+
+This function is ideal for validating optional numeric parameters where the input must be an integer within specific boundaries when supplied but can also remain undefined.
+
 ```ts
 export function validateOptionalInteger(v: number | undefined, name: string, min?: number, max?: number): number | undefined
 ```
@@ -7366,6 +7817,21 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateOptionalOutpointString
+
+Validate Optional Outpoint String validates an optional outpoint string. If the input is `undefined`, it is accepted without validation. If a value is provided, it must be a valid outpoint string, typically formatted as `"txid.vout"`.
+
+## Key Validations
+
+- **Optional Input:** Allows `undefined` values, supporting optional parameters.
+- **Outpoint Validation:** Ensures the provided value is a valid outpoint string if defined.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the provided outpoint string is not valid.
+
+## Use Case
+
+This function is used to validate optional outpoint strings in blockchain operations, ensuring they follow the correct format when supplied but can also remain undefined.
 
 ```ts
 export function validateOptionalOutpointString(outpoint: string | undefined, name: string): string | undefined
@@ -7377,6 +7843,23 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateOriginator
 
+Validate Originator validates an optional originator string, ensuring it meets domain-like formatting standards. If the input is `undefined`, it passes without validation. If provided, the string is trimmed, converted to lowercase, and validated for proper length and structure.
+
+## Key Validations
+
+- **Optional Input:** Accepts `undefined` values without error.
+- **String Format:** Trims whitespace and converts the string to lowercase.
+- **Length Validation:** Ensures the full originator string is between 1 and 250 characters.
+- **Domain Structure:** Splits the string by periods (`.`) and verifies that each part is between 1 and 63 characters long.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the originator or any of its segments fail the length validation.
+
+## Use Case
+
+This function is used to validate domain-like originator strings, ensuring they are properly formatted and structured for use in systems that rely on hierarchical naming conventions.
+
 ```ts
 export function validateOriginator(s?: string): string | undefined
 ```
@@ -7386,6 +7869,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateOutpointString
+
+Validate Outpoint String ensures that a given outpoint string is correctly formatted as a transaction identifier (txid) and output index. It validates the structure and content of the input string to confirm it adheres to the expected `txid.vout` format.
+
+## Key Validations
+
+- **Format Check:** Validates that the input string consists of two parts separated by a period (`.`).
+- **Transaction ID (txid):** Ensures the first part is a valid 64-character hexadecimal string.
+- **Output Index (vout):** Confirms the second part is a non-negative integer.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the input does not match the required `txid.vout` format or if either part fails validation.
+
+## Use Case
+
+This function is used to validate and standardize transaction outpoints, ensuring they are properly formatted as a combination of a transaction ID and output index for blockchain operations.
 
 ```ts
 export function validateOutpointString(outpoint: string, name: string): string
@@ -7397,6 +7896,21 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validatePositiveIntegerOrZero
 
+Validate Positive Integer Or Zero ensures that a given number is a valid non-negative integer. It is used to confirm that the input value is zero or a positive whole number, enforcing strict numeric validation.
+
+## Key Validations
+
+- **Non-Negative Integer:** Confirms the input is an integer greater than or equal to zero.
+- **Delegation:** Internally calls `validateInteger` with a minimum value of `0` to enforce the non-negative constraint.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the input is not an integer or if it is negative.
+
+## Use Case
+
+This function is useful for validating parameters like offsets, counts, or indexes where only zero or positive integers are acceptable.
+
 ```ts
 export function validatePositiveIntegerOrZero(v: number, name: string): number
 ```
@@ -7406,6 +7920,23 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateProveCertificateArgs
+
+Validate Prove Certificate Args validates the input parameters required to prove the authenticity of a certificate. It ensures that all fields related to the certificate and verification process are correctly formatted and adhere to the defined constraints.
+
+## Key Validations
+
+- **Certificate Fields:** Validates optional fields within the certificate, including `type`, `serialNumber`, `certifier`, `subject`, `revocationOutpoint`, and `signature` to ensure they meet base64 or hexadecimal formatting rules.
+- **Fields to Reveal:** Ensures each field name in `fieldsToReveal` is a string between 1 and 50 characters.
+- **Verifier:** Confirms that the verifier is a valid hexadecimal string.
+- **Privileged Access:** If `privileged` is `true`, it verifies that a valid `privilegedReason` (5–50 characters) is provided.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if any input fails validation, particularly when `privileged` is `true` but `privilegedReason` is missing.
+
+## Use Case
+
+This function is used when verifying a certificate, ensuring all required and optional fields are properly formatted and secure, and that sensitive data exposure is managed according to privilege settings.
 
 ```ts
 export function validateProveCertificateArgs(args: sdk.ProveCertificateArgs): ValidProveCertificateArgs
@@ -7419,6 +7950,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateRelinquishCertificateArgs
 
+Validate Relinquish Certificate Args verifies the input parameters required to relinquish a certificate. It ensures that all necessary fields related to the certificate are correctly formatted and meet validation criteria.
+
+## Key Validations
+
+- **Type:** Validates that the `type` of the certificate is a properly formatted base64 string.
+- **Serial Number:** Ensures the `serialNumber` is a valid base64 string.
+- **Certifier:** Confirms that the `certifier` is a valid hexadecimal string.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if any of the certificate fields (`type`, `serialNumber`, or `certifier`) fail validation.
+
+## Use Case
+
+This function is used when a user wants to relinquish ownership of a certificate. It ensures that the certificate details are accurate and properly formatted before the relinquishment process proceeds.
+
 ```ts
 export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificateArgs): ValidRelinquishCertificateArgs
 ```
@@ -7430,6 +7977,21 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateRelinquishOutputArgs
+
+Validate Relinquish Output Args verifies the input parameters required to relinquish an output from a specified basket. It ensures that both the basket name and the output reference are correctly formatted and meet validation standards.
+
+## Key Validations
+
+- **Basket:** Validates the provided `basket` name to ensure it meets the required format.
+- **Output:** Confirms the `output` is a valid outpoint string, formatted as a transaction ID and output index (`txid.vout`).
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if either the `basket` or `output` fails validation.
+
+## Use Case
+
+This function is used when a user needs to relinquish control of a specific output in a basket. It ensures that the basket and output details are valid before proceeding with the relinquishment process.
 
 ```ts
 export function validateRelinquishOutputArgs(args: sdk.RelinquishOutputArgs): ValidRelinquishOutputArgs
@@ -7443,6 +8005,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateSatoshis
 
+Validate Satoshis ensures that the provided value is a valid number of satoshis, adhering to Bitcoin's constraints. It verifies that the value is an integer within the acceptable range and optionally checks if it meets a specified minimum value.
+
+## Key Validations
+
+- **Integer Check:** Confirms that the input is an integer.
+- **Range Check:** Validates that the value is between `0` and `21e14` (the total possible supply of satoshis).
+- **Minimum Value:** If a minimum value is provided, ensures the input is not less than the specified minimum.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the value is not a valid integer, exceeds the allowed range, or does not meet the minimum requirement.
+
+## Use Case
+
+This function is essential for validating transaction amounts, ensuring that the number of satoshis used in transactions is within the acceptable limits and meets any custom minimum thresholds.
+
 ```ts
 export function validateSatoshis(v: number | undefined, name: string, min?: number): number
 ```
@@ -7452,6 +8030,27 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateScriptHash
+
+Validate Script Hash verifies and converts a given output string into a valid script hash format based on the specified or inferred output format. It supports different formats, including big-endian and little-endian hash representations or direct script hashing.
+
+## Key Validations
+
+- **Input Conversion:** Converts the provided `output` into a byte array.
+- **Format Detection:** Automatically detects the format if not specified:
+  - Defaults to `'hashLE'` if the input is 32 bytes long.
+  - Defaults to `'script'` otherwise.
+- **Format Handling:**
+  - `'hashBE'`: Uses the input as-is.
+  - `'hashLE'`: Reverses the byte order for little-endian format.
+  - `'script'`: Hashes the script using SHA-256 and reverses the result.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the `outputFormat` is not one of the accepted values (`'hashBE'`, `'hashLE'`, or `'script'`).
+
+## Use Case
+
+This function is useful when interacting with blockchain services that require different script hash formats for querying UTXO statuses or verifying transaction outputs.
 
 ```ts
 export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoStatusOutputFormat): string
@@ -7465,6 +8064,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateSecondsSinceEpoch
 
+Validate Seconds Since Epoch validates a given timestamp in seconds since the Unix epoch and converts it into a `Date` object. It ensures the timestamp is within a reasonable and acceptable range.
+
+## Key Validations
+
+- **Timestamp Conversion:** Converts the provided Unix timestamp (`time`) into a `Date` object.
+- **Range Check:** Validates that the timestamp falls between `1600000000` and `100000000000`, covering typical historical and future dates.
+- **Accuracy Check:** Ensures the provided timestamp is an exact Unix time representation by verifying no rounding errors occur during conversion.
+
+## Error Handling
+
+- Throws a `WERR_INVALID_PARAMETER` error if the timestamp is invalid, out of range, or improperly formatted.
+
+## Use Case
+
+This function is ideal for validating timestamps used in blockchain transactions, logs, or time-sensitive operations where accurate and valid Unix time is required.
+
 ```ts
 export function validateSecondsSinceEpoch(time: number): Date
 ```
@@ -7474,6 +8089,27 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateSignActionArgs
+
+Validate Sign Action Args validates the input parameters required for signing a transaction action. It ensures that the provided arguments are structured correctly and sets default behavioral flags for transaction processing.
+
+## Key Validations
+
+- **Spends:** Directly assigns the `spends` array, which contains input spending details for the transaction.
+- **Reference:** Validates and assigns the transaction reference identifier.
+- **Options:** Validates the optional signing parameters using `validateSignActionOptions`.
+- **Behavioral Flags:**
+  - `isSendWith`: Set to `true` if additional transactions are specified in `options.sendWith`.
+  - `isDelayed`: Set to `true` if delayed broadcasting is accepted.
+  - `isNoSend`: Set to `true` if the transaction should not be sent after signing.
+  - `isNewTx`: Defaults to `true`, indicating that the action pertains to a new transaction.
+
+## Error Handling
+
+- Relies on `validateSignActionOptions` to throw appropriate errors for invalid signing options.
+
+## Use Case
+
+This function is essential for preparing transaction signing actions, ensuring that the inputs, options, and execution behavior align with the intended transaction flow, including optional behaviors like delayed broadcasting or batch sending.
 
 ```ts
 export function validateSignActionArgs(args: sdk.SignActionArgs): ValidSignActionArgs
@@ -7504,6 +8140,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: validateStringLength
 
+Validate String Length verifies that a given string meets specified minimum and maximum byte-length constraints. It ensures that the string, when encoded in UTF-8, falls within the defined size limits.
+
+## Key Validations
+
+- **UTF-8 Encoding:** Converts the input string to a UTF-8 byte array to accurately measure its length.
+- **Minimum Length:** If a minimum length (`min`) is provided, the function checks that the string has at least the specified number of bytes.
+- **Maximum Length:** If a maximum length (`max`) is provided, the function ensures that the string does not exceed the specified byte limit.
+
+## Error Handling
+
+- Throws `WERR_INVALID_PARAMETER` if the string is shorter than the minimum or longer than the maximum allowed length.
+
+## Use Case
+
+This function is crucial for validating user input or data fields where strict size constraints are required, ensuring that strings conform to specific length requirements for database storage, blockchain transactions, or API communication.
+
 ```ts
 export function validateStringLength(s: string, name: string, min?: number, max?: number): string
 ```
@@ -7513,6 +8165,22 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 
 #### Function: validateWalletPayment
+
+Validate Wallet Payment verifies the validity of a `WalletPayment` object, ensuring all required fields are correctly formatted. If the input is `undefined`, the function returns `undefined` without validation.
+
+## Key Validations
+
+- **Derivation Prefix:** Validates that `derivationPrefix` is a properly formatted Base64 string.
+- **Derivation Suffix:** Validates that `derivationSuffix` is a properly formatted Base64 string.
+- **Sender Identity Key:** Validates that `senderIdentityKey` is a valid hexadecimal string.
+
+## Error Handling
+
+- Throws `WERR_INVALID_PARAMETER` if any of the fields fail their respective validation checks.
+
+## Use Case
+
+This function is essential for confirming that wallet payment data is correctly structured before processing, preventing invalid payment information from being used in wallet operations or blockchain transactions.
 
 ```ts
 export function validateWalletPayment(args?: sdk.WalletPayment): ValidWalletPayment | undefined

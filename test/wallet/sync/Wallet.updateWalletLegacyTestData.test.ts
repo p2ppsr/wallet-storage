@@ -25,12 +25,13 @@ describe('Wallet sync tests', () => {
     afterAll(async () => {
     })
 
+    let doWait = false
     let done0 = false
-    const waitFor0 = async () => { while (!done0) await wait(100) }
+    const waitFor0 = async () => { while (doWait && !done0) await wait(100) }
     let done1 = false
-    const waitFor1 = async () => { while (!done1) await wait(100) }
+    const waitFor1 = async () => { while (doWait && !done1) await wait(100) }
     let done2 = false
-    const waitFor2 = async () => { while (!done2) await wait(100) }
+    const waitFor2 = async () => { while (doWait && !done2) await wait(100) }
 
     const env = _tu.getEnv('test')
     const identityKeyTone = '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'

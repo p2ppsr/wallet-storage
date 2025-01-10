@@ -140,11 +140,10 @@ export class WalletStorage implements sdk.WalletStorage {
         await reader.makeAvailable()
         const readerSettings = await reader.getSettings()
 
-        const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
-
         let log = ''
         let inserts = 0, updates = 0
         for (;;) {
+            const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
             const args = ss.makeRequestSyncChunkArgs(identityKey, this.getSettings().storageIdentityKey)
             const chunk = await reader.getSyncChunk(args)
             const r = await writer.processSyncChunk(args, chunk)

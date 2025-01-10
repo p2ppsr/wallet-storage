@@ -376,7 +376,6 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         const r = await ss.processSyncChunk(this, args, chunk)
         return r
     }
-
 }
 
 export interface StorageProviderOptions extends StorageReaderWriterOptions {

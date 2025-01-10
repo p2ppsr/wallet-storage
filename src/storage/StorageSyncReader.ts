@@ -15,7 +15,7 @@ export class StorageSyncReader implements sdk.StorageSyncReader {
     isAvailable(): boolean {
         return this.storage.isAvailable()
     }
-    async makeAvailable(): Promise<void> {
+    async makeAvailable(): Promise<table.Settings> {
         await this.storage.makeAvailable()
         if (this.auth.userId === undefined) {
             const user = await this.storage.findUserByIdentityKey(this.auth.identityKey)
@@ -23,6 +23,7 @@ export class StorageSyncReader implements sdk.StorageSyncReader {
                 throw new sdk.WERR_UNAUTHORIZED()
             this.auth.userId = user.userId
         }
+        return this.getSettings()
     }
     destroy(): Promise<void> {
         return this.storage.destroy()

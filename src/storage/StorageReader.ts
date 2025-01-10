@@ -26,8 +26,8 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
     isAvailable(): boolean {
         return !!this._settings
     }
-    async makeAvailable(): Promise<void> {
-        this._settings = await this.readSettings()
+    async makeAvailable(): Promise<table.Settings> {
+        return this._settings = await this.readSettings()
     }
 
     getSettings() : table.Settings {

@@ -16,7 +16,8 @@ import {
     MonitorOptions,
     Services,
     WalletSigner,
-    WalletStorageManager
+    WalletStorageManager,
+    verifyOne
 } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
@@ -543,8 +544,9 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputBasket(storage: StorageProvider, u?: table.User) {
+    static async insertTestOutputBasket(storage: StorageProvider, u?: table.User | number) {
         const now = new Date()
+        if (typeof u === 'number') u = verifyOne(await storage.findUsers({ partial: { userId: u }}))
         u ||= await _tu.insertTestUser(storage)
         const e: table.OutputBasket = {
             created_at: now,

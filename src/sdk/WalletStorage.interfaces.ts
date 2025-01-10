@@ -11,7 +11,7 @@ import { sdk, table } from "..";
 export interface WalletStorage {
 
    isAvailable() : boolean
-   makeAvailable() : Promise<void>
+   makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>
    destroy(): Promise<void>
 
@@ -48,7 +48,7 @@ export interface WalletStorage {
  */
 export interface WalletStorageProvider {
    isAvailable() : boolean
-   makeAvailable() : Promise<void>
+   makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>
    destroy(): Promise<void>
 

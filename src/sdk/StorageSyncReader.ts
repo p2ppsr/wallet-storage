@@ -6,7 +6,7 @@ import { sdk, table } from "..";
 export interface StorageSyncReader {
 
    isAvailable(): boolean
-   makeAvailable(): Promise<void>
+   makeAvailable(): Promise<table.Settings>
 
    destroy(): Promise<void>
 

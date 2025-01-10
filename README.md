@@ -2398,7 +2398,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ```ts
 export interface StorageSyncReader {
     isAvailable(): boolean;
-    makeAvailable(): Promise<void>;
+    makeAvailable(): Promise<table.Settings>;
     settings?: table.Settings;
     destroy(): Promise<void>;
     getSettings(trx?: sdk.TrxToken): Promise<table.Settings>;

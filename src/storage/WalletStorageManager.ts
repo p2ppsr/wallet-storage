@@ -53,8 +53,9 @@ export class WalletStorageManager implements sdk.WalletStorage {
         return this.getActive().isAvailable()
     }
 
-    async makeAvailable(): Promise<void> {
+    async makeAvailable(): Promise<table.Settings> {
         this.getActive().makeAvailable()
+        return this.getActive().getSettings()
     }
 
     async migrate(storageName: string): Promise<string> {
@@ -163,17 +164,16 @@ export class WalletStorageManager implements sdk.WalletStorage {
     }
     
     async updateBackups() {
-        const identityKey = (await this.getAuth()).identityKey
+        const auth = await this.getAuth()
         // TODO: Lock access to new users and wait for current requests to clear.
         for (const backup of this.stores.slice(1)) {
-            await this.syncToWriter(identityKey, backup)
+            await this.syncToWriter(auth, backup)
         }
     }
     
-    async syncToWriter(identityKey: string, writer: sdk.WalletStorageProvider) : Promise<void> {
-        const auth = await this.getAuth()
-        if (identityKey !== auth.identityKey)
-            throw new sdk.WERR_UNAUTHORIZED()
+    async syncToWriter(auth: sdk.AuthId, writer: sdk.WalletStorageProvider) : Promise<{ inserts: number, updates: number }> {
+
+        const identityKey = auth.identityKey
 
         const reader = this.getActive()
         const writerSettings = await writer.getSettings()
@@ -194,7 +194,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         }
         //console.log(log)
         console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
+        return { inserts, updates }
     }
-    
 
 }

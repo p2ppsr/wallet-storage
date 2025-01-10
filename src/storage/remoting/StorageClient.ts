@@ -76,10 +76,11 @@ export class StorageClient implements sdk.WalletStorageProvider {
         return !!this.settings
     }
 
-    async makeAvailable(): Promise<void> {
+    async makeAvailable(): Promise<table.Settings> {
         // Try getSettings from remote to confirm.
         const settings = await this.getSettings()
         this.settings = settings
+        return settings
     }
 
     //////////////////////////////////////////////////////////////////////////////

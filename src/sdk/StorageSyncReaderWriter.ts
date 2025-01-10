@@ -1,6 +1,6 @@
-import { sdk, StorageSyncReader, table } from "..";
+import { sdk, table } from "..";
 
-export interface StorageSyncReaderWriter extends StorageSyncReader {
+export interface StorageSyncReaderWriter extends sdk.StorageSyncReader {
 
     getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
     

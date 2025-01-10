@@ -364,7 +364,8 @@ export abstract class TestUtilsWalletStorage {
         const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
         const monitor = new WalletMonitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
-        const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
+        const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
+        const userId = user.userId
         const r: TestWallet<T> = {
             rootKey,
             identityKey,

@@ -1,8 +1,6 @@
 export * from './schema/KnexMigrations'
 export * from './WalletStorage'
 export * from './StorageBase'
-export * from './StorageBaseReader'
-export * from './StorageBaseReaderWriter'
 export * from './StorageSyncReader'
 export * from './StorageKnex'
 export * as sync from './sync'

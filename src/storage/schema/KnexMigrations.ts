@@ -300,7 +300,7 @@ export class KnexMigrations implements MigrationSource<string> {
             async down(knex) {
                 await knex.schema.dropTable('sync_states')
                 await knex.schema.dropTable('settings')
-                await knex.schema.dropTable('watchman_events')
+                await knex.schema.dropTable('monitor_events')
                 await knex.schema.dropTable('certificate_fields')
                 await knex.schema.dropTable('certificates')
                 await knex.schema.dropTable('commissions')

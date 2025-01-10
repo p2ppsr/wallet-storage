@@ -13,11 +13,11 @@ import {
     verifyOptionalHexString,
     verifyTruthy
 } from "../..";
-import { DBType, StorageBaseReader, StorageKnexOptions, StorageSyncReader, table } from ".."
+import { table } from ".."
 
 import { Knex } from "knex";
-import { MerklePath } from "@bsv/sdk";
 import { isHexString } from '../../sdk';
+import { StorageBaseReader } from '../StorageBaseReader';
 
 export interface StorageMySQLDojoReaderOptions extends sdk.StorageSyncReaderOptions {
     chain: sdk.Chain

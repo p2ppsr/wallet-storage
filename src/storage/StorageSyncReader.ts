@@ -1,4 +1,5 @@
-import { DBType, sdk, StorageBaseOptions, StorageBaseReader, table, validateSecondsSinceEpoch, verifyTruthy } from "..";
+import { sdk, table } from "..";
+import { StorageBaseReader } from "./StorageBaseReader";
 
 /**
  * The `StorageSyncReader` non-abstract class must be used when authentication checking access to the methods of a `StorageBaseReader` is required.

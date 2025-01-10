@@ -137,6 +137,7 @@ export class WalletStorage implements sdk.WalletStorage {
 
     async syncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
         const writer = this.getActive()
+        await reader.makeAvailable()
         const readerSettings = await reader.getSettings()
 
         const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)

@@ -1,4 +1,6 @@
-import { sdk, StorageBaseReader, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { createSyncMap } from "./schema/entities";
+import { StorageBaseReader } from "./StorageBaseReader";
 
 export abstract class StorageBaseReaderWriter extends StorageBaseReader {
 
@@ -230,14 +232,25 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
         }
     }
 
-    findOrInsertSyncStateAuth(auth: sdk.AuthId, storageIdentityKey: string, storageName: string): Promise<{ syncState: table.SyncState; isNew: boolean; }> {
-        throw new Error('Method not implemented.');
-    }
-    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> {
-        throw new Error('Method not implemented.');
-        //const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
+    async findOrInsertSyncStateAuth(auth: sdk.AuthId, storageIdentityKey: string, storageName: string): Promise<{ syncState: table.SyncState; isNew: boolean; }> {
+        const partial = { userId: auth.userId!, storageIdentityKey, storageName }
+        for (let retry = 0; ; retry++) {
+            try {
+                const now = new Date()
+                let syncState = verifyOneOrNone(await this.findSyncStates({ partial }))
+                if (!syncState) {
+                    syncState = { ...partial, created_at: now, updated_at: now, syncStateId: 0, status: "unknown", init: false, refNum: "", syncMap: JSON.stringify(createSyncMap()) }
+                    await this.insertSyncState(syncState)
+                    return { syncState, isNew: true }
+                } 
+                return { syncState, isNew: false }
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
     }
 
+    abstract processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult>
 
     async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> {
         await this.transaction(async trx => {

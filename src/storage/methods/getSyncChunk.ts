@@ -1,4 +1,5 @@
-import { sdk, StorageBaseReader, table, verifyOne, verifyTruthy } from '../..'
+import { sdk, table, verifyOne, verifyTruthy } from '../..'
+import { StorageBaseReader } from '../StorageBaseReader'
 
 /**
  * Gets the next sync chunk of updated data from un-remoted storage (could be using a remote DB connection).

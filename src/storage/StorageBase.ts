@@ -1,11 +1,12 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, entity, PostReqsToNetworkResult, sdk, StorageBaseReaderWriter, table, verifyId, verifyOne, verifyOneOrNone } from "..";
+import { asArray, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
 import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
 import { internalizeAction } from './methods/internalizeAction';
+import { StorageBaseReaderWriter } from './StorageBaseReaderWriter';
 
 export abstract class StorageBase extends StorageBaseReaderWriter implements sdk.WalletStorageAuth {
 
@@ -406,6 +407,14 @@ export abstract class StorageBase extends StorageBaseReaderWriter implements sdk
         const output = verifyOne(await this.findOutputs({ partial: { txid, vout } }))
         return await this.updateOutput(output.outputId, { basketId: undefined })
     }
+
+    async processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> {
+        const user = verifyTruthy(await this.findUserByIdentityKey(args.identityKey))
+        const ss = new entity.SyncState(verifyOne(await this.findSyncStates({ partial: { storageIdentityKey: args.fromStorageIdentityKey, userId: user.userId }})))
+        const r = await ss.processSyncChunk(this, args, chunk)
+        return r
+    }
+
 }
 
 export interface StorageBaseOptions {

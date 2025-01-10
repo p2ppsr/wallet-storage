@@ -16,7 +16,7 @@ dotenv.config();
  * 
  * The inital import from staging dojo takes around 100 seconds... be patient.
  */
-describe.skip('Wallet sync tests', () => {
+describe('Wallet sync tests', () => {
     jest.setTimeout(99999999)
 
     beforeAll(async () => {

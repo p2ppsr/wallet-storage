@@ -179,7 +179,7 @@ export class SyncState extends EntityBase<table.SyncState> {
         return a
     }
 
-    async processRequestSyncChunkResult(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
+    async processSyncChunk(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
     : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
 

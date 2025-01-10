@@ -44,7 +44,8 @@ describe.skip('Wallet sync tests', () => {
         const reader = new StorageMySQLDojoReader({ chain, knex: readerKnex })
         const writer = await _tu.createMySQLTestWallet({ databaseName: 'stagingdojotone', chain: 'test', rootKeyHex, dropAll: true })
 
-        await writer.storage.syncFromReader(writer.identityKey, reader)
+        const identityKey = writer.identityKey
+        await writer.storage.syncFromReader(identityKey, new StorageSyncReader({ identityKey }, reader ))
 
         await reader.destroy()
         await writer.activeStorage.destroy()
@@ -81,7 +82,8 @@ describe.skip('Wallet sync tests', () => {
         const reader = await _tu.createMySQLTestWallet({ databaseName: 'stagingdojotone', chain: 'test', rootKeyHex })
         const writer = await _tu.createSQLiteTestWallet({ databaseName: 'walletLegacyTestData', chain: 'test', rootKeyHex, dropAll: true })
 
-        await writer.storage.syncFromReader(writer.identityKey, reader.activeStorage)
+        const identityKey = writer.identityKey
+        await writer.storage.syncFromReader(identityKey, new StorageSyncReader({ identityKey }, reader.activeStorage))
 
         await reader.activeStorage.destroy()
         await writer.activeStorage.destroy()
@@ -96,7 +98,8 @@ describe.skip('Wallet sync tests', () => {
         const reader = await _tu.createMySQLTestWallet({ databaseName: 'stagingdojotone', chain: 'test', rootKeyHex })
         const writer = await _tu.createMySQLTestWallet({ databaseName: 'walletLegacyTestData', chain: 'test', rootKeyHex, dropAll: true })
 
-        await writer.storage.syncFromReader(writer.identityKey, reader.activeStorage)
+        const identityKey = writer.identityKey
+        await writer.storage.syncFromReader(identityKey, new StorageSyncReader({identityKey}, reader.activeStorage))
 
         await reader.activeStorage.destroy()
         await writer.activeStorage.destroy()

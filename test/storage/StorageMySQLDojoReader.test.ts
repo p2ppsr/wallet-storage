@@ -11,7 +11,7 @@ describe.skip('StorageMySQLDojoReader tests', () => {
     const chain: sdk.Chain = 'test'
     const env = _tu.getEnv(chain)
     let reader: sdk.StorageSyncReader
-    let writer: sdk.WalletStorage //sdk.StorageSyncWriter
+    let writer: StorageKnex
 
     beforeAll(async () => {
         const connection = JSON.parse((chain === 'test' ? process.env.TEST_DOJO_CONNECTION : process.env.MAIN_DOJO_CONNECTION) || '')
@@ -38,8 +38,8 @@ describe.skip('StorageMySQLDojoReader tests', () => {
         const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
 
         for (;;) {
-            const args = ss.makeRequestSyncChunkArgs(identityKey)
-            const chunk = await reader.requestSyncChunk(args)
+            const args = ss.makeRequestSyncChunkArgs(identityKey, writerSettings.storageIdentityKey)
+            const chunk = await reader.getSyncChunk(args)
             const r = await ss.processRequestSyncChunkResult(writer, args, chunk)
             //console.log(`${r.maxUpdated_at} inserted ${r.inserts} updated ${r.updates}`)
             if (r.done)

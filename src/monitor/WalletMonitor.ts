@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices, WalletStorage } from ".."
-import { BlockHeader, ChaintracksClientApi, ChaintracksServiceClient } from "../services/chaintracker"
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, StorageBase, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices } from ".."
+import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskValidate } from './tasks/TaskValidate'
 import { TaskPurge } from './tasks/TaskPurge'
 import { TaskCheckProofs } from './tasks/TaskCheckProofs'
@@ -19,7 +19,7 @@ export interface WalletMonitorOptions {
 
     services: WalletServices
 
-    storage: WalletStorage
+    storage: StorageBase
 
     chaintracks: ChaintracksClientApi
 
@@ -44,7 +44,7 @@ export interface WalletMonitorOptions {
 export class WalletMonitor {
     static createDefaultWalletMonitorOptions(
         chain: sdk.Chain,
-        storage: WalletStorage,
+        storage: StorageBase,
         services?: WalletServices
     ): WalletMonitorOptions {
         services ||= new WalletServices(chain)
@@ -67,7 +67,7 @@ export class WalletMonitor {
     options: WalletMonitorOptions
     services: WalletServices
     chain: sdk.Chain
-    storage: WalletStorage
+    storage: StorageBase
     chaintracks: ChaintracksClientApi
 
     constructor(options: WalletMonitorOptions) {
@@ -696,12 +696,12 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             }
         }
 
-        if (r.rawTx && r.beef) {
+        if (r.rawTx && r.inputBEEF) {
             if (trustSelf === 'known')
                 beef.mergeTxidOnly(txid)
             else {
                 beef.mergeRawTx(r.rawTx)
-                beef.mergeBeef(r.beef)
+                beef.mergeBeef(r.inputBEEF)
                 const tx = bsv.Transaction.fromBinary(r.rawTx)
                 for (const input of tx.inputs) {
                     const btx = beef.findTxid(input.sourceTXID!)

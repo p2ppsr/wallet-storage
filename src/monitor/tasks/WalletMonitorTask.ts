@@ -1,4 +1,4 @@
-import { WalletStorage } from '../../storage';
+import { StorageBase } from '../../storage';
 import { WalletMonitor } from '../WalletMonitor';
 
 /**
@@ -24,7 +24,7 @@ export abstract class WalletMonitorTask {
      */
     lastRunMsecsSinceEpoch = 0;
 
-    storage: WalletStorage;
+    storage: StorageBase;
 
     constructor(
         public monitor: WalletMonitor,

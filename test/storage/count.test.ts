@@ -124,9 +124,9 @@ describe('count tests', () => {
         }
     })
 
-    test('13 count WatchmanEvent', async () => {
+    test('13 count MonitorEvent', async () => {
         for (const { storage, setup } of setups) {
-            expect(await storage.countWatchmanEvents({ partial: {} })).toBe(1)
+            expect(await storage.countMonitorEvents({ partial: {} })).toBe(1)
         }
     })
 

@@ -1,7 +1,23 @@
 import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, StorageSyncReader, table, verifyTruthy, Wallet, WalletMonitor, WalletMonitorOptions, WalletServices, WalletSigner, WalletStorage } from '../../src'
+import {
+    asArray,
+    randomBytesBase64,
+    randomBytesHex,
+    sdk,
+    StorageBase,
+    StorageKnex,
+    StorageSyncReader,
+    table,
+    verifyTruthy,
+    Wallet,
+    WalletMonitor,
+    WalletMonitorOptions,
+    WalletServices,
+    WalletSigner,
+    WalletStorage
+} from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
 import { Beef } from '@bsv/sdk';
@@ -341,11 +357,11 @@ export abstract class TestUtilsWalletStorage {
         await activeStorage.migrate(args.databaseName)
         await activeStorage.makeAvailable()
         const setup = await args.insertSetup(activeStorage, identityKey)
-        const storage = new WalletStorage(activeStorage)
+        const storage = new WalletStorage(identityKey, activeStorage)
         await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
         const services = new WalletServices(args.chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services)
+        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
         const monitor = new WalletMonitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
@@ -405,18 +421,18 @@ export abstract class TestUtilsWalletStorage {
         if (useReader) await activeStorage.dropAllData()
         await activeStorage.migrate(databaseName)
         await activeStorage.makeAvailable()
-        const storage = new WalletStorage(activeStorage)
+        const storage = new WalletStorage(identityKey, activeStorage)
         await storage.makeAvailable()
         if (useReader) {
             const readerKnex = _tu.createLocalSQLite(readerFile)
             const reader = new StorageKnex({ chain, knex: readerKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
             await reader.makeAvailable()
-            await storage.syncFromReader(identityKey, reader)
+            await storage.syncFromReader(identityKey, new StorageSyncReader({ identityKey }, reader))
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)
         const services = new WalletServices(chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, storage, services)
+        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
         const monitor = new WalletMonitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
@@ -673,15 +689,15 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestWatchmanEvent(storage: StorageBase) {
+    static async insertTestMonitorEvent(storage: StorageBase) {
         const now = new Date()
-        const e: table.WatchmanEvent = {
+        const e: table.MonitorEvent = {
             created_at: now,
             updated_at: now,
             id: 0,
             event: 'nothing much happened'
         }
-        await storage.insertWatchmanEvent(e)
+        await storage.insertMonitorEvent(e)
         return e
     }
 
@@ -741,7 +757,7 @@ export abstract class TestUtilsWalletStorage {
         const req1 = await _tu.insertTestProvenTxReq(storage, undefined, undefined, true)
         const req2 = await _tu.insertTestProvenTxReq(storage, proven1.txid, proven1.provenTxId)
 
-        const we1 = await _tu.insertTestWatchmanEvent(storage)
+        const we1 = await _tu.insertTestMonitorEvent(storage)
         return {
             u1,
             u1basket1,
@@ -828,7 +844,7 @@ export interface TestSetup1 {
     req1: table.ProvenTxReq,
     req2: table.ProvenTxReq,
 
-    we1: table.WatchmanEvent
+    we1: table.MonitorEvent
 }
 
 export interface TestWallet<T> {

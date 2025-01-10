@@ -25,11 +25,11 @@ export interface WalletStorageServerOptions {
 export class StorageServer {
     private app = express()
     private port: number
-    private walletStorage: sdk.WalletStorage
+    private walletStorage: sdk.WalletStorageAuth
     private wallet: Wallet
     private monetize: boolean
 
-    constructor(walletStorage: sdk.WalletStorage, options: WalletStorageServerOptions) {
+    constructor(walletStorage: sdk.WalletStorageAuth, options: WalletStorageServerOptions) {
         this.walletStorage = walletStorage
         this.port = options.port
         this.wallet = options.wallet
@@ -76,18 +76,7 @@ export class StorageServer {
                     // method is on the walletStorage:
                     // Find user
                     if (method !== 'getSettings') {
-                        const user = await this.walletStorage.findUserByIdentityKey(req.auth.identityKey)
-                        if (!user) {
-                            const userId = await this.walletStorage.insertUser({
-                                identityKey: req.auth.identityKey as string,
-                                userId: 0,
-                                created_at: new Date(),
-                                updated_at: new Date()
-                            })
-                            params[0].userId = userId
-                        } else {
-                            params[0].userId = user.userId
-                        }
+                        const { user } = await this.walletStorage.findOrInsertUser(req.auth.identityKey)
                     }
                     const result = await (this.walletStorage as any)[method](...(params || []))
                     return res.json({ jsonrpc: "2.0", result, id })

@@ -6366,7 +6366,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 
 #### Function: createActionSdk
 
-Create Actionfacilitates the creation of transactions in a wallet environment, enabling users to create, sign, and broadcast Bitcoin transactions using predefined inputs, outputs, and options. It supports flexible configurations such as creating new transactions, handling signing actions, and interacting with the storage layer for persistent data handling.
+Create Action facilitates the creation of transactions in a wallet environment, enabling users to create, sign, and broadcast Bitcoin transactions using predefined inputs, outputs, and options. It supports flexible configurations such as creating new transactions, handling signing actions, and interacting with the storage layer for persistent data handling.
 
 Overview
 This function operates in several stages:

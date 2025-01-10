@@ -76,6 +76,7 @@ describe('createAction test', () => {
             let txid2: string
             const outputSatoshis = 42
             let noSendChange: string[] | undefined
+            let inputBEEF: bsv.AtomicBEEF | undefined
 
             {
                 const createArgs: sdk.CreateActionArgs = {
@@ -116,12 +117,13 @@ describe('createAction test', () => {
                     reference: st.reference,
                     spends: {},
                     options: {
-                        returnTXIDOnly: true,
+                        returnTXIDOnly: false,
                         noSend: true,
                     }
                 }
 
                 const sr = await wallet.signAction(signArgs)
+                inputBEEF = sr.tx
 
                 txid1 = sr.txid!
                 // Update the noSendChange txid to final signed value.
@@ -141,6 +143,7 @@ describe('createAction test', () => {
                             unlockingScriptLength
                         }
                     ],
+                    inputBEEF, 
                     options: {
                         noSendChange,
                         // signAndProcess: false, // Not required as an input lacks unlock script...  
@@ -182,6 +185,7 @@ describe('createAction test', () => {
                 const createArgs: sdk.CreateActionArgs = {
                     description: `${kp.address} of ${root}`,
                     options: {
+                        acceptDelayedBroadcast: false,
                         sendWith: [txid1, txid2]
                     }
                 }

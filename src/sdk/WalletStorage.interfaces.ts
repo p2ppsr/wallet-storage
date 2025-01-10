@@ -74,6 +74,7 @@ export interface WalletStorageAuth {
    relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs) : Promise<number>
 
+   getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
 }
 

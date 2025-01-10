@@ -20,6 +20,11 @@ export default async (): Promise<Config> => {
     testMatch: ['**/?(*.)+(test).[tj]s',"**/__test/**/*.test.ts"],
     // default []
     testRegex: [],
-    transform: { '^.+\\.ts$': ['ts-jest', { rootDir: '.' }] }
+    transform: { '^.+\\.ts$': ['ts-jest', { rootDir: '.' }] },
+    coverageReporters: ["clover"],
+    reporters: [
+      "default",
+      ["jest-simple-summary", { summary: true, colors: true }]
+    ]
   }
 }

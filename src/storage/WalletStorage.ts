@@ -136,15 +136,20 @@ export class WalletStorage implements sdk.WalletStorage {
     }
 
     async syncFromReader(identityKey: string, reader: StorageSyncReader) : Promise<void> {
+        const auth = await this.getAuth()
+        if (identityKey !== auth.identityKey)
+            throw new sdk.WERR_UNAUTHORIZED()
+
         const writer = this.getActive()
         await reader.makeAvailable()
         const readerSettings = await reader.getSettings()
+        const writerSettings = this.getSettings()
 
         let log = ''
         let inserts = 0, updates = 0
         for (;;) {
             const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
-            const args = ss.makeRequestSyncChunkArgs(identityKey, this.getSettings().storageIdentityKey)
+            const args = ss.makeRequestSyncChunkArgs(identityKey, writerSettings.storageIdentityKey)
             const chunk = await reader.getSyncChunk(args)
             const r = await writer.processSyncChunk(args, chunk)
             inserts += r.inserts
@@ -158,7 +163,7 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     
     async updateBackups() {
-        const identityKey = this._authId.identityKey
+        const identityKey = (await this.getAuth()).identityKey
         // TODO: Lock access to new users and wait for current requests to clear.
         for (const backup of this.stores.slice(1)) {
             await this.syncToWriter(identityKey, backup)
@@ -166,17 +171,19 @@ export class WalletStorage implements sdk.WalletStorage {
     }
     
     async syncToWriter(identityKey: string, writer: sdk.WalletStorageAuth) : Promise<void> {
+        const auth = await this.getAuth()
+        if (identityKey !== auth.identityKey)
+            throw new sdk.WERR_UNAUTHORIZED()
+
         const reader = this.getActive()
         const writerSettings = await writer.getSettings()
-
-        // TODO this is wrong....
-        //const ss = await entity.SyncState.fromStorage(reader, identityKey, writerSettings)
+        const readerSettings = this.getSettings()
 
         let log = ''
         let inserts = 0, updates = 0
-        /*
         for (;;) {
-            const args = ss.makeRequestSyncChunkArgs(identityKey)
+            const ss = await entity.SyncState.fromStorage(writer, identityKey, readerSettings)
+            const args = ss.makeRequestSyncChunkArgs(identityKey, writerSettings.storageIdentityKey)
             const chunk = await reader.getSyncChunk(args)
             const r = await writer.processSyncChunk(args, chunk)
             inserts += r.inserts
@@ -185,7 +192,6 @@ export class WalletStorage implements sdk.WalletStorage {
             if (r.done)
                 break;
         }
-            */
         //console.log(log)
         console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
     }

@@ -1,5 +1,5 @@
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
-import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyTruthy, WalletSigner } from "../.."
+import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyId, verifyTruthy, WalletSigner } from "../.."
 
 export async function createAction(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
 : Promise<sdk.CreateActionResult>
@@ -157,7 +157,6 @@ export async function processAction(prior: PendingSignAction | undefined, signer
 : Promise<sdk.SendWithResult[] | undefined>
 {
   const args: sdk.StorageProcessActionArgs = {
-    userId: auth.userId!,
     isNewTx: vargs.isNewTx,
     isSendWith: vargs.isSendWith,
     isNoSend: vargs.isNoSend,

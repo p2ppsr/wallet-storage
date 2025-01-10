@@ -12,7 +12,7 @@ export async function processAction(
 
     stampLog(args.log, `start dojo processActionSdk`)
 
-    const userId = args.userId
+    const userId = verifyId(auth.userId)
     const r: sdk.StorageProcessActionResults = {
         sendWithResults: undefined
     }

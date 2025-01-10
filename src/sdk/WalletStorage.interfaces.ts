@@ -149,7 +149,6 @@ export interface StorageCreateActionResult {
 }
 
 export interface StorageProcessActionArgs {
-   userId: number,
    isNewTx: boolean
    isSendWith: boolean
    isNoSend: boolean

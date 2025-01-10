@@ -1,4 +1,4 @@
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 
@@ -6,7 +6,7 @@ export class TaskClock extends WalletMonitorTask {
     static taskName = 'Clock';
     nextMinute: number
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1 * monitor.oneSecond) {
+    constructor(monitor: Monitor, public triggerMsecs = 1 * monitor.oneSecond) {
         super(monitor, TaskClock.taskName);
         this.nextMinute = this.getNextMinute()
     }

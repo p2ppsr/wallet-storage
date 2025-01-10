@@ -8,7 +8,7 @@ import { getTaalArcServiceConfig, makeGetMerklePathFromTaalARC, makePostBeefToTa
 import { getMerklePathFromWhatsOnChainTsc, getRawTxFromWhatsOnChain, getUtxoStatusFromWhatsOnChain, updateBsvExchangeRate } from './providers/whatsonchain'
 import { updateChaintracksFiatExchangeRates, updateExchangeratesapi } from './providers/echangeRates'
 
-export class WalletServices implements sdk.WalletServices {
+export class Services implements sdk.WalletServices {
     static createDefaultOptions(chain: sdk.Chain): sdk.WalletServicesOptions {
         return createDefaultWalletServicesOptions(chain)
     }
@@ -27,7 +27,7 @@ export class WalletServices implements sdk.WalletServices {
     constructor(optionsOrChain: sdk.Chain | sdk.WalletServicesOptions) {
         this.chain = (typeof optionsOrChain === 'string') ? optionsOrChain : optionsOrChain.chain
 
-        this.options = (typeof optionsOrChain === 'string') ? WalletServices.createDefaultOptions(this.chain) : optionsOrChain
+        this.options = (typeof optionsOrChain === 'string') ? Services.createDefaultOptions(this.chain) : optionsOrChain
 
         this.getMerklePathServices = new ServiceCollection<sdk.GetMerklePathService>()
             .add({ name: 'WhatsOnChainTsc', service: getMerklePathFromWhatsOnChainTsc })

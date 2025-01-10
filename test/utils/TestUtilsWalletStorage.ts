@@ -12,9 +12,9 @@ import {
     table,
     verifyTruthy,
     Wallet,
-    WalletMonitor,
-    WalletMonitorOptions,
-    WalletServices,
+    Monitor,
+    MonitorOptions,
+    Services,
     WalletSigner,
     WalletStorageManager
 } from '../../src'
@@ -360,9 +360,9 @@ export abstract class TestUtilsWalletStorage {
         const storage = new WalletStorageManager(identityKey, activeStorage)
         await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        const services = new WalletServices(args.chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
-        const monitor = new WalletMonitor(monopts)
+        const services = new Services(args.chain)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
         const userId = user.userId
@@ -432,9 +432,9 @@ export abstract class TestUtilsWalletStorage {
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        const services = new WalletServices(chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
-        const monitor = new WalletMonitor(monopts)
+        const services = new Services(chain)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
         const r: TestWallet<{}> = {
@@ -857,8 +857,8 @@ export interface TestWallet<T> {
     storage: WalletStorageManager,
     setup?: T,
     signer: WalletSigner,
-    services: WalletServices,
-    monitor: WalletMonitor,
+    services: Services,
+    monitor: Monitor,
     wallet: Wallet,
     userId: number
 } 

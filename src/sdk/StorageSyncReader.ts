@@ -1,5 +1,8 @@
 import { sdk, table } from "..";
 
+/**
+ * This is the minimal interface required for a WalletStorageProvider to export data to another provider.
+ */
 export interface StorageSyncReader {
 
    isAvailable(): boolean
@@ -14,8 +17,6 @@ export interface StorageSyncReader {
    /////////////////
 
    getSettings(): table.Settings
-
-   getSyncChunk(args: RequestSyncChunkArgs) : Promise<SyncChunk>
 
    findUserByIdentityKey(key: string) : Promise<table.User| undefined>
 
@@ -34,6 +35,8 @@ export interface StorageSyncReader {
    getProvenTxReqsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.ProvenTxReq[]>
    getTxLabelMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.TxLabelMap[]>
    getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.OutputTagMap[]>
+
+   getSyncChunk(args: RequestSyncChunkArgs) : Promise<SyncChunk>
 }
 
 /**

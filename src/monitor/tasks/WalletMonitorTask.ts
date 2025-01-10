@@ -1,4 +1,4 @@
-import { MonitorStorage, WalletMonitor } from '../WalletMonitor';
+import { MonitorStorage, Monitor } from '../Monitor';
 
 /**
  * A monitor task performs some periodic or state triggered maintenance function
@@ -26,7 +26,7 @@ export abstract class WalletMonitorTask {
     storage: MonitorStorage;
 
     constructor(
-        public monitor: WalletMonitor,
+        public monitor: Monitor,
         public name: string
     ) {
         this.storage = monitor.storage;

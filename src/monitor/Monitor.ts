@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices } from ".."
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services } from ".."
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskValidate } from './tasks/TaskValidate'
 import { TaskPurge } from './tasks/TaskPurge'
@@ -15,11 +15,11 @@ import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
 export type MonitorStorage = sdk.StorageSyncReaderWriter
 
-export interface WalletMonitorOptions {
+export interface MonitorOptions {
 
     chain: sdk.Chain
 
-    services: WalletServices
+    services: Services
 
     storage: MonitorStorage
 
@@ -43,16 +43,16 @@ export interface WalletMonitorOptions {
  * Background task to make sure transactions are processed, transaction proofs are received and propagated,
  * and potentially that reorgs update proofs that were already received.
  */
-export class WalletMonitor {
+export class Monitor {
     static createDefaultWalletMonitorOptions(
         chain: sdk.Chain,
         storage: MonitorStorage,
-        services?: WalletServices
-    ): WalletMonitorOptions {
-        services ||= new WalletServices(chain)
+        services?: Services
+    ): MonitorOptions {
+        services ||= new Services(chain)
         if (!services.options.chaintracks)
             throw new sdk.WERR_INVALID_PARAMETER('services.options.chaintracks', 'valid')
-        const o: WalletMonitorOptions = {
+        const o: MonitorOptions = {
             chain,
             services,
             storage,
@@ -66,13 +66,13 @@ export class WalletMonitor {
         return o
     }
 
-    options: WalletMonitorOptions
-    services: WalletServices
+    options: MonitorOptions
+    services: Services
     chain: sdk.Chain
     storage: MonitorStorage
     chaintracks: ChaintracksClientApi
 
-    constructor(options: WalletMonitorOptions) {
+    constructor(options: MonitorOptions) {
         this.options = { ... options }
         this.services = options.services
         this.chain = this.services.chain

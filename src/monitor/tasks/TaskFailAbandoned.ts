@@ -1,4 +1,4 @@
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 /**
@@ -14,7 +14,7 @@ import { WalletMonitorTask } from './WalletMonitorTask';
 export class TaskFailAbandoned extends WalletMonitorTask {
     static taskName = 'FailAbandoned';
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 5) {
+    constructor(monitor: Monitor, public triggerMsecs = 1000 * 60 * 5) {
         super(monitor, TaskFailAbandoned.taskName);
     }
 

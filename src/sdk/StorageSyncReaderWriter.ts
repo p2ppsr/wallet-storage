@@ -1,5 +1,8 @@
 import { sdk, table } from "..";
 
+/**
+ * This is the minimal interface required for a WalletStorageProvider to import and export data to another provider.
+ */
 export interface StorageSyncReaderWriter extends sdk.StorageSyncReader {
 
     getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
@@ -73,8 +76,7 @@ export interface StorageSyncReaderWriter extends sdk.StorageSyncReader {
     findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken) : Promise<{ req: table.ProvenTxReq, isNew: boolean }>
     findUsers(args: sdk.FindUsersArgs ): Promise<table.User[]>
 
-    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> 
-
     tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> 
 
+    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> 
 }

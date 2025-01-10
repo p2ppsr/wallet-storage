@@ -1,5 +1,5 @@
 import { TaskNotifyOfProofs } from './TaskNotifyOfProofs';
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 /**
@@ -24,7 +24,7 @@ export class TaskCheckForProofs extends WalletMonitorTask {
      */
     static checkNow = false;
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 0) {
+    constructor(monitor: Monitor, public triggerMsecs = 0) {
         super(monitor, TaskCheckForProofs.taskName);
     }
 

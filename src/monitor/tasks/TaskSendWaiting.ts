@@ -1,12 +1,12 @@
 import { verifyTruthy } from '../../utility';
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 
 export class TaskSendWaiting extends WalletMonitorTask {
     static taskName = 'SendWaiting';
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 5, public agedMsecs = 0) {
+    constructor(monitor: Monitor, public triggerMsecs = 1000 * 60 * 5, public agedMsecs = 0) {
         super(monitor, TaskSendWaiting.taskName);
     }
 

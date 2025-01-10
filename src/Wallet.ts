@@ -1,17 +1,17 @@
 import { Beef, BeefParty, Utils, PrivateKey } from "@bsv/sdk";
-import { sdk, stampLog, toWalletNetwork, WalletMonitor } from '.'
+import { sdk, stampLog, toWalletNetwork, Monitor } from '.'
 
 export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     signer: sdk.WalletSigner
     services?: sdk.WalletServices
-    monitor?: WalletMonitor
+    monitor?: Monitor
 
     beef: BeefParty
     trustSelf?: sdk.TrustSelf
     storageParty: string
     userParty: string
 
-    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: WalletMonitor) {
+    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) {
         if (!keyDeriver)
             throw new sdk.WERR_INVALID_PARAMETER('keyDeriver', 'valid')
         super(keyDeriver)

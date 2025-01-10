@@ -3,13 +3,9 @@ import { KnexMigrations, table } from '.'
 
 import { Knex } from 'knex'
 import { StorageBase, StorageBaseOptions } from './StorageBase'
-import { listActionsSdk } from './methods/listActionsSdk'
-import { listOutputsSdk } from './methods/listOutputsSdk'
 import { purgeData } from './methods/purgeData'
-import { requestSyncChunk } from './methods/requestSyncChunk'
-import { listCertificatesSdk } from './methods/listCertificatesSdk'
-import { createTransactinoSdk } from './methods/createTransactionSdk'
-import { processActionSdk } from './methods/processActionSdk'
+import { listActions } from './methods/listActions'
+import { listOutputs } from './methods/listOutputs'
 
 export interface StorageKnexOptions extends StorageBaseOptions {
   /**
@@ -18,7 +14,7 @@ export interface StorageKnexOptions extends StorageBaseOptions {
   knex: Knex
 }
 
-export class StorageKnex extends StorageBase implements sdk.WalletStorage {
+export class StorageKnex extends StorageBase implements sdk.WalletStorageAuth {
   knex: Knex
 
   constructor(options: StorageKnexOptions) {
@@ -81,85 +77,83 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     return rawTx
   }
 
-  getProvenTxsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder {
-    const k = this.toDb(trx)
+  getProvenTxsForUserQuery(args: sdk.FindForUserSincePagedArgs): Knex.QueryBuilder {
+    const k = this.toDb(args.trx)
     let q = k('proven_txs').where(function () {
-      this.whereExists(k.select('*').from('transactions').whereRaw(`proven_txs.provenTxId = transactions.provenTxId and transactions.userId = ${userId}`))
+      this.whereExists(k.select('*').from('transactions').whereRaw(`proven_txs.provenTxId = transactions.provenTxId and transactions.userId = ${args.userId}`))
     })
-    if (paged) {
-      q = q.limit(paged.limit)
-      q = q.offset(paged.offset || 0)
+    if (args.paged) {
+      q = q.limit(args.paged.limit)
+      q = q.offset(args.paged.offset || 0)
     }
-    if (since) q = q.where('updated_at', '>=', since)
+    if (args.since) q = q.where('updated_at', '>=', args.since)
     return q
   }
-  override async getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]> {
-    const q = this.getProvenTxsForUserQuery(userId, since, paged, trx)
+  override async getProvenTxsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.ProvenTx[]> {
+    const q = this.getProvenTxsForUserQuery(args)
     const rs = await q
     return this.validateEntities(rs)
   }
 
-  getProvenTxReqsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder {
-    const k = this.toDb(trx)
+  getProvenTxReqsForUserQuery(args: sdk.FindForUserSincePagedArgs): Knex.QueryBuilder {
+    const k = this.toDb(args.trx)
     let q = k('proven_tx_reqs').where(function () {
-      this.whereExists(k.select('*').from('transactions').whereRaw(`proven_tx_reqs.txid = transactions.txid and transactions.userId = ${userId}`))
+      this.whereExists(k.select('*').from('transactions').whereRaw(`proven_tx_reqs.txid = transactions.txid and transactions.userId = ${args.userId}`))
     })
-    if (paged) {
-      q = q.limit(paged.limit)
-      q = q.offset(paged.offset || 0)
+    if (args.paged) {
+      q = q.limit(args.paged.limit)
+      q = q.offset(args.paged.offset || 0)
     }
-    if (since) q = q.where('updated_at', '>=', since)
+    if (args.since) q = q.where('updated_at', '>=', args.since)
     return q
   }
-  override async getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]> {
-    const q = this.getProvenTxReqsForUserQuery(userId, since, paged, trx)
+  override async getProvenTxReqsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.ProvenTxReq[]> {
+    const q = this.getProvenTxReqsForUserQuery(args)
     const rs = await q
     return this.validateEntities(rs, undefined, ['notified'])
   }
 
-  getTxLabelMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder {
-    const k = this.toDb(trx)
-    let q = k('tx_labels_map').whereExists(k.select('*').from('tx_labels').whereRaw(`tx_labels.txLabelId = tx_labels_map.txLabelId and tx_labels.userId = ${userId}`))
-    if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
-    if (paged) {
-      q = q.limit(paged.limit)
-      q = q.offset(paged.offset || 0)
+  getTxLabelMapsForUserQuery(args: sdk.FindForUserSincePagedArgs): Knex.QueryBuilder {
+    const k = this.toDb(args.trx)
+    let q = k('tx_labels_map').whereExists(k.select('*').from('tx_labels').whereRaw(`tx_labels.txLabelId = tx_labels_map.txLabelId and tx_labels.userId = ${args.userId}`))
+    if (args.since) q = q.where('updated_at', '>=', this.validateDateForWhere(args.since))
+    if (args.paged) {
+      q = q.limit(args.paged.limit)
+      q = q.offset(args.paged.offset || 0)
     }
     return q
   }
-  override async getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]> {
-    const q = this.getTxLabelMapsForUserQuery(userId, since, paged, trx)
+  override async getTxLabelMapsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.TxLabelMap[]> {
+    const q = this.getTxLabelMapsForUserQuery(args)
     const rs = await q
     return this.validateEntities(rs, undefined, ['isDeleted'])
   }
 
-  getOutputTagMapsForUserQuery(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Knex.QueryBuilder {
-    const k = this.toDb(trx)
-    let q = k('output_tags_map').whereExists(k.select('*').from('output_tags').whereRaw(`output_tags.outputTagId = output_tags_map.outputTagId and output_tags.userId = ${userId}`))
-    if (since) q = q.where('updated_at', '>=', this.validateDateForWhere(since))
-    if (paged) {
-      q = q.limit(paged.limit)
-      q = q.offset(paged.offset || 0)
+  getOutputTagMapsForUserQuery(args: sdk.FindForUserSincePagedArgs): Knex.QueryBuilder {
+    const k = this.toDb(args.trx)
+    let q = k('output_tags_map').whereExists(k.select('*').from('output_tags').whereRaw(`output_tags.outputTagId = output_tags_map.outputTagId and output_tags.userId = ${args.userId}`))
+    if (args.since) q = q.where('updated_at', '>=', this.validateDateForWhere(args.since))
+    if (args.paged) {
+      q = q.limit(args.paged.limit)
+      q = q.offset(args.paged.offset || 0)
     }
     return q
   }
-  override async getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]> {
-    const q = this.getOutputTagMapsForUserQuery(userId, since, paged, trx)
+  override async getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.OutputTagMap[]> {
+    const q = this.getOutputTagMapsForUserQuery(args)
     const rs = await q
     return this.validateEntities(rs, undefined, ['isDeleted'])
   }
 
-  override async listCertificatesSdk(vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> {
-    return await listCertificatesSdk(this, vargs, originator)
+  override async listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+    if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
+    const vargs = sdk.validateListActionsArgs(args)
+    return await listActions(this, auth, vargs)
   }
-  override async listActionsSdk(vargs: sdk.ValidListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> {
-    return await listActionsSdk(this, vargs, originator)
-  }
-  override async listOutputsSdk(vargs: sdk.ValidListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> {
-    return await listOutputsSdk(this, vargs, originator)
-  }
-  override async processActionSdk(params: sdk.StorageProcessActionSdkParams, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageProcessActionSdkResults> {
-    return await processActionSdk(this, params, originator)
+  override async listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+    if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
+    const vargs = sdk.validateListOutputsArgs(args)
+    return await listOutputs(this, auth, vargs)
   }
 
   override async insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number> {
@@ -184,6 +178,13 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     const [id] = await this.toDb(trx)<table.User>('users').insert(e)
     user.userId = id
     return user.userId
+  }
+
+  override async insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number> {
+    if (!auth.userId  || certificate.userId && certificate.userId !== auth.userId)
+      throw new sdk.WERR_UNAUTHORIZED()
+    certificate.userId = auth.userId
+    return await this.insertCertificate(certificate)
   }
 
   override async insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number> {
@@ -266,10 +267,10 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     const [id] = await this.toDb(trx)<table.TxLabelMap>('tx_labels_map').insert(e)
   }
 
-  override async insertWatchmanEvent(event: table.WatchmanEvent, trx?: sdk.TrxToken): Promise<number> {
+  override async insertMonitorEvent(event: table.MonitorEvent, trx?: sdk.TrxToken): Promise<number> {
     const e = await this.validateEntityForInsert(event, trx)
     if (e.id === 0) delete e.id
-    const [id] = await this.toDb(trx)<table.WatchmanEvent>('watchman_events').insert(e)
+    const [id] = await this.toDb(trx)<table.MonitorEvent>('monitor_events').insert(e)
     event.id = id
     return event.id
   }
@@ -356,9 +357,9 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     await this.verifyReadyForDatabaseAccess(trx)
     return await this.toDb(trx)<table.User>('users').where({ userId: id }).update(this.validatePartialForUpdate(update))
   }
-  override async updateWatchmanEvent(id: number, update: Partial<table.WatchmanEvent>, trx?: sdk.TrxToken): Promise<number> {
+  override async updateMonitorEvent(id: number, update: Partial<table.MonitorEvent>, trx?: sdk.TrxToken): Promise<number> {
     await this.verifyReadyForDatabaseAccess(trx)
-    return await this.toDb(trx)<table.WatchmanEvent>('watchman_events').where({ id }).update(this.validatePartialForUpdate(update))
+    return await this.toDb(trx)<table.MonitorEvent>('monitor_events').where({ id }).update(this.validatePartialForUpdate(update))
   }
 
   setupQuery<T extends object>(table: string, args: sdk.FindPartialSincePagedArgs<T>): Knex.QueryBuilder {
@@ -446,8 +447,27 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   findUsersQuery(args: sdk.FindUsersArgs): Knex.QueryBuilder {
     return this.setupQuery('users', args)
   }
-  findWatchmanEventsQuery(args: sdk.FindWatchmanEventsArgs): Knex.QueryBuilder {
-    return this.setupQuery('watchman_events', args)
+  findMonitorEventsQuery(args: sdk.FindMonitorEventsArgs): Knex.QueryBuilder {
+    return this.setupQuery('monitor_events', args)
+  }
+
+  override async findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
+    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+      throw new sdk.WERR_UNAUTHORIZED()
+    args.partial.userId = auth.userId
+    return await this.findCertificates(args)
+  }
+  override async findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
+    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+      throw new sdk.WERR_UNAUTHORIZED()
+    args.partial.userId = auth.userId
+    return await this.findOutputBaskets(args)
+  }
+  override async findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs): Promise<table.Output[]> {
+    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+      throw new sdk.WERR_UNAUTHORIZED()
+    args.partial.userId = auth.userId
+    return await this.findOutputs(args)
   }
 
   override async findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]> {
@@ -528,8 +548,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
     const r = await q
     return this.validateEntities(r)
   }
-  override async findWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<table.WatchmanEvent[]> {
-    const q = this.findWatchmanEventsQuery(args)
+  override async findMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<table.MonitorEvent[]> {
+    const q = this.findMonitorEventsQuery(args)
     const r = await q
     return this.validateEntities(r, ['when'], undefined)
   }
@@ -582,8 +602,8 @@ export class StorageKnex extends StorageBase implements sdk.WalletStorage {
   override async countUsers(args: sdk.FindUsersArgs): Promise<number> {
     return await this.getCount(this.findUsersQuery(args))
   }
-  override async countWatchmanEvents(args: sdk.FindWatchmanEventsArgs): Promise<number> {
-    return await this.getCount(this.findWatchmanEventsQuery(args))
+  override async countMonitorEvents(args: sdk.FindMonitorEventsArgs): Promise<number> {
+    return await this.getCount(this.findMonitorEventsQuery(args))
   }
 
   override async destroy(): Promise<void> {

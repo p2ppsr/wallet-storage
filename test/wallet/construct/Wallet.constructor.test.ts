@@ -24,7 +24,7 @@ describe('Wallet constructor tests', () => {
     })
 
     test('0', async () => {
-        for (const { storage, userId, wallet } of ctxs) {
+        for (const { activeStorage: storage, userId, wallet } of ctxs) {
 
             {
                 const labels = await storage.findTxLabels({ partial: { userId } })

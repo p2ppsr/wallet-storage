@@ -1,181 +1,123 @@
-import { DBType, sdk, StorageBaseOptions, table, validateSecondsSinceEpoch, verifyTruthy } from "..";
-import { requestSyncChunk } from "./methods/requestSyncChunk";
+import { sdk, table } from "..";
+import { StorageBaseReader } from "./StorageBaseReader";
 
-export abstract class StorageSyncReader implements sdk.StorageSyncReader {
-    chain: sdk.Chain
-    _settings?: table.Settings
-    whenLastAccess?: Date
-    get dbtype(): DBType | undefined { return this._settings?.dbtype }
+/**
+ * The `StorageSyncReader` non-abstract class must be used when authentication checking access to the methods of a `StorageBaseReader` is required.
+ * 
+ * Constructed from an `auth` object that must minimally include the authenticated user's identityKey,
+ * and the `StorageBaseReader` to be protected.
+ */
+export class StorageSyncReader implements sdk.StorageSyncReader {
 
-    constructor(options: sdk.StorageSyncReaderOptions) {
-        this.chain = options.chain
+    constructor(public auth: sdk.AuthId, public storage: StorageBaseReader) {
     }
 
     isAvailable(): boolean {
-        return !!this._settings
+        return this.storage.isAvailable()
     }
     async makeAvailable(): Promise<void> {
-        this._settings = await this.readSettings()
-    }
-
-    getSettings() : table.Settings {
-        if (!this._settings)
-            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
-        return this._settings
-    }
-
-    abstract destroy(): Promise<void>
-
-    abstract transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T>
-
-    /////////////////
-    //
-    // READ OPERATIONS (state preserving methods)
-    //
-    /////////////////
-
-    abstract readSettings(trx?: sdk.TrxToken): Promise<table.Settings>
-
-    abstract getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTx[]>
-    abstract getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.ProvenTxReq[]>
-    abstract getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.TxLabelMap[]>
-    abstract getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken): Promise<table.OutputTagMap[]>
-
-    abstract findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]>
-    abstract findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]>
-    abstract findCommissions(args: sdk.FindCommissionsArgs): Promise<table.Commission[]>
-    abstract findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]>
-    abstract findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]>
-    abstract findOutputTags(args: sdk.FindOutputTagsArgs): Promise<table.OutputTag[]>
-    abstract findTransactions(args: sdk.FindTransactionsArgs): Promise<table.Transaction[]>
-    abstract findTxLabels(args: sdk.FindTxLabelsArgs): Promise<table.TxLabel[]>
-
-    // These are needed for automation:
-    abstract findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]>
-    abstract findUsers(args: sdk.FindUsersArgs): Promise<table.User[]>
-
-    async requestSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.RequestSyncChunkResult> {
-        return requestSyncChunk(this, args)
-    }
-
-    /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all individual records with time stamps retreived from database.
-     */
-    validateEntity<T extends sdk.EntityTimeStamp>(
-        entity: T,
-        dateFields?: string[],
-        booleanFields?: string[]
-    ): T {
-        entity.created_at = this.validateDate(entity.created_at)
-        entity.updated_at = this.validateDate(entity.updated_at)
-        if (dateFields) {
-            for (const df of dateFields) {
-                if (entity[df])
-                    entity[df] = this.validateDate(entity[df])
-            }
+        await this.storage.makeAvailable()
+        if (this.auth.userId === undefined) {
+            const user = await this.storage.findUserByIdentityKey(this.auth.identityKey)
+            if (!user)
+                throw new sdk.WERR_UNAUTHORIZED()
+            this.auth.userId = user.userId
         }
-        if (booleanFields) {
-            for (const df of booleanFields) {
-                if (entity[df] !== undefined)
-                    entity[df] = !!(entity[df])
-            }
-        }
-        for (const key of Object.keys(entity)) {
-            const val = entity[key]
-            if (val === null) {
-                entity[key] = undefined
-            } else if (Buffer.isBuffer(val)) {
-                entity[key] = Array.from(val)
-            }
-        }
-        return entity
     }
-
-    /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all arrays of records with time stamps retreived from database.
-     * @returns input `entities` array with contained values validated.
-     */
-    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] {
-        for (let i = 0; i < entities.length; i++) {
-            entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
-        }
-        return entities
+    destroy(): Promise<void> {
+        return this.storage.destroy()
     }
-
-    /**
-     * Force dates to strings on SQLite and Date objects on MySQL
-     * @param date 
-     * @returns 
-     */
-    validateEntityDate(date: Date | string | number)
-        : Date | string {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        let r: Date | string = this.validateDate(date)
-        switch (this.dbtype) {
-            case 'MySQL':
-                break
-            case 'SQLite':
-                r = r.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
+    getSettings(): table.Settings {
+        return this.storage.getSettings()
     }
-
-    /**
-     * 
-     * @param date 
-     * @param useNowAsDefault if true and date is null or undefiend, set to current time.
-     * @returns 
-     */
-    validateOptionalEntityDate(date: Date | string | number | null | undefined, useNowAsDefault?: boolean)
-        : Date | string | undefined {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        let r: Date | string | undefined = this.validateOptionalDate(date)
-        if (!r && useNowAsDefault) r = new Date()
-        switch (this.dbtype) {
-            case 'MySQL':
-                break
-            case 'SQLite':
-                if (r)
-                    r = r.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
+    async getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.identityKey !== this.auth.identityKey)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.getSyncChunk(args)
     }
-
-    validateDate(date: Date | string | number): Date {
-        let r: Date
-        if (date instanceof Date)
-            r = date
-        else
-            r = new Date(date)
-        return r
+    async findUserByIdentityKey(key: string): Promise<table.User | undefined> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (key !== this.auth.identityKey)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findUserByIdentityKey(key)
     }
-
-    validateOptionalDate(date: Date | string | number | null | undefined): Date | undefined {
-        if (date === null || date === undefined) return undefined
-        return this.validateDate(date)
+    async findSyncStates(args: sdk.FindSyncStatesArgs): Promise<table.SyncState[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findSyncStates(args)
     }
-
-    validateDateForWhere(date: Date | string | number): Date | string | number {
-        if (!this.dbtype) throw new sdk.WERR_INTERNAL('must call verifyReadyForDatabaseAccess first')
-        if (typeof date === 'number') date = validateSecondsSinceEpoch(date)
-        const vdate = verifyTruthy(this.validateDate(date))
-        let r: Date | string | number
-        switch (this.dbtype) {
-            case 'MySQL':
-                r = vdate
-                break
-            case 'SQLite':
-                r = vdate.toISOString()
-                break
-            default: throw new sdk.WERR_INTERNAL(`Invalid dateScheme ${this.dbtype}`)
-        }
-        return r
+    async findCertificateFields(args: sdk.FindCertificateFieldsArgs): Promise<table.CertificateField[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findCertificateFields(args)
     }
-
+    async findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findCertificates(args)
+    }
+    async findCommissions(args: sdk.FindCommissionsArgs): Promise<table.Commission[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findCommissions(args)
+    }
+    async findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findOutputBaskets(args)
+    }
+    async findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findOutputs(args)
+    }
+    async findOutputTags(args: sdk.FindOutputTagsArgs): Promise<table.OutputTag[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findOutputTags(args)
+    }
+    async findTransactions(args: sdk.FindTransactionsArgs): Promise<table.Transaction[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findTransactions(args)
+    }
+    async findTxLabels(args: sdk.FindTxLabelsArgs): Promise<table.TxLabel[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.partial.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.findTxLabels(args)
+    }
+    async getProvenTxsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.ProvenTx[]> {
+    if (!this.auth.userId) await this.makeAvailable()
+        if (args.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.getProvenTxsForUser(args)
+    }
+    async getProvenTxReqsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.ProvenTxReq[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.getProvenTxReqsForUser(args)
+    }
+    async getTxLabelMapsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.TxLabelMap[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.getTxLabelMapsForUser(args)
+    }
+    async getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.OutputTagMap[]> {
+        if (!this.auth.userId) await this.makeAvailable()
+        if (args.userId !== this.auth.userId)
+            throw new sdk.WERR_UNAUTHORIZED()
+        return await this.storage.getOutputTagMapsForUser(args)
+    }
 }

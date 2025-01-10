@@ -71,7 +71,7 @@ describe('find tests', () => {
     test('12 find TxLabelMap', async () => {
     })
 
-    test('13 find WatchmanEvent', async () => {
+    test('13 find MonitorEvent', async () => {
     })
 
     test('14 find SyncState', async () => {

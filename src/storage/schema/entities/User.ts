@@ -35,9 +35,9 @@ export class User extends EntityBase<table.User> {
     override equals(ei: table.User, syncMap?: entity.SyncMap | undefined): boolean {
         return false
     }
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<void> {
     }
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.User, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.User, syncMap: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         return false
     }
 }

@@ -3,7 +3,7 @@
 import * as bsv from '@bsv/sdk'
 import { randomValsUsed1 } from "./randomValsUsed1";
 import { sdk } from "../../../..";
-import { generateChangeSdk, GenerateChangeSdkChangeInput, generateChangeSdkMakeStorage, GenerateChangeSdkParams, GenerateChangeSdkResult } from '../../generateChangeSdk';
+import { generateChangeSdk, GenerateChangeSdkChangeInput, generateChangeSdkMakeStorage, GenerateChangeSdkParams, GenerateChangeSdkResult } from '../../generateChange';
 
 describe("generateChange tests", () => {
     jest.setTimeout(99999999)

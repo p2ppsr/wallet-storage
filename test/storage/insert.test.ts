@@ -247,9 +247,9 @@ describe('insert tests', () => {
         }
     })
 
-    test('13 insert WatchmanEvent', async () => {
+    test('13 insert MonitorEvent', async () => {
         for (const storage of storages) {
-            const e = await _tu.insertTestWatchmanEvent(storage)
+            const e = await _tu.insertTestMonitorEvent(storage)
             const id = e.id
             expect(id).toBeGreaterThan(0)
         }

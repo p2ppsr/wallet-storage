@@ -2,7 +2,7 @@ import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
 import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table, verifyOne } from '../../src'
 import { ProvenTxReqStatus } from '../../src/sdk'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
-import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, WatchmanEvent, SyncState } from '../../src/storage/schema/tables'
+import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, MonitorEvent, SyncState } from '../../src/storage/schema/tables'
 import { SyncMap } from '../../src/storage/schema/entities'
 
 setLogging(false)
@@ -46,7 +46,7 @@ describe('update tests', () => {
     transactions: { primaryKey: 'txid' },
     outputs: { primaryKey: 'outputId' },
     labels: { primaryKey: 'labelId' },
-    watchmanEvents: { primaryKey: 'eventId' }
+    monitorEvents: { primaryKey: 'eventId' }
   }
 
   test('0 update ProvenTx', async () => {
@@ -2224,18 +2224,18 @@ describe('update tests', () => {
     }
   })
 
-  test('13 update WatchmanEvent', async () => {
+  test('13 update MonitorEvent', async () => {
     const primaryKey = 'id' // Primary key for the table
 
     for (const { storage, setup } of setups) {
-      const records = await storage.findWatchmanEvents({ partial: {} })
-      log('Initial WatchmanEvent records:', records)
+      const records = await storage.findMonitorEvents({ partial: {} })
+      log('Initial MonitorEvent records:', records)
 
       for (const record of records) {
-        log(`Testing updates for WatchmanEvent with ${primaryKey}=${record[primaryKey]}`)
+        log(`Testing updates for MonitorEvent with ${primaryKey}=${record[primaryKey]}`)
 
         try {
-          const testValues: WatchmanEvent = {
+          const testValues: MonitorEvent = {
             id: record.id, // Primary key first
             created_at: new Date('2024-12-30T23:00:00Z'), // Timestamps
             updated_at: new Date('2024-12-30T23:05:00Z'),
@@ -2246,7 +2246,7 @@ describe('update tests', () => {
           log(`Attempting update with values for ${primaryKey}=${record[primaryKey]}:`, testValues)
 
           // Perform the update
-          const updateResult = await storage.updateWatchmanEvent(
+          const updateResult = await storage.updateMonitorEvent(
             record.id, // First argument: primary key
             testValues // Second argument: updated values
             //setup.trxToken // Optional third argument: transaction token
@@ -2255,11 +2255,11 @@ describe('update tests', () => {
           expect(updateResult).toBe(1)
 
           // Fetch and validate the updated record
-          const updatedRecords = await storage.findWatchmanEvents({ partial: { id: record.id } })
+          const updatedRecords = await storage.findMonitorEvents({ partial: { id: record.id } })
           log(`Fetched updated records for id=${record.id}:`, updatedRecords)
 
-          const updatedRow = verifyOne(updatedRecords, `Updated WatchmanEvent with id=${record.id} was not unique or missing.`)
-          log(`Updated WatchmanEvent record for id=${record.id}:`, updatedRow)
+          const updatedRow = verifyOne(updatedRecords, `Updated MonitorEvent with id=${record.id} was not unique or missing.`)
+          log(`Updated MonitorEvent record for id=${record.id}:`, updatedRow)
 
           // Validate each field
           for (const [key, value] of Object.entries(testValues)) {
@@ -2277,7 +2277,7 @@ describe('update tests', () => {
             expect(actualValue).toBe(value)
           }
         } catch (error: any) {
-          console.error(`Error updating or verifying WatchmanEvent record with id=${record[primaryKey]}:`, error.message)
+          console.error(`Error updating or verifying MonitorEvent record with id=${record[primaryKey]}:`, error.message)
           throw error // Re-throw unexpected errors to fail the test
         }
       }

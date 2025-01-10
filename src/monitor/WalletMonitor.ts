@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices, WalletStorage } from ".."
-import { BlockHeader, ChaintracksClientApi, ChaintracksServiceClient } from "../services/chaintracker"
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, WalletServices } from ".."
+import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskValidate } from './tasks/TaskValidate'
 import { TaskPurge } from './tasks/TaskPurge'
 import { TaskCheckProofs } from './tasks/TaskCheckProofs'
@@ -13,13 +13,15 @@ import { WalletMonitorTask } from './tasks/WalletMonitorTask'
 import { TaskClock } from './tasks/TaskClock'
 import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
+export type MonitorStorage = sdk.StorageSyncReaderWriter
+
 export interface WalletMonitorOptions {
 
     chain: sdk.Chain
 
     services: WalletServices
 
-    storage: WalletStorage
+    storage: MonitorStorage
 
     chaintracks: ChaintracksClientApi
 
@@ -44,7 +46,7 @@ export interface WalletMonitorOptions {
 export class WalletMonitor {
     static createDefaultWalletMonitorOptions(
         chain: sdk.Chain,
-        storage: WalletStorage,
+        storage: MonitorStorage,
         services?: WalletServices
     ): WalletMonitorOptions {
         services ||= new WalletServices(chain)
@@ -67,7 +69,7 @@ export class WalletMonitor {
     options: WalletMonitorOptions
     services: WalletServices
     chain: sdk.Chain
-    storage: WalletStorage
+    storage: MonitorStorage
     chaintracks: ChaintracksClientApi
 
     constructor(options: WalletMonitorOptions) {
@@ -375,7 +377,7 @@ export class WalletMonitor {
         const h = header
         this.lastNewHeader = h
         this.lastNewHeaderWhen = new Date()
-        console.log(`Watchman notified of new block header ${h.height}`)
+        console.log(`WalletMonitor notified of new block header ${h.height}`)
         // Nudge the proof checker to try again.
         TaskCheckForProofs.checkNow = true
     }
@@ -696,12 +698,12 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             }
         }
 
-        if (r.rawTx && r.beef) {
+        if (r.rawTx && r.inputBEEF) {
             if (trustSelf === 'known')
                 beef.mergeTxidOnly(txid)
             else {
                 beef.mergeRawTx(r.rawTx)
-                beef.mergeBeef(r.beef)
+                beef.mergeBeef(r.inputBEEF)
                 const tx = bsv.Transaction.fromBinary(r.rawTx)
                 for (const input of tx.inputs) {
                     const btx = beef.findTxid(input.sourceTXID!)

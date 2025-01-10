@@ -123,9 +123,9 @@ describe('find tests', () => {
         }
     })
 
-    test('13 find WatchmanEvent', async () => {
+    test('13 find MonitorEvent', async () => {
         for (const { storage, setup } of setups) {
-            expect((await storage.findWatchmanEvents({ partial: {} })).length).toBe(1)
+            expect((await storage.findMonitorEvents({ partial: {} })).length).toBe(1)
         }
     })
 

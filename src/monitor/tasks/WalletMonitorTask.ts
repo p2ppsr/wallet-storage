@@ -1,5 +1,4 @@
-import { WalletStorage } from '../../storage';
-import { WalletMonitor } from '../WalletMonitor';
+import { MonitorStorage, WalletMonitor } from '../WalletMonitor';
 
 /**
  * A monitor task performs some periodic or state triggered maintenance function
@@ -13,7 +12,7 @@ import { WalletMonitor } from '../WalletMonitor';
  *
  * The monitor then waits a fixed interval before repeating...
  *
- * Tasks may use the watchman_events table to persist their execution history.
+ * Tasks may use the monitor_events table to persist their execution history.
  * This is done by accessing the wathman.storage object.
  */
 
@@ -24,7 +23,7 @@ export abstract class WalletMonitorTask {
      */
     lastRunMsecsSinceEpoch = 0;
 
-    storage: WalletStorage;
+    storage: MonitorStorage;
 
     constructor(
         public monitor: WalletMonitor,

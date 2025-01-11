@@ -813,6 +813,15 @@ export abstract class TestUtilsWalletStorage {
     static mockPostServicesAsSuccess<T>(ctxs: TestWallet<T>[]): void { mockPostServices(ctxs, 'success') }
     static mockPostServicesAsError<T>(ctxs: TestWallet<T>[]): void { mockPostServices(ctxs, 'error') }
     static mockPostServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void { mockPostServices(ctxs, 'error', callback) }
+
+    static mockMerklePathServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (txid: string) => Promise<sdk.GetMerklePathResult>): void {
+        for (const { services } of ctxs) {
+            services.getMerklePath = jest.fn().mockImplementation(async (txid: string): Promise<sdk.GetMerklePathResult> => {
+                const r = await callback(txid)
+                return r
+            })
+        }
+    }
 }
 
 export abstract class _tu extends TestUtilsWalletStorage {

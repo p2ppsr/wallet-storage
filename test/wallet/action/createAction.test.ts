@@ -90,6 +90,7 @@ describe('createAction test', () => {
                 for (const input of tx.inputs) {
                     expect(atomicBeef.findTxid(input.sourceTXID!)).toBeTruthy()
                 }
+                console.log(atomicBeef.toLogString())
 
                 // Spending authorization check happens here...
                 //expect(st.amount > 242 && st.amount < 300).toBe(true)

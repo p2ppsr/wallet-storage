@@ -147,6 +147,10 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         try {
             const v = JSON.parse(note);
             switch (v.what) {
+                case "postReqsToNetwork result": {
+                    const r = v["result"] as any
+                    return `posted by ${v["name"]} status=${r.status} txid=${r.txid}`
+                } break;
                 case "getMerkleProof invalid": {
                     return `getMerkleProof failing after ${v["attempts"]} attempts over ${v["ageInMinutes"]} minutes`
                 } break;
@@ -161,7 +165,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
                         case 'unconfirmed': c.setToUnconfirmed = true; break;
                         default: break;
                     }
-                    return `set status ${v.new} (was ${v.old})`;
+                    return `set status ${v.old} to ${v.new}`;
                 } break;
                 case "notified":
                     return `notified`;

@@ -336,9 +336,9 @@ export class Monitor {
         for (let i = 0; i < reqApis.length; i++) {
             const reqApi = reqApis[i]
             log += ' '.repeat(indent)
-            log += `${i} reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: `
+            log += `${i} reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: \n`
             if (reqApi.status !== 'unsent') {
-                log += `status now ${reqApi.status}\n`
+                log += `  status now ${reqApi.status}\n`
                 continue
             }
             const req = new entity.ProvenTxReq(reqApi)
@@ -359,6 +359,9 @@ export class Monitor {
             }
 
             const r = await this.attemptToPostReqsToNetwork(reqs)
+
+            log += r.log
+            
         }
         return log
     }
@@ -836,7 +839,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             // For each req, three outcomes are handled:
             // 1. success: req status from unprocessed(!isDelayed)/sending(isDelayed) to unmined, tx from sending to unproven
             if (d.status === 'success') {
-                if (['nosend', 'unprocessed', 'sending'].indexOf(d.req.status) > -1)
+                if (['nosend', 'unprocessed', 'sending', 'unsent'].indexOf(d.req.status) > -1)
                     newReqStatus = 'unmined';
                 newTxStatus = 'unproven' // but only if sending
             }
@@ -855,6 +858,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             if (newReqStatus) {
                 // Only advance the status of req.
                 d.req.status = newReqStatus
+                d.req.updateStorage(this.storage)
             }
             await d.req.updateStorageStatusHistoryOnly(this.storage)
             if (newTxStatus) {

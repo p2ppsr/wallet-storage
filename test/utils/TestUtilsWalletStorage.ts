@@ -36,6 +36,8 @@ export interface TuEnv {
     testTaalApiKey: string
     devKeys: Record<string, string>
     noMySQL: boolean
+    runSlowTests: boolean
+    logTests: boolean
 }
 
 export abstract class TestUtilsWalletStorage {
@@ -47,7 +49,9 @@ export abstract class TestUtilsWalletStorage {
             throw new sdk.WERR_INTERNAL('.env file configuration is missing or incomplete.')
         const userId = Number(chain === 'main' ? process.env.MY_MAIN_USERID : process.env.MY_TEST_USERID)
         const DEV_KEYS = process.env.DEV_KEYS || '{}'
+        const logTests = !!process.env.LOGTESTS
         const noMySQL = !!process.env.NOMYSQL
+        const runSlowTests = !!process.env.RUNSLOWTESTS
         return {
             chain,
             userId,
@@ -55,7 +59,9 @@ export abstract class TestUtilsWalletStorage {
             mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
             testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
             devKeys: JSON.parse(DEV_KEYS),
-            noMySQL
+            noMySQL,
+            runSlowTests,
+            logTests
         }
     }
 
@@ -804,7 +810,7 @@ export abstract class TestUtilsWalletStorage {
         }
     }
 
-    static mockPostServicesAsSuccess<T>(ctxs: TestWallet<T>[], callback: 0): void { mockPostServices(ctxs, 'success') }
+    static mockPostServicesAsSuccess<T>(ctxs: TestWallet<T>[]): void { mockPostServices(ctxs, 'success') }
     static mockPostServicesAsError<T>(ctxs: TestWallet<T>[]): void { mockPostServices(ctxs, 'error') }
     static mockPostServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void { mockPostServices(ctxs, 'error', callback) }
 }

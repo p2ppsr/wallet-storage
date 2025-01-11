@@ -109,17 +109,17 @@ describe('Monitor tests', () => {
     })
 
     test('3 TaskSendWaiting success', async () => {
-        await runMockedSendWaiting('success')
+        await runMockedSendWaiting('success', 'monitorTest3')
 
     })
 
     test('4 TaskSendWaiting error', async () => {
-        await runMockedSendWaiting('error')
+        await runMockedSendWaiting('error', 'monitorTest4')
     })
 
     test('5 TaskCheckForProofs success', async () => {
         const ctxs: TestWallet<{}>[] = []
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('monitorTest3'))
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('monitorTest5'))
         let txidsPosted: string[] = []
         let mockResultIndex = 0
 
@@ -172,7 +172,7 @@ describe('Monitor tests', () => {
 
     test('6 TaskCheckForProofs fail', async () => {
         const ctxs: TestWallet<{}>[] = []
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('monitorTest3'))
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('monitorTest6'))
         let txidsPosted: string[] = []
         let mockResultIndex = 0
 
@@ -186,7 +186,7 @@ describe('Monitor tests', () => {
 
         _tu.mockMerklePathServicesAsCallback(ctxs, async (txid) => {
             expect(expectedTxids).toContain(txid)
-            const r = mockGetMerklePathResults[mockResultIndex++]
+            const r = {}
             return r
         })
 
@@ -196,11 +196,14 @@ describe('Monitor tests', () => {
 
             {
 
+                const attempts: number[] = []
+
                 for (const txid of expectedTxids) {
                     // no matching ProvenTx exists.
                     expect((await storage.findProvenTxs({ partial: { txid } })).length).toBe(0)
                     const req = verifyTruthy(await entity.ProvenTxReq.fromStorageTxid(storage, txid))
                     expect(req.status).toBe('unmined')
+                    attempts.push(req.attempts)
                 }
 
                 const task = new TaskCheckForProofs(monitor, 1)
@@ -208,12 +211,14 @@ describe('Monitor tests', () => {
 
                 await monitor.runTask('CheckForProofs')
 
+                let i = -1
                 for (const txid of expectedTxids) {
-                    const proven = verifyOne(await storage.findProvenTxs({ partial: { txid } }))
-                    expect(proven.merklePath).toBeTruthy()
+                    i++
+                    // no matching ProvenTx exists.
+                    expect((await storage.findProvenTxs({ partial: { txid } })).length).toBe(0)
                     const req = verifyTruthy(await entity.ProvenTxReq.fromStorageTxid(storage, txid))
-                    expect(req.status).toBe('completed')
-                    expect(req.provenTxId).toBe(proven.provenTxId)
+                    expect(req.status).toBe('unmined')
+                    expect(req.attempts).toBeGreaterThanOrEqual(attempts[i])
                 }
             }
         }
@@ -251,9 +256,9 @@ describe('Monitor tests', () => {
         }
     ]
 
-    async function runMockedSendWaiting(postBeefMockStatus) {
+    async function runMockedSendWaiting(postBeefMockStatus, database: string) {
         const ctxs: TestWallet<{}>[] = []
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('monitorTest3'))
+        ctxs.push(await _tu.createLegacyWalletSQLiteCopy(database))
         let txidsPosted: string[] = []
         _tu.mockPostServicesAsCallback(ctxs, (beef, txids) => { txidsPosted.push(...txids); return postBeefMockStatus as 'success' | 'error' })
 

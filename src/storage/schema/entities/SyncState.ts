@@ -1,5 +1,5 @@
 import { createSyncMap, EntityBase, EntitySyncMap, MergeEntity, SyncError, SyncMap } from "."
-import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone } from "../../.."
+import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../.."
 
 export class SyncState extends EntityBase<table.SyncState> {
     constructor(api?: table.SyncState) {
@@ -34,26 +34,10 @@ export class SyncState extends EntityBase<table.SyncState> {
         }
     }
 
-    static async fromStorage(storage: sdk.WalletStorage, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
-        let user = verifyOneOrNone(await storage.findUsers({ partial: { identityKey: userIdentityKey } }))
-        if (!user) {
-            const now = new Date()
-            user = {
-                created_at: now,
-                updated_at: now,
-                userId: 0,
-                identityKey: userIdentityKey
-            }
-            await storage.insertUser(user)
-        }
-        let api = verifyOneOrNone(await storage.findSyncStates({ partial: { userId: user.userId, storageIdentityKey: remoteSettings.storageIdentityKey } }))
+    static async fromStorage(storage: sdk.WalletStorageProvider, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
+        const { user } = verifyTruthy(await storage.findOrInsertUser(userIdentityKey))
+        let { syncState: api } = verifyTruthy(await storage.findOrInsertSyncStateAuth({ userId: user.userId, identityKey: userIdentityKey }, remoteSettings.storageIdentityKey, remoteSettings.storageName))
         const ss = new SyncState(api)
-        if (!api) {
-            ss.userId = user.userId
-            ss.storageIdentityKey = remoteSettings.storageIdentityKey
-            ss.storageName = remoteSettings.storageName
-            await ss.updateStorage(storage)
-        }
         return ss
     }
 
@@ -63,7 +47,7 @@ export class SyncState extends EntityBase<table.SyncState> {
      * @param notSyncMap if not new and true, excludes updating syncMap in storage.
      * @param trx 
      */
-    async updateStorage(storage: sdk.WalletStorage, notSyncMap?: boolean, trx?: sdk.TrxToken) {
+    async updateStorage(storage: entity.EntityStorage, notSyncMap?: boolean, trx?: sdk.TrxToken) {
         this.updated_at = new Date()
         this.updateApi(notSyncMap && this.id > 0)
         if (this.id === 0) {
@@ -159,20 +143,22 @@ export class SyncState extends EntityBase<table.SyncState> {
         return false
     }
 
-    override async mergeNew(storage: sdk.WalletStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<void> {
+    override async mergeNew(storage: entity.EntityStorage, userId: number, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<void> {
     }
 
-    override async mergeExisting(storage: sdk.WalletStorage, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
+    override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.SyncState, syncMap: SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         return false
     }
 
-    makeRequestSyncChunkArgs(forIdentityKey: string, maxRoughSize?: number, maxItems?: number) : sdk.RequestSyncChunkArgs {
+    makeRequestSyncChunkArgs(forIdentityKey: string, forStorageIdentityKey: string, maxRoughSize?: number, maxItems?: number) : sdk.RequestSyncChunkArgs {
         const a: sdk.RequestSyncChunkArgs = {
             identityKey: forIdentityKey,
             maxRoughSize: maxRoughSize || 100000,
             maxItems: maxItems || 1000,
             offsets: [],
-            since: this.when
+            since: this.when,
+            fromStorageIdentityKey: this.storageIdentityKey,
+            toStorageIdentityKey: forStorageIdentityKey
         }
         for (const ess of [
             this.syncMap.provenTx,
@@ -193,7 +179,7 @@ export class SyncState extends EntityBase<table.SyncState> {
         return a
     }
 
-    async processRequestSyncChunkResult(writer: sdk.WalletStorage, args: sdk.RequestSyncChunkArgs, r: sdk.RequestSyncChunkResult)
+    async processSyncChunk(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
     : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
 
@@ -227,8 +213,8 @@ export class SyncState extends EntityBase<table.SyncState> {
             // If any entity type either did not report results or if there were at least one, then we aren't done.
             if (me.stateArray === undefined || me.stateArray.length > 0)
                 done = false;
-            //if (me.stateArray !== undefined && me.stateArray.length > 0)
-            //    console.log(`merged ${me.stateArray?.length} ${me.esm.entityName} ${r.inserts} inserted, ${r.updates} updated`);
+            if (me.stateArray !== undefined && me.stateArray.length > 0)
+                console.log(`merged ${me.stateArray?.length} ${me.esm.entityName} ${r.inserts} inserted, ${r.updates} updated`);
         }
 
         if (done) {

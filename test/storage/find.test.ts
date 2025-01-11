@@ -1,12 +1,12 @@
 import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
 
 describe('find tests', () => {
     jest.setTimeout(99999999)
 
-    const storages: StorageBase[] = []
+    const storages: StorageProvider[] = []
     const chain: sdk.Chain = 'test'
-    const setups: { setup: TestSetup1, storage: StorageBase }[] = []
+    const setups: { setup: TestSetup1, storage: StorageProvider }[] = []
     const env = _tu.getEnv(chain)
 
     beforeAll(async () => {
@@ -123,9 +123,9 @@ describe('find tests', () => {
         }
     })
 
-    test('13 find WatchmanEvent', async () => {
+    test('13 find MonitorEvent', async () => {
         for (const { storage, setup } of setups) {
-            expect((await storage.findWatchmanEvents({ partial: {} })).length).toBe(1)
+            expect((await storage.findMonitorEvents({ partial: {} })).length).toBe(1)
         }
     })
 

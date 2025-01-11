@@ -1,9 +1,12 @@
 import { sdk, table } from "..";
 
+/**
+ * This is the minimal interface required for a WalletStorageProvider to export data to another provider.
+ */
 export interface StorageSyncReader {
 
    isAvailable(): boolean
-   makeAvailable(): Promise<void>
+   makeAvailable(): Promise<table.Settings>
 
    destroy(): Promise<void>
 
@@ -13,27 +16,27 @@ export interface StorageSyncReader {
    //
    /////////////////
 
-   getSettings(trx?: sdk.TrxToken): table.Settings
+   getSettings(): table.Settings
 
-   getProvenTxsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTx[]>
-   getProvenTxReqsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.ProvenTxReq[]>
-   getTxLabelMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.TxLabelMap[]>
-   getOutputTagMapsForUser(userId: number, since?: Date, paged?: sdk.Paged, trx?: sdk.TrxToken) : Promise<table.OutputTagMap[]>
+   findUserByIdentityKey(key: string) : Promise<table.User| undefined>
+
+   findSyncStates(args: sdk.FindSyncStatesArgs ): Promise<table.SyncState[]>
 
    findCertificateFields(args: sdk.FindCertificateFieldsArgs ): Promise<table.CertificateField[]>
    findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findCommissions(args: sdk.FindCommissionsArgs ): Promise<table.Commission[]>
    findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
-   findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]>
    findOutputTags(args: sdk.FindOutputTagsArgs ): Promise<table.OutputTag[]>
    findTransactions(args: sdk.FindTransactionsArgs ): Promise<table.Transaction[]>
    findTxLabels(args: sdk.FindTxLabelsArgs ): Promise<table.TxLabel[]>
 
-   // These are needed for automation:
-   findSyncStates(args: sdk.FindSyncStatesArgs ): Promise<table.SyncState[]>
-   findUsers(args: sdk.FindUsersArgs ): Promise<table.User[]>
+   getProvenTxsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.ProvenTx[]>
+   getProvenTxReqsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.ProvenTxReq[]>
+   getTxLabelMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.TxLabelMap[]>
+   getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs) : Promise<table.OutputTagMap[]>
 
-   requestSyncChunk(args: RequestSyncChunkArgs) : Promise<RequestSyncChunkResult>
+   getSyncChunk(args: RequestSyncChunkArgs) : Promise<SyncChunk>
 }
 
 /**
@@ -50,6 +53,15 @@ export type SyncStatus = 'success' | 'error' | 'identified' | 'updated' | 'unkno
 export type SyncProtocolVersion = '0.1.0'
 
 export interface RequestSyncChunkArgs {
+    /**
+     * The storageIdentityKey of the storage supplying the update SyncChunk data.
+     */
+    fromStorageIdentityKey: string
+    /**
+     * The storageIdentityKey of the storage consuming the update SyncChunk data.
+     */
+    toStorageIdentityKey: string
+
     /**
      * The identity of whose data is being requested
      */
@@ -98,7 +110,11 @@ export interface RequestSyncChunkArgs {
  * 
  * If all properties are empty arrays the sync process has received all available new and updated items.
  */
-export interface RequestSyncChunkResult {
+export interface SyncChunk {
+    fromStorageIdentityKey: string
+    toStorageIdentityKey: string
+    userIdentityKey: string
+
     provenTxs?: table.ProvenTx[]
     provenTxReqs?: table.ProvenTxReq[]
     outputBaskets?: table.OutputBasket[]
@@ -111,4 +127,12 @@ export interface RequestSyncChunkResult {
     outputTagMaps?: table.OutputTagMap[]
     certificates?: table.Certificate[]
     certificateFields?: table.CertificateField[]
+}
+
+export interface ProcessSyncChunkResult {
+    done: boolean
+    maxUpdated_at: Date | undefined
+    updates: number
+    inserts: number
+    error?: sdk.WalletError
 }

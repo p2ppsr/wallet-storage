@@ -1,5 +1,5 @@
 import { _tu, TestSetup1, TestWalletNoSetup } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
 
 describe('find tests', () => {
     jest.setTimeout(99999999)
@@ -71,7 +71,7 @@ describe('find tests', () => {
     test('12 find TxLabelMap', async () => {
     })
 
-    test('13 find WatchmanEvent', async () => {
+    test('13 find MonitorEvent', async () => {
     })
 
     test('14 find SyncState', async () => {

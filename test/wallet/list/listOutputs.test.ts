@@ -48,9 +48,9 @@ describe('listOutputs test', () => {
   test('0 invalid params with originator', async () => {
     for (const { wallet } of ctxs) {
       const invalidArgs: sdk.ListOutputsArgs[] = [
+        { basket: 'default', tags: [] },
         { basket: '' as bsv.BasketStringUnder300Bytes },
         { basket: '   ' as bsv.BasketStringUnder300Bytes },
-        { basket: 'default', tags: [] },
         { basket: 'default', tags: [''] as bsv.OutputTagStringUnder300Bytes[] },
         { basket: 'default', limit: 0 },
         { basket: 'default', limit: -1 },
@@ -60,9 +60,9 @@ describe('listOutputs test', () => {
       ].filter(args => args.basket !== '') // Remove cases causing the failure
 
       const invalidOriginators = [
+        'too.long.invalid.domain.'.repeat(20), // Exceeds length limits
         '', // Empty originator
         '   ', // Whitespace originator
-        'too.long.invalid.domain.'.repeat(20) // Exceeds length limits
         // Removed invalid-fqdn for this run
       ].filter(originator => originator.trim() !== '') // Remove problematic cases
 
@@ -76,6 +76,8 @@ describe('listOutputs test', () => {
             const error = e as Error
             if (!noLog) console.log('Error name:', error.name)
             if (!noLog) console.log('Error message:', error.message)
+            if (error.name != 'WERR_INVALID_PARAMETER')
+              debugger;
 
             // Validate error
             expect(error.name).toBe('WERR_INVALID_PARAMETER')
@@ -228,7 +230,7 @@ describe('listOutputs test', () => {
           tags: ['babbage_action_originator projectbabbage.com'],
           includeTags: true
         }
-        await expectToThrowWERR(sdk.WERR_BAD_REQUEST, async () => await wallet.listOutputs(args))
+        await expectToThrowWERR(sdk.WERR_INVALID_PARAMETER, async () => await wallet.listOutputs(args))
       }
     }
   })

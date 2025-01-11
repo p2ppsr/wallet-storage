@@ -1,10 +1,10 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageBase, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)
 
-    const storages: StorageBase[] = []
+    const storages: StorageProvider[] = []
     const chain: sdk.Chain = 'test'
     const env = _tu.getEnv(chain)
 
@@ -247,9 +247,9 @@ describe('insert tests', () => {
         }
     })
 
-    test('13 insert WatchmanEvent', async () => {
+    test('13 insert MonitorEvent', async () => {
         for (const storage of storages) {
-            const e = await _tu.insertTestWatchmanEvent(storage)
+            const e = await _tu.insertTestMonitorEvent(storage)
             const id = e.id
             expect(id).toBeGreaterThan(0)
         }

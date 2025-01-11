@@ -74,10 +74,11 @@ describe('createAction test', () => {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
 
-      let txid1: string
-      let txid2: string
-      const outputSatoshis = 42
-      let noSendChange: string[] | undefined
+            let txid1: string
+            let txid2: string
+            const outputSatoshis = 42
+            let noSendChange: string[] | undefined
+            let inputBEEF: bsv.AtomicBEEF | undefined
 
       {
         const createArgs: sdk.CreateActionArgs = {
@@ -112,17 +113,18 @@ describe('createAction test', () => {
         // Spending authorization check happens here...
         //expect(st.amount > 242 && st.amount < 300).toBe(true)
 
-        // sign and complete
-        const signArgs: sdk.SignActionArgs = {
-          reference: st.reference,
-          spends: {},
-          options: {
-            returnTXIDOnly: true,
-            noSend: true
-          }
-        }
+                // sign and complete
+                const signArgs: sdk.SignActionArgs = {
+                    reference: st.reference,
+                    spends: {},
+                    options: {
+                        returnTXIDOnly: false,
+                        noSend: true,
+                    }
+                }
 
-        const sr = await wallet.signAction(signArgs)
+                const sr = await wallet.signAction(signArgs)
+                inputBEEF = sr.tx
 
         txid1 = sr.txid!
         // Update the noSendChange txid to final signed value.
@@ -133,21 +135,22 @@ describe('createAction test', () => {
         const unlock = _tu.getUnlockP2PKH(kp.privateKey, outputSatoshis)
         const unlockingScriptLength = await unlock.estimateLength()
 
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          inputs: [
-            {
-              outpoint: `${txid1}.0`,
-              inputDescription: 'spend ${kp.address} of ${root}',
-              unlockingScriptLength
-            }
-          ],
-          options: {
-            noSendChange,
-            // signAndProcess: false, // Not required as an input lacks unlock script...
-            noSend: false
-          }
-        }
+                const createArgs: sdk.CreateActionArgs = {
+                    description: `${kp.address} of ${root}`,
+                    inputs: [
+                        {
+                            outpoint: `${txid1}.0`,
+                            inputDescription: 'spend ${kp.address} of ${root}',
+                            unlockingScriptLength
+                        }
+                    ],
+                    inputBEEF, 
+                    options: {
+                        noSendChange,
+                        // signAndProcess: false, // Not required as an input lacks unlock script...  
+                        noSend: true
+                    }
+                }
 
         const cr = await wallet.createAction(createArgs)
 
@@ -176,15 +179,17 @@ describe('createAction test', () => {
 
         const sr = await wallet.signAction(signArgs)
 
-        txid2 = sr.txid!
-      }
-      {
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          options: {
-            sendWith: [txid1, txid2]
-          }
-        }
+                txid2 = sr.txid!
+            }
+            {
+
+                const createArgs: sdk.CreateActionArgs = {
+                    description: `${kp.address} of ${root}`,
+                    options: {
+                        acceptDelayedBroadcast: false,
+                        sendWith: [txid1, txid2]
+                    }
+                }
 
         const cr = await wallet.createAction(createArgs)
 

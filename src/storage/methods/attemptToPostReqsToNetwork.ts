@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
-import { StorageBase } from "../StorageBase"
+import { StorageProvider } from "../StorageProvider"
 import { entity, PostReqsToNetworkResult, sdk } from '../..'
-import { PostBeefResultForTxidApi } from './processActionSdk'
+import { PostBeefResultForTxidApi } from './processAction'
 
 /**
  * Attempt to post one or more `ProvenTxReq` with status 'unsent'
@@ -9,7 +9,7 @@ import { PostBeefResultForTxidApi } from './processActionSdk'
  * 
  * @param reqs 
  */
-export async function attemptToPostReqsToNetwork(storage: StorageBase, reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
+export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
 
     const r: PostReqsToNetworkResult = {
         status: 'success',

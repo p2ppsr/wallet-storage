@@ -233,7 +233,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     table.unique(['txLabelId', 'transactionId'])
                     table.index('transactionId')
                 })
-                await knex.schema.createTable('watchman_events', table => {
+                await knex.schema.createTable('monitor_events', table => {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('id')
                     table.string('event', 64).notNullable()
@@ -300,7 +300,7 @@ export class KnexMigrations implements MigrationSource<string> {
             async down(knex) {
                 await knex.schema.dropTable('sync_states')
                 await knex.schema.dropTable('settings')
-                await knex.schema.dropTable('watchman_events')
+                await knex.schema.dropTable('monitor_events')
                 await knex.schema.dropTable('certificate_fields')
                 await knex.schema.dropTable('certificates')
                 await knex.schema.dropTable('commissions')

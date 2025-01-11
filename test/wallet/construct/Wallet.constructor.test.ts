@@ -1,5 +1,5 @@
 import * as bsv from "@bsv/sdk"
-import { sdk, StorageKnex, Wallet, WalletSigner, WalletStorage } from "../../../src"
+import { sdk, StorageKnex, Wallet, WalletSigner, WalletStorageManager } from "../../../src"
 import { KeyDeriver } from "../../../src/sdk"
 import { _tu, TestSetup1Wallet } from "../../utils/TestUtilsWalletStorage"
 
@@ -24,7 +24,7 @@ describe('Wallet constructor tests', () => {
     })
 
     test('0', async () => {
-        for (const { storage, userId, wallet } of ctxs) {
+        for (const { activeStorage: storage, userId, wallet } of ctxs) {
 
             {
                 const labels = await storage.findTxLabels({ partial: { userId } })

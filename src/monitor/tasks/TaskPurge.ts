@@ -1,5 +1,5 @@
 import { sdk } from '../..';
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 /**
@@ -38,7 +38,7 @@ export class TaskPurge extends WalletMonitorTask {
      */
     static checkNow = false;
 
-    constructor(monitor: WalletMonitor, public params: TaskPurgeParams, public triggerMsecs = 0) {
+    constructor(monitor: Monitor, public params: TaskPurgeParams, public triggerMsecs = 0) {
         super(monitor, TaskPurge.taskName);
     }
 

@@ -803,6 +803,10 @@ export abstract class TestUtilsWalletStorage {
             we1
         }
     }
+
+    static mockPostServicesAsSuccess<T>(ctxs: TestWallet<T>[], callback: 0): void { mockPostServices(ctxs, 'success') }
+    static mockPostServicesAsError<T>(ctxs: TestWallet<T>[]): void { mockPostServices(ctxs, 'error') }
+    static mockPostServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void { mockPostServices(ctxs, 'error', callback) }
 }
 
 export abstract class _tu extends TestUtilsWalletStorage {
@@ -894,4 +898,33 @@ export type TestKeyPair = {
   privateKey: bsv.PrivateKey
   publicKey: bsv.PublicKey
   address: string
+}
+
+function mockPostServices<T>(
+    ctxs: TestWallet<T>[],
+    status: 'success' | 'error' = 'success',
+    callback?: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'
+)
+: void
+{
+    for (const { services } of ctxs) {
+        // Mock the services postBeef to avoid actually broadcasting new transactions.
+        services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+            status = !callback ? status : callback(beef, txids)
+            const r: sdk.PostBeefResult = {
+                name: 'mock',
+                status: 'success',
+                txidResults: txids.map(txid => ({ txid, status }))
+            }
+            return Promise.resolve([r])
+        })
+        services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+            const r: sdk.PostBeefResult = {
+                name: 'mock',
+                status: 'success',
+                txidResults: txids.map(txid => ({ txid, status }))
+            }
+            return Promise.resolve([r])
+        })
+    }
 }

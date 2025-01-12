@@ -179,23 +179,23 @@ export class SyncState extends EntityBase<table.SyncState> {
         return a
     }
 
-    async processSyncChunk(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, r: sdk.SyncChunk)
+    async processSyncChunk(writer: entity.EntityStorage, args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk)
     : Promise<{ done: boolean, maxUpdated_at: Date | undefined, updates: number, inserts: number }>
     {
 
         const mes = [
-            new MergeEntity(r.provenTxs, entity.ProvenTx.mergeFind, this.syncMap.provenTx),
-            new MergeEntity(r.outputBaskets, entity.OutputBasket.mergeFind, this.syncMap.outputBasket),
-            new MergeEntity(r.outputTags, entity.OutputTag.mergeFind, this.syncMap.outputTag),
-            new MergeEntity(r.txLabels, entity.TxLabel.mergeFind, this.syncMap.txLabel),
-            new MergeEntity(r.transactions, entity.Transaction.mergeFind, this.syncMap.transaction),
-            new MergeEntity(r.outputs, entity.Output.mergeFind, this.syncMap.output),
-            new MergeEntity(r.txLabelMaps, entity.TxLabelMap.mergeFind, this.syncMap.txLabelMap),
-            new MergeEntity(r.outputTagMaps, entity.OutputTagMap.mergeFind, this.syncMap.outputTagMap),
-            new MergeEntity(r.certificates, entity.Certificate.mergeFind, this.syncMap.certificate),
-            new MergeEntity(r.certificateFields, entity.CertificateField.mergeFind, this.syncMap.certificateField),
-            new MergeEntity(r.commissions, entity.Commission.mergeFind, this.syncMap.commission),
-            new MergeEntity(r.provenTxReqs, entity.ProvenTxReq.mergeFind, this.syncMap.provenTxReq),
+            new MergeEntity(chunk.provenTxs, entity.ProvenTx.mergeFind, this.syncMap.provenTx),
+            new MergeEntity(chunk.outputBaskets, entity.OutputBasket.mergeFind, this.syncMap.outputBasket),
+            new MergeEntity(chunk.outputTags, entity.OutputTag.mergeFind, this.syncMap.outputTag),
+            new MergeEntity(chunk.txLabels, entity.TxLabel.mergeFind, this.syncMap.txLabel),
+            new MergeEntity(chunk.transactions, entity.Transaction.mergeFind, this.syncMap.transaction),
+            new MergeEntity(chunk.outputs, entity.Output.mergeFind, this.syncMap.output),
+            new MergeEntity(chunk.txLabelMaps, entity.TxLabelMap.mergeFind, this.syncMap.txLabelMap),
+            new MergeEntity(chunk.outputTagMaps, entity.OutputTagMap.mergeFind, this.syncMap.outputTagMap),
+            new MergeEntity(chunk.certificates, entity.Certificate.mergeFind, this.syncMap.certificate),
+            new MergeEntity(chunk.certificateFields, entity.CertificateField.mergeFind, this.syncMap.certificateField),
+            new MergeEntity(chunk.commissions, entity.Commission.mergeFind, this.syncMap.commission),
+            new MergeEntity(chunk.provenTxReqs, entity.ProvenTxReq.mergeFind, this.syncMap.provenTxReq),
         ]
 
         let updates = 0
@@ -203,6 +203,19 @@ export class SyncState extends EntityBase<table.SyncState> {
         let maxUpdated_at: Date | undefined = undefined
         let done = true
 
+        // Merge User
+        if (chunk.user) {
+            const ei = chunk.user
+            const { found, eo } = await entity.User.mergeFind(writer, this.userId, ei);
+            if (found) {
+                if (await eo.mergeExisting(writer, args.since, ei)) {
+                    maxUpdated_at = maxDate(maxUpdated_at, ei.updated_at)
+                    updates++;
+                }
+            }
+        }
+
+        // Merge everything else...
         for (const me of mes) {
             const r = await me.merge(args.since, writer, this.userId, this.syncMap)
             // The counts become the offsets for the next chunk.

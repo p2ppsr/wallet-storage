@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { asArray, asString, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
 import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
@@ -444,6 +444,47 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         }
         return r
     }
+
+    /**
+     * For each spendable output in the 'default' basket of the authenticated user,
+     * verify that the output script, satoshis, vout and txid match that of an output
+     * still in the mempool of at least one service provider.
+     * 
+     * @returns object with invalidSpendableOutputs array. A good result is an empty array. 
+     */
+    async confirmSpendableOutputs() : Promise<{ invalidSpendableOutputs: table.Output[] }> {
+        const invalidSpendableOutputs: table.Output[] = []
+        const users = await this.findUsers({ partial: {} })
+        for (const { userId } of users) {
+            const defaultBasket = verifyOne(await this.findOutputBaskets({ partial: { userId, name: 'default' } }))
+            const where: Partial<table.Output> = {
+                userId,
+                basketId: defaultBasket.basketId,
+                spendable: true
+            }
+            const outputs = await this.findOutputs({ partial: where })
+            for (let i = outputs.length - 1; i >= 0; i--) {
+                const o = outputs[i]
+                const oid = verifyId(o.outputId)
+                if (o.spendable) {
+                    let ok = false
+                    if (o.lockingScript && o.lockingScript.length > 0) {
+                        const r = await this.getServices().getUtxoStatus(asString(o.lockingScript), 'script')
+                        if (r.status === 'success' && r.isUtxo && r.details?.length > 0) {
+                            const tx = await this.findTransactionById(o.transactionId)
+                            if (tx && tx.txid && r.details.some(d => d.txid === tx.txid && d.satoshis === o.satoshis && d.index === o.vout)) {
+                                ok = true
+                            }
+                        }
+                    }
+                    if (!ok)
+                        invalidSpendableOutputs.push(o)
+                }
+            }
+        }
+        return { invalidSpendableOutputs }
+    }
+
 }
 
 export interface StorageProviderOptions extends StorageReaderWriterOptions {

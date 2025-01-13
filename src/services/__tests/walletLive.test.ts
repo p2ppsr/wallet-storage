@@ -19,7 +19,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('1_Used to burn satoshis using confirmSpendableOutputs function', async () => {
+  test.skip('1_Used to burn satoshis using confirmSpendableOutputs function', async () => {
     // Check the list of outputs first using the debugger breakpoint, before performing the burn
     for (const { wallet, activeStorage: storage, services } of ctxs) {
       const r = await confirmSpendableOutputs(storage, services)

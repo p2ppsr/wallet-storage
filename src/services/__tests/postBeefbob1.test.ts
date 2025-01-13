@@ -13,7 +13,9 @@ describe('postBeef service tests', () => {
     const options = Services.createDefaultOptions('test')
     const services = new Services(options)
     const beefV2HexStr =
-      '0200beef02fe7234190001020000ed4befb76f30765762f424719ea625a1363aaa3a3d57a96442b20a018a0c007a01020e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488fe6f341900020202005a9ea749eceb98036aa9c45113c8eab26fb6ec1e6893f948bdcafc0eb699bf1603021da14531a04071d2fcd449e74ddae755c7b96699bab5b8e27d5b0df788fe7f5201000079e0da5c35d8d973ed7ae99561ff9e86f5ccac60757d71d9f1c36469e28037910501000100000001f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc630c0000006a47304402202bfaa910ceccd253e6565cda1dc361609c326e7e156c3f45d5709a0f8cc7ef1902203aa5f218bbbf93ff4fd79a955ee9dc5560fd0cbf7b577ac127826cfdf8fd648e41210203c21842c9bb4fd29f93622c7bb8c9c74a8bd3abd8182288bda3c5a7ad0a0c62ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a91439ce0c5855e6eb3e7b77415d46109c262a4fe92088acbd030000000000001976a9148719a9c70326cf36635decfe02dad1a97e26d31b88ac00000000010101000000029992732059f665488e873757061bda618dfdc927c69b40b6e3e5dad9d36ebc8f010000006b483045022100ed523c5e61553b467a123644ccc778f25388d029b7e7bfbf14286b31f69caecc02205d5a06b090f4734286fb9e5644111ff482a4e80dc07e75a410d243066fe58fdf41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffff5a9ea749eceb98036aa9c45113c8eab26fb6ec1e6893f948bdcafc0eb699bf16010000006a47304402201bbc42265e5279b7a3eed1a1cc67cdc8d0dc87e4b4b6566bff81a33f820894d502200603c78cd57c710eada31d75365bfb4d4eca436938f81cde312767acc4baebf041210292970d1d3a35e6a6a3b3f49055efd5ec7bd36a01c1286f82bcd0d3ef02c659c3ffffffff02e3030000000000001976a914ab2b66432503a3681fc5af1502207ca458c8752d88ac01000000000000001976a914169a96caf6b9dd6244e3ef73a46b7938519a02a588ac000000000001000000010e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488020000006b4830450221009aa50559716f14c6557908a74b38b4801d8151bfe79df5b5bf1093b5c6d6e5d8022056866fd20523de0812a8c68781e931ce63829ea36ef703c50a0d5305c65502a8412103188027e3399fd0a6c7eefe674f134a346adf334e1c5cefcfb3b797cf55a01499ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a914c77c78f42bf4b9e7cbe53b957fbc183ef5a8292f88ac91030000000000001976a914f7238871139f4926cbd592a03a737981e558245d88ac00000000000100000001260d1919f5aa9b40d805275faf20e74a28279bf45a977bff83131c547ffea8a3020000006b483045022100a6f091208328ff294d745c27416937a4f01432080e7458570e1d15dd5e2454bb022007355879ea14e6db674b8b855851b9079622cb04eb3de12e59bdeaf082d1480d412103f054bb5fb32fe48b590d1c21883bc45925d1c5e98feeb7af3ae2a618cebed278ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac66030000000000001976a914f13412e13939e2cca4d4602f7052a3ea5d4aba9088ac000000000001000000027132a28cb1f0056ec327142b0cbebe9e19e84d8c61aa35fa171d9c6b31c312d1000000006b483045022100cd5023550ba5277a8e0f91d42c956e43040d174a9fb28c2f627fec22bc08a2a302207bc5e93d2c7ee51cb5cc31ab9cc5bb0c9d13a4a5e87137c9605b11d64d0dbd7d41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffff1da14531a04071d2fcd449e74ddae755c7b96699bab5b8e27d5b0df788fe7f52000000006b483045022100c1cbfe78d020ada52ab6313bd1246f1474e19493483baa6754c8bf038e9bb0e402204b86eb379f1e266e2ac1c0e4dc63010d9ff7cb1b5a7332fefcc58ddc05f8dbea4121025d322eeca0efb812e7d555c3120f69c9c6ca285cc22e1f524176043723c388c8ffffffff010c040000000000001976a9140fe584b2c3708b2df74a1b8a8226b251cc6ba86888ac00000000'
+      '0200beef02fe5e34190004020c029ded3633c894979498584c283cbda15c5d9898fc7d24aa6ff5bbf77b416085710d01010701010200d8b8570829a8fb654969aaca90c2472235dcf4d327434323e059f2b5462d96c20100001cefaf4af6619df70ac9c2a7d09662a1bd79c1143e98e09b83785b144e2cc804fee100190003020602f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc6307010102009602f0b0959d085cbfda1a0958f65882b1a2829d66853582c0a530586dd00e930100002a7f27bd83b7d490f6641bbd3a8bdeff31490c14430597302ba579392be33f730601000100000002c1727caa446c55ae153604fb4e6918c12513ddc2b4a1ddc78c83f6fd494ba0b3000000006b4830450221008161456b70576bbc566d96d7961f38bf5ce174521a14f7cb95005a64653d518502202fb78ca68e079377f39452c06797b97f9595d7097e12757e151926821cb4570a41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffffc1727caa446c55ae153604fb4e6918c12513ddc2b4a1ddc78c83f6fd494ba0b3020000006b483045022100d4df52ee224c1bc92ef85ed0958b7b9b3078b23a81f39dcb782824055df677dd02206c3e75b41b0695fdb0fa84c874b47b59e24c7fa8c84f25260db380f7dde9e289412103928cfce961f71c0fea6e7478424bf495fab86e45e5138dcd319572656b38bf04ffffffff0201000000000000001976a9141a50a30cfd881aec9c32d3b01090c3dcab07004d88ace4030000000000001976a9142136a49f21892c4b96c779ce479d3eea9626615888ac0000000001010100000001faba5977e9d7894778490ad3d3cf3ff0144da2920f6b31869dbcc026b693061b000000006a473044022050b2a300cad0e4b4c5ecaf93445937f21f6ec61d0c1726ac46bfb5bc2419af2102205d53e70fbdb0d1181a3cb1ef437ae27a73320367fdb78e8cadbfcbf82054e696412102480166f272ee9b639317c16ee60a2254ece67d0c7190fedbd26d57ac30f69d65ffffffff1da861000000000000c421029b09fdddfae493e309d3d97b919f6ab2902a789158f6f78489ad903b7a14baeaac2131546f446f44744b7265457a6248594b466a6d6f42756475466d53585855475a4735840423b7e26b5fd304a88f2ea28c9cf04d6c0a6c52a3174b69ea097039a355dbc6d95e702ac325c3f07518c9b4370796f90ad74e1c46304402206cd8228dd5102f7d8bd781e71dbf60df6559e90df9b79ed1c2b51d0316432f5502207a8713e899232190322dd4fdac6384f6b416ffa10b4196cdc7edbaf751b4a1156d7502000000000000001976a914ee8f77d351270123065a30a13e30394cbb4a6a2b88ace8030000000000001976a9147c8d0d51b07812872049e60e65a28d1041affc1f88ace8030000000000001976a914494c42ae91ebb8d4df662b0c2c98acfcbf14aff388ac93070000000000001976a9149619d3a2c3669335175d6fbd1d785719418cd69588acef030000000000001976a91435aabdafdc475012b7e2b7ab42e8f0fd9e8b665588ac59da0000000000001976a914c05b882ce290b3c19fbb0fca21e416f204d855a188acf3030000000000001976a9146ccff9f5e40844b784f1a68269afe30f5ec84c5d88accb340d00000000001976a914baf2186a8228a9581e0af744e28424343c6a464d88ace9030000000000001976a914a9c3b08f698df167c352f56aad483c907a0e64f488ac61140000000000001976a914f391b03543456ca68f3953b5ef4883f1299b4a2c88ac44c10500000000001976a914e6631bf6d96f93db48fb51daeace803ad805c09788ace9030000000000001976a9148cac2669fc696f5fb39aa59360a2cd20a6daffac88ac49b00400000000001976a9142c16b8a63604c66aa51f47f499024e327657ab5388acd7d50100000000001976a914ca5b56f03f796f55583c7cdd612c02f8d232669388ac42050000000000001976a914175a6812dbf2a550b1bf0d21594b96f9daf60d7988ac15040000000000001976a9147422a7237bb0fa77691047abf930e0274d193fe788ace9030000000000001976a9141a32c1c07dd4f9c632ce6b43dd28c8b27a37d81588ace8030000000000001976a914d9433de1883950578e9a29013aedb1e66d900bdc88ac39190000000000001976a9149fcdbc118b0114d2cc086a75eb14d880e3e25a9e88ac55390200000000001976a914cccf036ec7ae05690461c9d1be10193b6427055588ac1d010000000000001976a9148578396af7a6783824ff680315cc0a1375d9586e88acb3090000000000001976a9147c63cace8600f5400c8678cb2c843400c0c8ac2788acc55d0000000000001976a9148bf6991866b525f36dda54f7ca393c3a56cfff7188acc9100b00000000001976a914af41bf9bbf9d345f6b7cb37958d4cf43e88b17ef88acda040000000000001976a914ad818fcb671cc5b85dc22056d97a9b31aede4f3288ace8030000000000001976a91403ae9f7e41baee27ab7e66a323e73ee6801b5e1688ac59040000000000001976a9149f19356274a53ffdfb755bd81d40a97fe79b5e9b88ac10340000000000001976a914504dff507fccce4005f2d374cbdb6d5d493ceda288ac000000000001000000019ded3633c894979498584c283cbda15c5d9898fc7d24aa6ff5bbf77b41608571010000006a4730440220400aefc9890f1490531fd55cde9fb900bef3a46f921f330ba2ceda947e6e36c502200d1538dc93d15554a51f0a36a0e60bb93f6da737bf72058790e1225762d4f553412102785d458e92f625774ef74e8217f78f51ad7724d3821d87a86bfcc78910512bb5ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88acb9030000000000001976a91492466c47678f7c438af1bb4a60f4407788acc94a88ac00000000000100000001448a561d75f4b249fe2afe4b49cb7bc48e252091928d2c3543da5f409191af9f010000006a47304402205cbfff8f643b7ef6a75f874ba4486dca85cea6d74f8dcd1a093b7cf81698a849022017c53e32ad511ca6f175de159507f237a51baa0bc908e1303cbfa452686a2b17412103c948dc7ac485ca30298fdc681622d8f53fd6754423c288db9209ea390d88c157ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac8e030000000000001976a914b15c8381acf6267de50ae03a2d54534a5355bd4588ac000000000001000000012b7cd0f0888a9cf5ac0aea441610baf715586049c9b31fac6afbdc4a7073c818010000006b483045022100bdfe1058feba5978f470cfdb8f59ded0df973209f4e35d5b49b2b032d7c9fde802207fb41a7d01498516c82d7435b8fc5147caeee997a27593a903c4f8ba2fca249c4121026255c96a98aba33650bcfbffe7d6904d5e884fd7a270df9748c650ae37d5f95effffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac63030000000000001976a91420c14864865482b358a5a12f2ddc04af0eb72e0088ac000000000001000000024c60b9a2bd74c8b83d7a1820817d0d14c245c200d95b86b66179fae1e2672c61000000006a473044022078966e3792117360f1b24ec0628e637278dffae8266ef89964d745336a4935fb0220576531afdcb8d976acb088bce3c70b409f53f5c0e7bb8d0862f8380e1c4fd83241210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453ffffffffff1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc63110000006a47304402200a59e26bcb6fa2649838f21d5c5ede4cb69125e058abb74291c2e247b9d517fd022029274a83715b1fbc1ea6dfb08c264f0b2e347bf4c4e98e06816107317d15fce741210367bdea995009145e16703770bfe9c2a5b8b4991c4dc49f859b6f2153c5f2a3d2ffffffff0112040000000000001976a91443ab0e82e90c0561d32774168130789bd1a96c5b88ac00000000'
+
+    //'0200beef02fe7234190001020000ed4befb76f30765762f424719ea625a1363aaa3a3d57a96442b20a018a0c007a01020e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488fe6f341900020202005a9ea749eceb98036aa9c45113c8eab26fb6ec1e6893f948bdcafc0eb699bf1603021da14531a04071d2fcd449e74ddae755c7b96699bab5b8e27d5b0df788fe7f5201000079e0da5c35d8d973ed7ae99561ff9e86f5ccac60757d71d9f1c36469e28037910501000100000001f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc630c0000006a47304402202bfaa910ceccd253e6565cda1dc361609c326e7e156c3f45d5709a0f8cc7ef1902203aa5f218bbbf93ff4fd79a955ee9dc5560fd0cbf7b577ac127826cfdf8fd648e41210203c21842c9bb4fd29f93622c7bb8c9c74a8bd3abd8182288bda3c5a7ad0a0c62ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a91439ce0c5855e6eb3e7b77415d46109c262a4fe92088acbd030000000000001976a9148719a9c70326cf36635decfe02dad1a97e26d31b88ac00000000010101000000029992732059f665488e873757061bda618dfdc927c69b40b6e3e5dad9d36ebc8f010000006b483045022100ed523c5e61553b467a123644ccc778f25388d029b7e7bfbf14286b31f69caecc02205d5a06b090f4734286fb9e5644111ff482a4e80dc07e75a410d243066fe58fdf41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffff5a9ea749eceb98036aa9c45113c8eab26fb6ec1e6893f948bdcafc0eb699bf16010000006a47304402201bbc42265e5279b7a3eed1a1cc67cdc8d0dc87e4b4b6566bff81a33f820894d502200603c78cd57c710eada31d75365bfb4d4eca436938f81cde312767acc4baebf041210292970d1d3a35e6a6a3b3f49055efd5ec7bd36a01c1286f82bcd0d3ef02c659c3ffffffff02e3030000000000001976a914ab2b66432503a3681fc5af1502207ca458c8752d88ac01000000000000001976a914169a96caf6b9dd6244e3ef73a46b7938519a02a588ac000000000001000000010e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488020000006b4830450221009aa50559716f14c6557908a74b38b4801d8151bfe79df5b5bf1093b5c6d6e5d8022056866fd20523de0812a8c68781e931ce63829ea36ef703c50a0d5305c65502a8412103188027e3399fd0a6c7eefe674f134a346adf334e1c5cefcfb3b797cf55a01499ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a914c77c78f42bf4b9e7cbe53b957fbc183ef5a8292f88ac91030000000000001976a914f7238871139f4926cbd592a03a737981e558245d88ac00000000000100000001260d1919f5aa9b40d805275faf20e74a28279bf45a977bff83131c547ffea8a3020000006b483045022100a6f091208328ff294d745c27416937a4f01432080e7458570e1d15dd5e2454bb022007355879ea14e6db674b8b855851b9079622cb04eb3de12e59bdeaf082d1480d412103f054bb5fb32fe48b590d1c21883bc45925d1c5e98feeb7af3ae2a618cebed278ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac66030000000000001976a914f13412e13939e2cca4d4602f7052a3ea5d4aba9088ac000000000001000000027132a28cb1f0056ec327142b0cbebe9e19e84d8c61aa35fa171d9c6b31c312d1000000006b483045022100cd5023550ba5277a8e0f91d42c956e43040d174a9fb28c2f627fec22bc08a2a302207bc5e93d2c7ee51cb5cc31ab9cc5bb0c9d13a4a5e87137c9605b11d64d0dbd7d41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffff1da14531a04071d2fcd449e74ddae755c7b96699bab5b8e27d5b0df788fe7f52000000006b483045022100c1cbfe78d020ada52ab6313bd1246f1474e19493483baa6754c8bf038e9bb0e402204b86eb379f1e266e2ac1c0e4dc63010d9ff7cb1b5a7332fefcc58ddc05f8dbea4121025d322eeca0efb812e7d555c3120f69c9c6ca285cc22e1f524176043723c388c8ffffffff010c040000000000001976a9140fe584b2c3708b2df74a1b8a8226b251cc6ba86888ac00000000'
     //'0200beef01fe7234190001020000ed4befb76f30765762f424719ea625a1363aaa3a3d57a96442b20a018a0c007a01020e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e4880301000100000001f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc630c0000006a47304402202bfaa910ceccd253e6565cda1dc361609c326e7e156c3f45d5709a0f8cc7ef1902203aa5f218bbbf93ff4fd79a955ee9dc5560fd0cbf7b577ac127826cfdf8fd648e41210203c21842c9bb4fd29f93622c7bb8c9c74a8bd3abd8182288bda3c5a7ad0a0c62ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a91439ce0c5855e6eb3e7b77415d46109c262a4fe92088acbd030000000000001976a9148719a9c70326cf36635decfe02dad1a97e26d31b88ac000000000001000000010e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488020000006b4830450221009aa50559716f14c6557908a74b38b4801d8151bfe79df5b5bf1093b5c6d6e5d8022056866fd20523de0812a8c68781e931ce63829ea36ef703c50a0d5305c65502a8412103188027e3399fd0a6c7eefe674f134a346adf334e1c5cefcfb3b797cf55a01499ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a914c77c78f42bf4b9e7cbe53b957fbc183ef5a8292f88ac91030000000000001976a914f7238871139f4926cbd592a03a737981e558245d88ac00000000000100000001260d1919f5aa9b40d805275faf20e74a28279bf45a977bff83131c547ffea8a3020000006a473044022069a4e3e1321c8f7851ed0f7754bec67d96033b7d6f7ef9dc09cae7018fc1cbe20220479fa825a49437a55df4f5ac0304fe00f96552ecfd1a7e08b511999f945cfb02412103f054bb5fb32fe48b590d1c21883bc45925d1c5e98feeb7af3ae2a618cebed278ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac66030000000000001976a91469058c78543bd1855edca7ace01e662ae6957d7488ac00000000'
 
     // Step 1: Test with Original BEEF V2
@@ -35,70 +37,12 @@ describe('postBeef service tests', () => {
     console.log('BEEF V1 Object:', beefV1)
     console.log('BEEF V1 isValid:', beefV1.isValid())
     console.log('BEEF V1 log:', beefV1.toLogString())
-    //expect(beefV1.toHex()).toBe(beefV2HexStr)
     console.log('BEEF V1 test passed ✅\n')
 
     // Extract an array of txids from beefV1.txs
     const txids = beefV1.txs.map((tx: any) => tx.txid)
-
-    console.log('Array of TXIDs:', txids)
-
-    if (!beefV1.txs[0]?.tx?.outputs[0]?.lockingScript) {
-      throw new Error('LockingScript is undefined')
-    }
-    console.log('lockingScript=', beefV1.txs[0].tx.outputs[0].lockingScript.toString())
-    const r = await services.getUtxoStatus(beefV1.txs[0].tx.outputs[0].lockingScript.toString(), 'script')
-    //const r = await services.postBeef(beefV1, txids)
-    console.log('r=', r)
-
-    // expect(bsv.Beef.fromBinary(beefV1.toBinary()).toLogString()).toBe(beefV2HexStr)
-    // const btx = beefV1.txs[0]
-    // beefV1.txs[0] = new bsv.BeefTx(beefV1.txs[0].tx!, 0)
-    // expect(bsv.Beef.fromBinary(beefV1.toBinary()).toLogString()).toBe(beefV2HexStr)
-    // beefV1.txs[0]._tx = undefined
-    // beefV1.txs[0]._rawTx = undefined
-    // beefV1.txs[0]._txid = undefined
-    // expect(() => beefV1.txs[0].txid).toThrow('Internal')
-    // expect(() => beefV1.toBinary()).toThrow('a valid serialized Transaction is expected')
-    // beefV1.txs[0] = btx
-
-    // // Use this expected to display the supposed differences in V1 and V2 Beef structure
-    // expect(beefV1.toHex()).toBe(beefV2HexStr)
-  })
-
-  test('2_Compare BEEF V1 and V2 structures with byte-by-byte diff', () => {
-    try {
-      const beefV2HexStr =
-        '0200beef01fe7234190001020000ed4befb76f30765762f424719ea625a1363aaa3a3d57a96442b20a018a0c007a01020e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e4880301000100000001f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc630c0000006a47304402202bfaa910ceccd253e6565cda1dc361609c326e7e156c3f45d5709a0f8cc7ef1902203aa5f218bbbf93ff4fd79a955ee9dc5560fd0cbf7b577ac127826cfdf8fd648e41210203c21842c9bb4fd29f93622c7bb8c9c74a8bd3abd8182288bda3c5a7ad0a0c62ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a91439ce0c5855e6eb3e7b77415d46109c262a4fe92088acbd030000000000001976a9148719a9c70326cf36635decfe02dad1a97e26d31b88ac000000000001000000010e102060d40abad4167f26db7405b52e89b4556edd23054f50a342ac6d17e488020000006b4830450221009aa50559716f14c6557908a74b38b4801d8151bfe79df5b5bf1093b5c6d6e5d8022056866fd20523de0812a8c68781e931ce63829ea36ef703c50a0d5305c65502a8412103188027e3399fd0a6c7eefe674f134a346adf334e1c5cefcfb3b797cf55a01499ffffffff032a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac01000000000000001976a914c77c78f42bf4b9e7cbe53b957fbc183ef5a8292f88ac91030000000000001976a914f7238871139f4926cbd592a03a737981e558245d88ac00000000000100000001260d1919f5aa9b40d805275faf20e74a28279bf45a977bff83131c547ffea8a3020000006a473044022069a4e3e1321c8f7851ed0f7754bec67d96033b7d6f7ef9dc09cae7018fc1cbe20220479fa825a49437a55df4f5ac0304fe00f96552ecfd1a7e08b511999f945cfb02412103f054bb5fb32fe48b590d1c21883bc45925d1c5e98feeb7af3ae2a618cebed278ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac66030000000000001976a91469058c78543bd1855edca7ace01e662ae6957d7488ac00000000'
-
-      const beefBinary = hexToBinary(beefV2HexStr)
-
-      // ✅ Create BEEF V2 object
-      const beefV2 = bsv.Beef.fromBinary(beefBinary)
-      const beefV2Hex = beefV2.toHex()
-      console.log('✅ BEEF V2 Hex:(len=', beefV2Hex.length, ') ', beefV2Hex)
-
-      // ✅ Clone BEEF V2 and set version to 1 for BEEF V1
-      const beefBinaryV1tmp = [...beefBinary]
-      const beefV1 = bsv.Beef.fromBinary(beefBinaryV1tmp)
-      beefV1.version = 1
-      const beefV1Hex = beefV1.toHex()
-      console.log('✅ BEEF V1 Hex (version set to 1):(len=', beefV1Hex.length, ') ', beefV1Hex)
-
-      // 🟢🔴 Byte-by-byte diff with color highlighting
-      if (beefV1Hex !== beefV2Hex) {
-        console.warn('⚠️ Structural differences detected between BEEF V1 and V2:')
-        highlightDifferences(beefV2Hex, beefV1Hex)
-      } else {
-        console.log('✅ BEEF V1 and V2 structures are identical.')
-      }
-
-      // ✅ Always pass the test
-      expect(true).toBe(true)
-    } catch (error) {
-      console.error('❌ Error comparing BEEF V1 and V2:', (error as Error).message)
-      throw error
-    }
+    const r = await services.postBeef(beefV1, txids)
+    expect(r).toBeTruthy()
   })
 })
 
@@ -120,119 +64,6 @@ function hexToBinary(hex: string): number[] {
   return binary
 }
 
-/**
- * Highlights the byte-by-byte differences between two hex strings.
- */
-async function highlightDifferences(expected: string, received: string): Promise<void> {
-  // Dynamically import chalk to avoid module system conflicts
-  const chalk = await import('chalk').then(mod => mod.default || mod)
-
-  let highlightedExpected = ''
-  let highlightedReceived = ''
-
-  // Iterate through each character to compare
-  for (let i = 0; i < Math.max(expected.length, received.length); i++) {
-    const expectedChar = expected[i] || ' '
-    const receivedChar = received[i] || ' '
-
-    // Highlight differences in green/red
-    if (expectedChar !== receivedChar) {
-      highlightedExpected += chalk.green.bold(expectedChar)
-      highlightedReceived += chalk.red.bold(receivedChar)
-    } else {
-      highlightedExpected += expectedChar
-      highlightedReceived += receivedChar
-    }
-  }
-
-  // Log the highlighted differences
-  console.log(chalk.green('\nBEEF V2:\n') + highlightedExpected)
-  console.log(chalk.red('\nBEEF V1:\n') + highlightedReceived)
-}
-
-/*
-    expect(beef.toHex()).toBe(beefV2Hex)
-
-    expect(bsv.Beef.fromBinary(beef.toBinary()).toLogString()).toBe(beefV2Hex)
-    const btx = beef.txs[0]
-    beef.txs[0] = new bsv.BeefTx(beef.txs[0].tx!, 0)
-    expect(bsv.Beef.fromBinary(beef.toBinary()).toLogString()).toBe(beefV2Hex)
-    beef.txs[0]._tx = undefined
-    beef.txs[0]._rawTx = undefined
-    beef.txs[0]._txid = undefined
-    expect(() => beef.txs[0].txid).toThrow('Internal')
-    expect(() => beef.toBinary()).toThrow('a valid serialized Transaction is expected')
-    beef.txs[0] = btx
-
-    const tx = Transaction.fromHex(txs[0])
-    beef.mergeTransaction(tx)
-    expect(beef.toLogString()).toBe(log2)
-
-    {
-      const beef = Beef.fromString(beefs[0])
-      beef.mergeTransaction(Transaction.fromHex(txs[0]))
-      beef.bumps[0].path[0][1].hash = '36ebdb404ec59871c8e2b00e41d8090d28a0d8a190d44606e895dd0d013bca00'
-      expect(beef.isValid(undefined)).toBe(true)
-      expect(await beef.verify(chainTracker, undefined)).toBe(true)
-      beef.bumps[0].path[0][1].hash = '46ebdb404ec59871c8e2b00e41d8090d28a0d8a190d44606e895dd0d013bca00'
-      expect(beef.isValid(undefined)).toBe(true)
-      expect(await beef.verify(chainTracker, undefined)).toBe(false)
-    }
-
-    {
-      const btx = new BeefTx(tx.toBinary(), undefined)
-      expect(btx.rawTx).toEqual(tx.toBinary())
-    }
-
-    {
-      const btx = new BeefTx('bd4a39c6dce3bdd982be3c67eb04b83934fd431f8bcb64f9da4413c91c634d07', undefined)
-      expect(btx.rawTx).toBe(undefined)
-    }
-
-    const r = beef.sortTxs()
-    expect(r.missingInputs.length).toBe(0)
-    expect(beef.toLogString()).toBe(log2)
-
-    {
-      const b = new Beef()
-      b.mergeTxidOnly('bd4a39c6dce3bdd982be3c67eb04b83934fd431f8bcb64f9da4413c91c634d07')
-      const bin = b.toBinary()
-      const b2 = Beef.fromBinary(bin)
-      expect(b2.txs[0].isTxidOnly).toBe(true)
-      expect(b2.txs[0].txid).toBe('bd4a39c6dce3bdd982be3c67eb04b83934fd431f8bcb64f9da4413c91c634d07')
-    }
-
-    {
-      const beef = new Beef()
-      beef.mergeTransaction(Transaction.fromHex(txs[0]))
-      const { missingInputs } = beef.sortTxs()
-      expect(missingInputs).toEqual(['bd4a39c6dce3bdd982be3c67eb04b83934fd431f8bcb64f9da4413c91c634d07'])
-      const beef0 = Beef.fromString(beefs[0])
-      beef.mergeBump(beef0.bumps[0])
-      beef.mergeRawTx(beef0.txs[0].rawTx!, undefined)
-      expect(beef.isValid(false)).toBe(true)
-    }
-
-    {
-      const beef = new Beef()
-      beef.mergeRawTx(Transaction.fromHex(txs[0]).toBinary(), 0)
-      expect(beef.isValid(false)).toBe(true)
-    }
-
-    {
-      const version = 4290641921
-      expect(() => Beef.fromString(beefs[1])).toThrow(`Serialized BEEF must start with ${BEEF_MAGIC} or ${BEEF_MAGIC_V2} but starts with ${version}`)
-    }
-
-    const aBeef: bsv.Beef = beefV2Hex.fromString(beefV2Hex)
-    const tx: bsv.Transaction = aBeef.txs[aBeef.txs.length - 1].tx
-    for (const input of tx.inputs) {
-      const sourceTXID: bsv.BeefTx = aBeef.findTxid(input.sourceTXID!)!
-      console.log(sourceTXID)
-    }
-    //const r = await services.postTxs(aBeef, [tx[0].txid])
-    //expect(r).toBeTruthy()
-    */
 /*
 Example Beefs from createAction.test.ts
 
@@ -382,4 +213,273 @@ beef.toHex()
 
 JSON.stringify(data.data)
 '{"blockHash":"","blockHeight":0,"competingTxs":null,"extraInfo":"","merklePath":"","status":200,"timestamp":"2025-01-13T00:44:05.746867715Z","title":"OK","txStatus":"SEEN_IN_ORPHAN_MEMPOOL","txid":"e374a5ce4df2deb004a077985d472a7a8e234f0f0244075b5504e7287fa59eac"}'
+
+beef.
+Uncaught SyntaxError SyntaxError: Unexpected end of input
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/test/wallet/action/createActionToGenerateBeefs.test.ts:25:9)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:397:39)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:404:13)
+    at mockConstructor (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:148:19)
+    at attemptToPostReqsToNetwork (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/attemptToPostReqsToNetwork.ts:66:33)
+    --- await ---
+    at attemptToPostReqsToNetwork (/home/bob1/bobtestmaster/wallet-storage/src/storage/StorageProvider.ts:294:48)
+    at shareReqsWithWorld (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/processAction.ts:109:32)
+    --- await ---
+    at processTicksAndRejections (internal/process/task_queues:95:5)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/processAction.ts:36:23)
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/StorageProvider.ts:290:35)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:224:33)
+    at runAsWriter (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:94:29)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:222:27)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/methods/createAction.ts:169:67)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/methods/createAction.ts:26:29)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/WalletSigner.ts:84:37)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/Wallet.ts:173:37)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/test/wallet/action/createActionToGenerateBeefs.test.ts:166:33)
+    --- await ---
+    at Promise.then.completed (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/utils.js:298:28)
+    at callAsyncCircusFn (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:316:40)
+    --- await ---
+    at _runTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:252:9)
+    --- await ---
+    at _runTestsForDescribeBlock (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:126:15)
+    --- await ---
+    at _runTestsForDescribeBlock (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:121:15)
+    --- await ---
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:71:9)
+    --- await ---
+    at runAndTransformResultsToJestFormat (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:44)
+    at jestAdapter (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:25)
+    --- await ---
+    at runTestInternal (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/runTest.js:367:22)
+    --- await ---
+    at runTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/runTest.js:444:40)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:94:43)
+    --- Promise.then ---
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:80:14)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:23:31)
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:23:43)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:45:20)
+    --- await ---
+    at enqueue (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:47:5)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:51:3)
+    at generator (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:50:37)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:78:9)
+    at #createInBandTestRun (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:76:18)
+    at runTests (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:70:34)
+    at scheduleTests (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/TestScheduler.js:280:32)
+    --- await ---
+    at runJest (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/runJest.js:367:35)
+    --- await ---
+    at startRun (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:402:33)
+    at runWithoutWatch (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:416:10)
+    at _run10000 (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:343:13)
+    --- await ---
+    at runCLI (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:198:9)
+    --- await ---
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-cli/build/run.js:130:62)
+    at processTicksAndRejections (internal/process/task_queues:95:5)
+    --- await ---
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-cli/bin/jest.js:16:17)
+    at Module._compile (internal/modules/cjs/loader:1256:14)
+    at Module._extensions..js (internal/modules/cjs/loader:1310:10)
+    at Module.load (internal/modules/cjs/loader:1119:32)
+    at Module._load (internal/modules/cjs/loader:960:12)
+    at Module.require (internal/modules/cjs/loader:1143:19)
+    at require (internal/modules/cjs/helpers:110:18)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest/bin/jest.js:12:3)
+    at Module._compile (internal/modules/cjs/loader:1256:14)
+    at Module._extensions..js (internal/modules/cjs/loader:1310:10)
+    at Module.load (internal/modules/cjs/loader:1119:32)
+    at Module._load (internal/modules/cjs/loader:960:12)
+    at executeUserEntryPoint (internal/modules/run_main:81:12)
+    at <anonymous> (internal/main/run_main_module:23:47)
+beef.toLogString()
+"BEEF with 2 BUMPS and 6 Transactions, isValid true
+  BUMP 0
+    block: 1651806
+    txids: [
+      '718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d'
+    ]
+  BUMP 1
+    block: 1638625
+    txids: [
+      '63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1'
+    ]
+  TX 0
+    txid: 718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d
+    bumpIndex: 0
+    rawTx length=374
+  TX 1
+    txid: 63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1
+    bumpIndex: 1
+    rawTx length=1314
+  TX 2
+    txid: 9faf9191405fda43352c8d929120258ec47bcb494bfe2afe49b2f4751d568a44
+    rawTx length=225
+    inputs: [
+      '718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d'
+    ]
+  TX 3
+    txid: 18c873704adcfb6aac1fb3c949605815f7ba101644ea0aacf59c8a88f0d07c2b
+    rawTx length=225
+    inputs: [
+      '9faf9191405fda43352c8d929120258ec47bcb494bfe2afe49b2f4751d568a44'
+    ]
+  TX 4
+    txid: 612c67e2e1fa7961b6865bd900c245c2140d7d8120187a3db8c874bda2b9604c
+    rawTx length=226
+    inputs: [
+      '18c873704adcfb6aac1fb3c949605815f7ba101644ea0aacf59c8a88f0d07c2b'
+    ]
+  TX 5
+    txid: 7b87df46bd84d349acc2f1f3875527447fa97d3246abe37c143ccd0bbdc4da18
+    rawTx length=338
+    inputs: [
+      '612c67e2e1fa7961b6865bd900c245c2140d7d8120187a3db8c874bda2b9604c',
+      '63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1'
+    ]
+"
+
+beef.
+Uncaught SyntaxError SyntaxError: Unexpected end of input
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/test/wallet/action/createActionToGenerateBeefs.test.ts:25:9)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:397:39)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:404:13)
+    at mockConstructor (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-mock/build/index.js:148:19)
+    at attemptToPostReqsToNetwork (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/attemptToPostReqsToNetwork.ts:66:33)
+    --- await ---
+    at attemptToPostReqsToNetwork (/home/bob1/bobtestmaster/wallet-storage/src/storage/StorageProvider.ts:294:48)
+    at shareReqsWithWorld (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/processAction.ts:109:32)
+    --- await ---
+    at processTicksAndRejections (internal/process/task_queues:95:5)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/methods/processAction.ts:36:23)
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/StorageProvider.ts:290:35)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:224:33)
+    at runAsWriter (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:94:29)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/storage/WalletStorageManager.ts:222:27)
+    --- await ---
+    at processAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/methods/createAction.ts:169:67)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/methods/createAction.ts:26:29)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/signer/WalletSigner.ts:84:37)
+    at createAction (/home/bob1/bobtestmaster/wallet-storage/src/Wallet.ts:173:37)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/test/wallet/action/createActionToGenerateBeefs.test.ts:166:33)
+    --- await ---
+    at Promise.then.completed (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/utils.js:298:28)
+    at callAsyncCircusFn (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:316:40)
+    --- await ---
+    at _runTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:252:9)
+    --- await ---
+    at _runTestsForDescribeBlock (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:126:15)
+    --- await ---
+    at _runTestsForDescribeBlock (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:121:15)
+    --- await ---
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/run.js:71:9)
+    --- await ---
+    at runAndTransformResultsToJestFormat (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:44)
+    at jestAdapter (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:25)
+    --- await ---
+    at runTestInternal (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/runTest.js:367:22)
+    --- await ---
+    at runTest (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/runTest.js:444:40)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:94:43)
+    --- Promise.then ---
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:80:14)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:23:31)
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:23:43)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:45:20)
+    --- await ---
+    at enqueue (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:47:5)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:51:3)
+    at generator (/home/bob1/bobtestmaster/wallet-storage/node_modules/p-limit/index.js:50:37)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:78:9)
+    at #createInBandTestRun (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:76:18)
+    at runTests (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-runner/build/index.js:70:34)
+    at scheduleTests (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/TestScheduler.js:280:32)
+    --- await ---
+    at runJest (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/runJest.js:367:35)
+    --- await ---
+    at startRun (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:402:33)
+    at runWithoutWatch (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:416:10)
+    at _run10000 (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:343:13)
+    --- await ---
+    at runCLI (/home/bob1/bobtestmaster/wallet-storage/node_modules/@jest/core/build/cli/index.js:198:9)
+    --- await ---
+    at run (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-cli/build/run.js:130:62)
+    at processTicksAndRejections (internal/process/task_queues:95:5)
+    --- await ---
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest-cli/bin/jest.js:16:17)
+    at Module._compile (internal/modules/cjs/loader:1256:14)
+    at Module._extensions..js (internal/modules/cjs/loader:1310:10)
+    at Module.load (internal/modules/cjs/loader:1119:32)
+    at Module._load (internal/modules/cjs/loader:960:12)
+    at Module.require (internal/modules/cjs/loader:1143:19)
+    at require (internal/modules/cjs/helpers:110:18)
+    at <anonymous> (/home/bob1/bobtestmaster/wallet-storage/node_modules/jest/bin/jest.js:12:3)
+    at Module._compile (internal/modules/cjs/loader:1256:14)
+    at Module._extensions..js (internal/modules/cjs/loader:1310:10)
+    at Module.load (internal/modules/cjs/loader:1119:32)
+    at Module._load (internal/modules/cjs/loader:960:12)
+    at executeUserEntryPoint (internal/modules/run_main:81:12)
+    at <anonymous> (internal/main/run_main_module:23:47)
+beef.toLogString()
+"BEEF with 2 BUMPS and 6 Transactions, isValid true
+  BUMP 0
+    block: 1651806
+    txids: [
+      '718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d'
+    ]
+  BUMP 1
+    block: 1638625
+    txids: [
+      '63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1'
+    ]
+  TX 0
+    txid: 718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d
+    bumpIndex: 0
+    rawTx length=374
+  TX 1
+    txid: 63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1
+    bumpIndex: 1
+    rawTx length=1314
+  TX 2
+    txid: 9faf9191405fda43352c8d929120258ec47bcb494bfe2afe49b2f4751d568a44
+    rawTx length=225
+    inputs: [
+      '718560417bf7bbf56faa247dfc98985d5ca1bd3c284c5898949794c83336ed9d'
+    ]
+  TX 3
+    txid: 18c873704adcfb6aac1fb3c949605815f7ba101644ea0aacf59c8a88f0d07c2b
+    rawTx length=225
+    inputs: [
+      '9faf9191405fda43352c8d929120258ec47bcb494bfe2afe49b2f4751d568a44'
+    ]
+  TX 4
+    txid: 612c67e2e1fa7961b6865bd900c245c2140d7d8120187a3db8c874bda2b9604c
+    rawTx length=226
+    inputs: [
+      '18c873704adcfb6aac1fb3c949605815f7ba101644ea0aacf59c8a88f0d07c2b'
+    ]
+  TX 5
+    txid: 7b87df46bd84d349acc2f1f3875527447fa97d3246abe37c143ccd0bbdc4da18
+    rawTx length=338
+    inputs: [
+      '612c67e2e1fa7961b6865bd900c245c2140d7d8120187a3db8c874bda2b9604c',
+      '63dc5420a3e898dd16163c48ed6c338e6a59832b7c3bf9d9d227725ca5bffdf1'
+    ]
+"
+beef.toHex()
+'0200beef02fe5e34190004020c029ded3633c894979498584c283cbda15c5d9898fc7d24aa6ff5bbf77b416085710d01010701010200d8b8570829a8fb654969aaca90c2472235dcf4d327434323e059f2b5462d96c20100001cefaf4af6619df70ac9c2a7d09662a1bd79c1143e98e09b83785b144e2cc804fee100190003020602f1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc6307010102009602f0b0959d085cbfda1a0958f65882b1a2829d66853582c0a530586dd00e930100002a7f27bd83b7d490f6641bbd3a8bdeff31490c14430597302ba579392be33f730601000100000002c1727caa446c55ae153604fb4e6918c12513ddc2b4a1ddc78c83f6fd494ba0b3000000006b4830450221008161456b70576bbc566d96d7961f38bf5ce174521a14f7cb95005a64653d518502202fb78ca68e079377f39452c06797b97f9595d7097e12757e151926821cb4570a41210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453fffffffffc1727caa446c55ae153604fb4e6918c12513ddc2b4a1ddc78c83f6fd494ba0b3020000006b483045022100d4df52ee224c1bc92ef85ed0958b7b9b3078b23a81f39dcb782824055df677dd02206c3e75b41b0695fdb0fa84c874b47b59e24c7fa8c84f25260db380f7dde9e289412103928cfce961f71c0fea6e7478424bf495fab86e45e5138dcd319572656b38bf04ffffffff0201000000000000001976a9141a50a30cfd881aec9c32d3b01090c3dcab07004d88ace4030000000000001976a9142136a49f21892c4b96c779ce479d3eea9626615888ac0000000001010100000001faba5977e9d7894778490ad3d3cf3ff0144da2920f6b31869dbcc026b693061b000000006a473044022050b2a300cad0e4b4c5ecaf93445937f21f6ec61d0c1726ac46bfb5bc2419af2102205d53e70fbdb0d1181a3cb1ef437ae27a73320367fdb78e8cadbfcbf82054e696412102480166f272ee9b639317c16ee60a2254ece67d0c7190fedbd26d57ac30f69d65ffffffff1da861000000000000c421029b09fdddfae493e309d3d97b919f6ab2902a789158f6f78489ad903b7a14baeaac2131546f446f44744b7265457a6248594b466a6d6f42756475466d53585855475a4735840423b7e26b5fd304a88f2ea28c9cf04d6c0a6c52a3174b69ea097039a355dbc6d95e702ac325c3f07518c9b4370796f90ad74e1c46304402206cd8228dd5102f7d8bd781e71dbf60df6559e90df9b79ed1c2b51d0316432f5502207a8713e899232190322dd4fdac6384f6b416ffa10b4196cdc7edbaf751b4a1156d7502000000000000001976a914ee8f77d351270123065a30a13e30394cbb4a6a2b88ace8030000000000001976a9147c8d0d51b07812872049e60e65a28d1041affc1f88ace8030000000000001976a914494c42ae91ebb8d4df662b0c2c98acfcbf14aff388ac93070000000000001976a9149619d3a2c3669335175d6fbd1d785719418cd69588acef030000000000001976a91435aabdafdc475012b7e2b7ab42e8f0fd9e8b665588ac59da0000000000001976a914c05b882ce290b3c19fbb0fca21e416f204d855a188acf3030000000000001976a9146ccff9f5e40844b784f1a68269afe30f5ec84c5d88accb340d00000000001976a914baf2186a8228a9581e0af744e28424343c6a464d88ace9030000000000001976a914a9c3b08f698df167c352f56aad483c907a0e64f488ac61140000000000001976a914f391b03543456ca68f3953b5ef4883f1299b4a2c88ac44c10500000000001976a914e6631bf6d96f93db48fb51daeace803ad805c09788ace9030000000000001976a9148cac2669fc696f5fb39aa59360a2cd20a6daffac88ac49b00400000000001976a9142c16b8a63604c66aa51f47f499024e327657ab5388acd7d50100000000001976a914ca5b56f03f796f55583c7cdd612c02f8d232669388ac42050000000000001976a914175a6812dbf2a550b1bf0d21594b96f9daf60d7988ac15040000000000001976a9147422a7237bb0fa77691047abf930e0274d193fe788ace9030000000000001976a9141a32c1c07dd4f9c632ce6b43dd28c8b27a37d81588ace8030000000000001976a914d9433de1883950578e9a29013aedb1e66d900bdc88ac39190000000000001976a9149fcdbc118b0114d2cc086a75eb14d880e3e25a9e88ac55390200000000001976a914cccf036ec7ae05690461c9d1be10193b6427055588ac1d010000000000001976a9148578396af7a6783824ff680315cc0a1375d9586e88acb3090000000000001976a9147c63cace8600f5400c8678cb2c843400c0c8ac2788acc55d0000000000001976a9148bf6991866b525f36dda54f7ca393c3a56cfff7188acc9100b00000000001976a914af41bf9bbf9d345f6b7cb37958d4cf43e88b17ef88acda040000000000001976a914ad818fcb671cc5b85dc22056d97a9b31aede4f3288ace8030000000000001976a91403ae9f7e41baee27ab7e66a323e73ee6801b5e1688ac59040000000000001976a9149f19356274a53ffdfb755bd81d40a97fe79b5e9b88ac10340000000000001976a914504dff507fccce4005f2d374cbdb6d5d493ceda288ac000000000001000000019ded3633c894979498584c283cbda15c5d9898fc7d24aa6ff5bbf77b41608571010000006a4730440220400aefc9890f1490531fd55cde9fb900bef3a46f921f330ba2ceda947e6e36c502200d1538dc93d15554a51f0a36a0e60bb93f6da737bf72058790e1225762d4f553412102785d458e92f625774ef74e8217f78f51ad7724d3821d87a86bfcc78910512bb5ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88acb9030000000000001976a91492466c47678f7c438af1bb4a60f4407788acc94a88ac00000000000100000001448a561d75f4b249fe2afe4b49cb7bc48e252091928d2c3543da5f409191af9f010000006a47304402205cbfff8f643b7ef6a75f874ba4486dca85cea6d74f8dcd1a093b7cf81698a849022017c53e32ad511ca6f175de159507f237a51baa0bc908e1303cbfa452686a2b17412103c948dc7ac485ca30298fdc681622d8f53fd6754423c288db9209ea390d88c157ffffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac8e030000000000001976a914b15c8381acf6267de50ae03a2d54534a5355bd4588ac000000000001000000012b7cd0f0888a9cf5ac0aea441610baf715586049c9b31fac6afbdc4a7073c818010000006b483045022100bdfe1058feba5978f470cfdb8f59ded0df973209f4e35d5b49b2b032d7c9fde802207fb41a7d01498516c82d7435b8fc5147caeee997a27593a903c4f8ba2fca249c4121026255c96a98aba33650bcfbffe7d6904d5e884fd7a270df9748c650ae37d5f95effffffff022a000000000000001976a914380cca488b18f38882fe14826e6d60cf701ea87b88ac63030000000000001976a91420c14864865482b358a5a12f2ddc04af0eb72e0088ac000000000001000000024c60b9a2bd74c8b83d7a1820817d0d14c245c200d95b86b66179fae1e2672c61000000006a473044022078966e3792117360f1b24ec0628e637278dffae8266ef89964d745336a4935fb0220576531afdcb8d976acb088bce3c70b409f53f5c0e7bb8d0862f8380e1c4fd83241210310e59adfc3d2133a6a1a7c42638b892ba4d56d3c23eb201e7a24fc0c83be453ffffffffff1fdbfa55c7227d2d9f93b7c2b83596a8e336ced483c1616dd98e8a32054dc63110000006a47304402200a59e26bcb6fa2649838f21d5c5ede4cb69125e058abb74291c2e247b9d517fd022029274a83715b1fbc1ea6dfb08c264f0b2e347bf4c4e98e06816107317d15fce741210367bdea995009145e16703770bfe9c2a5b8b4991c4dc49f859b6f2153c5f2a3d2ffffffff0112040000000000001976a91443ab0e82e90c0561d32774168130789bd1a96c5b88ac00000000'
+
+JSON.stringify(data.data)
+'{"blockHash":"","blockHeight":0,"competingTxs":null,"extraInfo":"","merklePath":"","status":200,"timestamp":"2025-01-13T18:41:19.8266763Z","title":"OK","txStatus":"SEEN_ON_NETWORK","txid":"7b87df46bd84d349acc2f1f3875527447fa97d3246abe37c143ccd0bbdc4da18"}'
+
+
 */

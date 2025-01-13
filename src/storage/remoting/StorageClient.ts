@@ -5,13 +5,13 @@
  * by sending JSON-RPC calls to a configured remote WalletStorageServer.
  */
 
-import { sdk, table } from "..";
+import { sdk, table } from "../..";
 import { AuthFetch, Wallet } from '@bsv/sdk';
 
 // We import the base interface:
-import { WalletStorage } from "./WalletStorage" // Adjust this import path to where your local interface is declared
+import { WalletStorageManager } from "../WalletStorageManager" // Adjust this import path to where your local interface is declared
 
-export class StorageClient implements sdk.WalletStorageAuth {
+export class StorageClient implements sdk.WalletStorageProvider {
     private endpointUrl: string
     private nextId = 1
     private authClient: AuthFetch
@@ -76,10 +76,11 @@ export class StorageClient implements sdk.WalletStorageAuth {
         return !!this.settings
     }
 
-    async makeAvailable(): Promise<void> {
+    async makeAvailable(): Promise<table.Settings> {
         // Try getSettings from remote to confirm.
         const settings = await this.getSettings()
         this.settings = settings
+        return settings
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -230,5 +231,11 @@ export class StorageClient implements sdk.WalletStorageAuth {
         chunk: sdk.SyncChunk
     ): Promise<sdk.ProcessSyncChunkResult> {
         return this.rpcCall<sdk.ProcessSyncChunkResult>("processSyncChunk", [args, chunk])
+    }
+
+    async getSyncChunk(
+        args: sdk.RequestSyncChunkArgs
+    ): Promise<sdk.SyncChunk> {
+        return this.rpcCall<sdk.SyncChunk>("getSyncChunk", [args])
     }
 }

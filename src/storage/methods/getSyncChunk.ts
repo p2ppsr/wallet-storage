@@ -1,5 +1,5 @@
 import { sdk, table, verifyOne, verifyTruthy } from '../..'
-import { StorageBaseReader } from '../StorageBaseReader'
+import { StorageReader } from '../StorageReader'
 
 /**
  * Gets the next sync chunk of updated data from un-remoted storage (could be using a remote DB connection).
@@ -8,7 +8,7 @@ import { StorageBaseReader } from '../StorageBaseReader'
  * @returns 
  */
 export async function getSyncChunk(
-    storage: StorageBaseReader,
+    storage: StorageReader,
     args: sdk.RequestSyncChunkArgs
 )
 : Promise<sdk.SyncChunk>
@@ -51,51 +51,51 @@ export async function getSyncChunk(
     const chunkers: ChunkerArgs[] = [
         {
             name: 'provenTx', maxDivider: 100, preAdd: () => { r.provenTxs = [] }, addItem: (i: table.ProvenTx) => { r.provenTxs!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getProvenTxsForUser( args ) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getProvenTxsForUser( args ) }
         },
         {
             name: 'outputBasket', maxDivider: 1, preAdd: () => { r.outputBaskets = [] }, addItem: (i: table.OutputBasket) => { r.outputBaskets!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputBaskets({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputBaskets({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'outputTag', maxDivider: 1, preAdd: () => { r.outputTags = [] }, addItem: (i: table.OutputTag) => { r.outputTags!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputTags({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputTags({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'txLabel', maxDivider: 1, preAdd: () => { r.txLabels = [] }, addItem: (i: table.TxLabel) => { r.txLabels!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findTxLabels({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findTxLabels({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'transaction', maxDivider: 25, preAdd: () => { r.transactions = [] }, addItem: (i: table.Transaction) => { r.transactions!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findTransactions({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findTransactions({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'output', maxDivider: 25, preAdd: () => { r.outputs = [] }, addItem: (i: table.Output) => { r.outputs!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputs({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findOutputs({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'txLabelMap', maxDivider: 1, preAdd: () => { r.txLabelMaps = [] }, addItem: (i: table.TxLabelMap) => { r.txLabelMaps!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getTxLabelMapsForUser(args) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getTxLabelMapsForUser(args) }
         },
         {
             name: 'outputTagMap', maxDivider: 1, preAdd: () => { r.outputTagMaps = [] }, addItem: (i: table.OutputTagMap) => { r.outputTagMaps!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getOutputTagMapsForUser(args) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getOutputTagMapsForUser(args) }
         },
         {
             name: 'certificate', maxDivider: 25, preAdd: () => { r.certificates = [] }, addItem: (i: table.Certificate) => { r.certificates!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCertificates({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCertificates({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'certificateField', maxDivider: 25, preAdd: () => { r.certificateFields = [] }, addItem: (i: table.CertificateField) => { r.certificateFields!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCertificateFields({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCertificateFields({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'commission', maxDivider: 25, preAdd: () => { r.commissions = [] }, addItem: (i: table.Commission) => { r.commissions!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCommissions({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.findCommissions({ partial: { userId: args.userId }, since: args.since, paged: args.paged }) }
         },
         {
             name: 'provenTxReq', maxDivider: 100, preAdd: () => { r.provenTxReqs = [] }, addItem: (i: table.ProvenTxReq) => { r.provenTxReqs!.push(i) },
-            findItems: async (storage: StorageBaseReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getProvenTxReqsForUser(args) }
+            findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getProvenTxReqsForUser(args) }
         },
     ]
 
@@ -114,7 +114,7 @@ type ChunkerArgs = {
         preAdd: () => void,
         addItem: (i: any) => void,
         findItems: (
-            storage: StorageBaseReader,
+            storage: StorageReader,
             args: sdk.FindForUserSincePagedArgs
         ) => Promise<any[]>,
 }

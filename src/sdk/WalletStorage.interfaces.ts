@@ -2,13 +2,16 @@ import * as bsv from '@bsv/sdk'
 import { sdk, table } from "..";
 
 /**
- * This is the `WalletStorage` interface implemented by a class such as `WalletStorage`,
- * which is implicitly authenticated by its identityKey constructor.
+ * This is the `WalletStorage` interface implemented by a class such as `WalletStorageManager`,
+ * which manges an active and set of backup storage providers.
+ * 
+ * Access and conrol is not directly managed. Typically each request is made with an associated identityKey
+ * and it is left to the providers: physical access or remote channel authentication.
  */
 export interface WalletStorage {
 
    isAvailable() : boolean
-   makeAvailable() : Promise<void>
+   makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>
    destroy(): Promise<void>
 
@@ -41,11 +44,11 @@ export interface WalletStorage {
 
 /**
  * This is the `WalletStorage` interface implemented with authentication checking and
- * is the actual interface implemented by storage and remoted storage providers.
+ * is the actual minimal interface implemented by storage and remoted storage providers.
  */
-export interface WalletStorageAuth {
+export interface WalletStorageProvider {
    isAvailable() : boolean
-   makeAvailable() : Promise<void>
+   makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>
    destroy(): Promise<void>
 
@@ -74,6 +77,7 @@ export interface WalletStorageAuth {
    relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs) : Promise<number>
 
+   getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
 }
 

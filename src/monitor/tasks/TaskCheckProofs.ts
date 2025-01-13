@@ -1,4 +1,4 @@
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 
@@ -10,7 +10,7 @@ export class TaskCheckProofs extends WalletMonitorTask {
      */
     static checkNow = false;
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 60 * 4) {
+    constructor(monitor: Monitor, public triggerMsecs = 1000 * 60 * 60 * 4) {
         super(monitor, TaskCheckProofs.taskName);
     }
 

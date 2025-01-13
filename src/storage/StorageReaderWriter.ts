@@ -1,10 +1,10 @@
 import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { createSyncMap } from "./schema/entities";
-import { StorageBaseReader } from "./StorageBaseReader";
+import { StorageReader, StorageReaderOptions } from "./StorageReader";
 
-export abstract class StorageBaseReaderWriter extends StorageBaseReader {
+export abstract class StorageReaderWriter extends StorageReader {
 
-    constructor(options: sdk.StorageSyncReaderOptions) {
+    constructor(options: StorageReaderWriterOptions) {
         super(options)
     }
 
@@ -21,34 +21,37 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
     abstract countProvenTxs(args: sdk.FindProvenTxsArgs): Promise<number>
     abstract countTxLabelMaps(args: sdk.FindTxLabelMapsArgs): Promise<number>
 
-    abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
-    abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>
-    abstract insertUser(user: table.User, trx?: sdk.TrxToken): Promise<number>
     abstract insertCertificate(certificate: table.Certificate, trx?: sdk.TrxToken): Promise<number>
     abstract insertCertificateField(certificateField: table.CertificateField, trx?: sdk.TrxToken): Promise<void>
-    abstract insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken): Promise<number>
-    abstract insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken): Promise<number>
     abstract insertCommission(commission: table.Commission, trx?: sdk.TrxToken): Promise<number>
+    abstract insertMonitorEvent(event: table.MonitorEvent, trx?: sdk.TrxToken): Promise<number>
     abstract insertOutput(output: table.Output, trx?: sdk.TrxToken): Promise<number>
+    abstract insertOutputBasket(basket: table.OutputBasket, trx?: sdk.TrxToken): Promise<number>
     abstract insertOutputTag(tag: table.OutputTag, trx?: sdk.TrxToken): Promise<number>
     abstract insertOutputTagMap(tagMap: table.OutputTagMap, trx?: sdk.TrxToken): Promise<void>
+    abstract insertProvenTx(tx: table.ProvenTx, trx?: sdk.TrxToken): Promise<number>
+    abstract insertProvenTxReq(tx: table.ProvenTxReq, trx?: sdk.TrxToken): Promise<number>
+    abstract insertSyncState(syncState: table.SyncState, trx?: sdk.TrxToken): Promise<number>
+    abstract insertTransaction(tx: table.Transaction, trx?: sdk.TrxToken): Promise<number>
     abstract insertTxLabel(label: table.TxLabel, trx?: sdk.TrxToken): Promise<number>
     abstract insertTxLabelMap(labelMap: table.TxLabelMap, trx?: sdk.TrxToken): Promise<void>
-    abstract insertSyncState(syncState: table.SyncState, trx?: sdk.TrxToken): Promise<number>
+    abstract insertUser(user: table.User, trx?: sdk.TrxToken): Promise<number>
 
-    abstract updateCertificateField(certificateId: number, fieldName: string, update: Partial<table.CertificateField>, trx?: sdk.TrxToken): Promise<number>
+
     abstract updateCertificate(id: number, update: Partial<table.Certificate>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateCertificateField(certificateId: number, fieldName: string, update: Partial<table.CertificateField>, trx?: sdk.TrxToken): Promise<number>
     abstract updateCommission(id: number, update: Partial<table.Commission>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateOutputBasket(id: number, update: Partial<table.OutputBasket>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateMonitorEvent(id: number, update: Partial<table.MonitorEvent>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutput(id: number, update: Partial<table.Output>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateOutputBasket(id: number, update: Partial<table.OutputBasket>, trx?: sdk.TrxToken): Promise<number>
     abstract updateOutputTag(id: number, update: Partial<table.OutputTag>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateOutputTagMap(outputId: number, tagId: number, update: Partial<table.OutputTagMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateProvenTx(id: number, update: Partial<table.ProvenTx>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateProvenTxReq(id: number | number[], update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
     abstract updateSyncState(id: number, update: Partial<table.SyncState>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTransaction(id: number | number[], update: Partial<table.Transaction>, trx?: sdk.TrxToken): Promise<number>
-    abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number>
+    abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>
 
     async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
@@ -88,7 +91,6 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
     async findOrInsertUser(identityKey: string, trx?: sdk.TrxToken) : Promise<{ user: table.User, isNew: boolean }> {
         let user: table.User | undefined
         let isNew = false
-
         for (let retry = 0; ; retry++) {
             try {
                 user = verifyOneOrNone(await this.findUsers({ partial: { identityKey } , trx }))
@@ -106,7 +108,6 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
                 if (retry > 0) throw eu;
             }
         }
-
         return { user, isNew }
     }
 
@@ -114,7 +115,6 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
         : Promise<{ tx: table.Transaction, isNew: boolean }> {
         let tx: table.Transaction | undefined
         let isNew = false
-
         for (let retry = 0; ; retry++) {
             try {
                 tx = verifyOneOrNone(await this.findTransactions({ partial: { userId: newTx.userId, txid: newTx.txid }, trx }))
@@ -127,7 +127,6 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
                 if (retry > 0) throw eu;
             }
         }
-
         return { tx, isNew }
     }
 
@@ -250,6 +249,25 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
         }
     }
 
+    async findOrInsertProvenTxReq(newReq: table.ProvenTxReq, trx?: sdk.TrxToken)
+        : Promise<{ req: table.ProvenTxReq, isNew: boolean }> {
+        let req: table.ProvenTxReq | undefined
+        let isNew = false
+        for (let retry = 0; ; retry++) {
+            try {
+                req = verifyOneOrNone(await this.findProvenTxReqs({ partial: { txid: newReq.txid }, trx }))
+                if (req) break;
+                newReq.provenTxReqId = await this.insertProvenTxReq(newReq, trx)
+                isNew = true
+                req = newReq
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+        return { req, isNew }
+    }
+
     abstract processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult>
 
     async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> {
@@ -260,4 +278,8 @@ export abstract class StorageBaseReaderWriter extends StorageBaseReader {
         }, trx)
     }
 
+}
+
+export interface StorageReaderWriterOptions extends StorageReaderOptions {
+    /** */
 }

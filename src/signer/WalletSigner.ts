@@ -1,6 +1,6 @@
 import { Transaction } from "@bsv/sdk";
 import { sdk } from "..";
-import { WalletStorage } from "../storage/WalletStorage";
+import { WalletStorageManager } from "../storage/WalletStorageManager";
 import { createAction } from "./methods/createAction";
 import { signAction } from "./methods/signAction";
 import { internalizeAction } from "./methods/internalizeAction";
@@ -10,14 +10,14 @@ import { proveCertificate } from "./methods/proveCertificate";
 export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
     keyDeriver: sdk.KeyDeriverApi
-    storage: WalletStorage
+    storage: WalletStorageManager
     storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
     identityKey: string
 
     pendingSignActions: Record<string, PendingSignAction>
 
-    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorage) {
+    constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorageManager) {
         if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`);
         if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey as the keyDeriver.`);
         this.chain = chain

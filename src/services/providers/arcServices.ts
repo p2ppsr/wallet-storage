@@ -1,9 +1,12 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, randomBytesHex, sdk, WalletServices } from "../..";
+import { asArray, randomBytesHex, sdk, Services } from "../..";
 
 import axios from 'axios'
 import { Readable } from 'stream'
 import { PostTxResultForTxid } from '../../sdk';
+
+const BEEF_V1 = 4022206465 // 0100BEEF in LE order
+const BEEF_V2 = 4022206466 // 0200BEEF in LE order
 
 // Documentation:
 // https://docs.taal.com/
@@ -294,6 +297,9 @@ export async function postBeefToArcMiner(
 
     // HACK to resolve ARC error when row has zero leaves.
     // beef.addComputedLeaves()
+
+    // HACK to resolve ARC not handling V2 Beef after change Beef class to always serialize as V2 if default constructed:
+    beef.version = BEEF_V1
 
     const beefBinary = beef.toBinary()
 

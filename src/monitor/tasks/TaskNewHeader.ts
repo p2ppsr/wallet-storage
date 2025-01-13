@@ -1,5 +1,5 @@
 import { sdk } from '../..';
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { TaskCheckForProofs } from './TaskCheckForProofs';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
@@ -8,7 +8,7 @@ export class TaskNewHeader extends WalletMonitorTask {
     static taskName = 'NewHeader';
     header?: sdk.BlockHeaderHex
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1 * monitor.oneMinute) {
+    constructor(monitor: Monitor, public triggerMsecs = 1 * monitor.oneMinute) {
         super(monitor, TaskNewHeader.taskName);
     }
 

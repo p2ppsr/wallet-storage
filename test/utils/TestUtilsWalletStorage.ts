@@ -6,17 +6,18 @@ import {
     randomBytesBase64,
     randomBytesHex,
     sdk,
-    StorageBase,
+    StorageProvider,
     StorageKnex,
     StorageSyncReader,
     table,
     verifyTruthy,
     Wallet,
-    WalletMonitor,
-    WalletMonitorOptions,
-    WalletServices,
+    Monitor,
+    MonitorOptions,
+    Services,
     WalletSigner,
-    WalletStorage
+    WalletStorageManager,
+    verifyOne
 } from '../../src'
 
 import { Knex, knex as makeKnex } from "knex";
@@ -357,12 +358,12 @@ export abstract class TestUtilsWalletStorage {
         await activeStorage.migrate(args.databaseName)
         await activeStorage.makeAvailable()
         const setup = await args.insertSetup(activeStorage, identityKey)
-        const storage = new WalletStorage(identityKey, activeStorage)
+        const storage = new WalletStorageManager(identityKey, activeStorage)
         await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        const services = new WalletServices(args.chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
-        const monitor = new WalletMonitor(monopts)
+        const services = new Services(args.chain)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
         const userId = user.userId
@@ -422,7 +423,7 @@ export abstract class TestUtilsWalletStorage {
         if (useReader) await activeStorage.dropAllData()
         await activeStorage.migrate(databaseName)
         await activeStorage.makeAvailable()
-        const storage = new WalletStorage(identityKey, activeStorage)
+        const storage = new WalletStorageManager(identityKey, activeStorage)
         await storage.makeAvailable()
         if (useReader) {
             const readerKnex = _tu.createLocalSQLite(readerFile)
@@ -432,9 +433,9 @@ export abstract class TestUtilsWalletStorage {
             await reader.destroy()
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)
-        const services = new WalletServices(chain)
-        const monopts = WalletMonitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
-        const monitor = new WalletMonitor(monopts)
+        const services = new Services(chain)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
         const r: TestWallet<{}> = {
@@ -454,7 +455,7 @@ export abstract class TestUtilsWalletStorage {
         return r
     }
 
-    static async insertTestProvenTx(storage: StorageBase, txid?: string) {
+    static async insertTestProvenTx(storage: StorageProvider, txid?: string) {
         const now = new Date()
         const ptx: table.ProvenTx = {
             created_at: now,
@@ -472,7 +473,7 @@ export abstract class TestUtilsWalletStorage {
         return ptx
     }
 
-    static async insertTestProvenTxReq(storage: StorageBase, txid?: string, provenTxId?: number, onlyRequired?: boolean) {
+    static async insertTestProvenTxReq(storage: StorageProvider, txid?: string, provenTxId?: number, onlyRequired?: boolean) {
         const now = new Date()
         const ptxreq: table.ProvenTxReq = {
             // Required:
@@ -495,7 +496,7 @@ export abstract class TestUtilsWalletStorage {
         return ptxreq
     }
 
-    static async insertTestUser(storage: StorageBase, identityKey?: string) {
+    static async insertTestUser(storage: StorageProvider, identityKey?: string) {
         const now = new Date()
         const e: table.User = {
             created_at: now,
@@ -507,7 +508,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCertificate(storage: StorageBase, u?: table.User) {
+    static async insertTestCertificate(storage: StorageProvider, u?: table.User) {
         const now = new Date()
         u ||= await _tu.insertTestUser(storage)
         const e: table.Certificate = {
@@ -528,7 +529,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCertificateField(storage: StorageBase, c: table.Certificate, name: string, value: string) {
+    static async insertTestCertificateField(storage: StorageProvider, c: table.Certificate, name: string, value: string) {
         const now = new Date()
         const e: table.CertificateField = {
             created_at: now,
@@ -543,8 +544,9 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputBasket(storage: StorageBase, u?: table.User) {
+    static async insertTestOutputBasket(storage: StorageProvider, u?: table.User | number) {
         const now = new Date()
+        if (typeof u === 'number') u = verifyOne(await storage.findUsers({ partial: { userId: u }}))
         u ||= await _tu.insertTestUser(storage)
         const e: table.OutputBasket = {
             created_at: now,
@@ -560,7 +562,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTransaction(storage: StorageBase, u?: table.User, onlyRequired?: boolean) {
+    static async insertTestTransaction(storage: StorageProvider, u?: table.User, onlyRequired?: boolean) {
         const now = new Date()
         u ||= await _tu.insertTestUser(storage)
         const e: table.Transaction = {
@@ -585,7 +587,7 @@ export abstract class TestUtilsWalletStorage {
         return { tx: e, user: u }
     }
 
-    static async insertTestOutput(storage: StorageBase, t: table.Transaction, vout: number, satoshis: number, basket?: table.OutputBasket, requiredOnly?: boolean) {
+    static async insertTestOutput(storage: StorageProvider, t: table.Transaction, vout: number, satoshis: number, basket?: table.OutputBasket, requiredOnly?: boolean) {
         const now = new Date()
         const e: table.Output = {
             created_at: now,
@@ -617,7 +619,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputTag(storage: StorageBase, u: table.User) {
+    static async insertTestOutputTag(storage: StorageProvider, u: table.User) {
         const now = new Date()
         const e: table.OutputTag = {
             created_at: now,
@@ -631,7 +633,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestOutputTagMap(storage: StorageBase, o: table.Output, tag: table.OutputTag) {
+    static async insertTestOutputTagMap(storage: StorageProvider, o: table.Output, tag: table.OutputTag) {
         const now = new Date()
         const e: table.OutputTagMap = {
             created_at: now,
@@ -644,7 +646,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTxLabel(storage: StorageBase, u: table.User) {
+    static async insertTestTxLabel(storage: StorageProvider, u: table.User) {
         const now = new Date()
         const e: table.TxLabel = {
             created_at: now,
@@ -658,7 +660,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestTxLabelMap(storage: StorageBase, tx: table.Transaction, label: table.TxLabel) {
+    static async insertTestTxLabelMap(storage: StorageProvider, tx: table.Transaction, label: table.TxLabel) {
         const now = new Date()
         const e: table.TxLabelMap = {
             created_at: now,
@@ -671,7 +673,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestSyncState(storage: StorageBase, u: table.User) {
+    static async insertTestSyncState(storage: StorageProvider, u: table.User) {
         const now = new Date()
         const settings = await storage.getSettings()
         const e: table.SyncState = {
@@ -690,7 +692,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestMonitorEvent(storage: StorageBase) {
+    static async insertTestMonitorEvent(storage: StorageProvider) {
         const now = new Date()
         const e: table.MonitorEvent = {
             created_at: now,
@@ -702,7 +704,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async insertTestCommission(storage: StorageBase, t: table.Transaction) {
+    static async insertTestCommission(storage: StorageProvider, t: table.Transaction) {
         const now = new Date()
         const e: table.Commission = {
             created_at: now,
@@ -719,7 +721,7 @@ export abstract class TestUtilsWalletStorage {
         return e
     }
 
-    static async createTestSetup1(storage: StorageBase, u1IdentityKey?: string): Promise<TestSetup1> {
+    static async createTestSetup1(storage: StorageProvider, u1IdentityKey?: string): Promise<TestSetup1> {
         const u1 = await _tu.insertTestUser(storage, u1IdentityKey)
         const u1basket1 = await _tu.insertTestOutputBasket(storage, u1)
         const u1basket2 = await _tu.insertTestOutputBasket(storage, u1)
@@ -854,11 +856,11 @@ export interface TestWallet<T> {
     keyDeriver: sdk.KeyDeriver,
     chain: sdk.Chain,
     activeStorage: StorageKnex,
-    storage: WalletStorage,
+    storage: WalletStorageManager,
     setup?: T,
     signer: WalletSigner,
-    services: WalletServices,
-    monitor: WalletMonitor,
+    services: Services,
+    monitor: Monitor,
     wallet: Wallet,
     userId: number
 } 

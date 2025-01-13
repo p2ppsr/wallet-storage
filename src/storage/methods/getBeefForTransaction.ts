@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, entity, sdk, StorageBase, verifyTruthy } from '../..'
+import { asBsvSdkTx, entity, sdk, StorageProvider, verifyTruthy } from '../..'
 
 /**
  * Creates a `Beef` to support the validity of a transaction identified by its `txid`.
@@ -19,7 +19,7 @@ import { asBsvSdkTx, entity, sdk, StorageBase, verifyTruthy } from '../..'
  * @param txid the transaction hash for which an envelope is requested.
  * @param options
  */
-export async function getBeefForTransaction(storage: StorageBase, txid: string, options: sdk.StorageGetBeefOptions) : Promise<bsv.Beef>
+export async function getBeefForTransaction(storage: StorageProvider, txid: string, options: sdk.StorageGetBeefOptions) : Promise<bsv.Beef>
 {
     const beef =
         // deserialize mergeToBeef if it is an array
@@ -35,7 +35,7 @@ export async function getBeefForTransaction(storage: StorageBase, txid: string, 
 /**
  * @returns rawTx if txid known to network, if merkle proof available then also proven result is valid.
  */
-async function getProvenOrRawTxFromServices(dojo: StorageBase, txid: string, options: sdk.StorageGetBeefOptions): Promise<sdk.ProvenOrRawTx> {
+async function getProvenOrRawTxFromServices(dojo: StorageProvider, txid: string, options: sdk.StorageGetBeefOptions): Promise<sdk.ProvenOrRawTx> {
     const services = dojo.getServices();
     const por = await entity.ProvenTx.fromTxid(txid, await dojo.getServices());
     if (por.proven && !options.ignoreStorage && !options.ignoreNewProven) {
@@ -46,7 +46,7 @@ async function getProvenOrRawTxFromServices(dojo: StorageBase, txid: string, opt
 
 async function mergeBeefForTransactionRecurse(
     beef: bsv.Beef,
-    dojo: StorageBase,
+    dojo: StorageProvider,
     txid: string,
     options: sdk.StorageGetBeefOptions,
     recursionDepth: number

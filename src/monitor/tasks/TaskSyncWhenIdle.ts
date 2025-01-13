@@ -1,11 +1,11 @@
-import { WalletMonitor } from '../WalletMonitor';
+import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
 
 export class TaskSyncWhenIdle extends WalletMonitorTask {
     static taskName = 'SyncWhenIdle';
 
-    constructor(monitor: WalletMonitor, public triggerMsecs = 1000 * 60 * 1) {
+    constructor(monitor: Monitor, public triggerMsecs = 1000 * 60 * 1) {
         super(monitor, TaskSyncWhenIdle.taskName);
     }
 

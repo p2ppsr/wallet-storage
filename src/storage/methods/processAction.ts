@@ -1,9 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageBase, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
+import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
 
 export async function processAction(
-    storage: StorageBase,
+    storage: StorageProvider,
     auth: sdk.AuthId,
     args: sdk.StorageProcessActionArgs
 )
@@ -54,7 +54,7 @@ export async function processAction(
  * @param txids 
  * @param isDelayed 
  */
-async function shareReqsWithWorld(storage: StorageBase, userId: number, txids: string[], isDelayed: boolean)
+async function shareReqsWithWorld(storage: StorageProvider, userId: number, txids: string[], isDelayed: boolean)
 : Promise<sdk.SendWithResult[]>
 {
     if (txids.length < 1) return []
@@ -166,7 +166,7 @@ interface ValidCommitNewTxToStorageArgs {
     postStatus?: ReqTxStatus
 }
 
-async function validateCommitNewTxToStorageArgs(storage: StorageBase, userId: number, params: sdk.StorageProcessActionArgs)
+async function validateCommitNewTxToStorageArgs(storage: StorageProvider, userId: number, params: sdk.StorageProcessActionArgs)
 : Promise<ValidCommitNewTxToStorageArgs>
 {
     if (!params.reference || !params.txid || !params.rawTx)
@@ -295,7 +295,7 @@ export interface DojoCommitNewTxResults {
 }
 
 async function commitNewTxToStorage(
-    storage: StorageBase,
+    storage: StorageProvider,
     userId: number,
     vargs: ValidCommitNewTxToStorageArgs,
 )

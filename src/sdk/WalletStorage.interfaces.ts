@@ -31,6 +31,7 @@ export interface WalletStorage {
    findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
    listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
    listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
@@ -41,7 +42,10 @@ export interface WalletStorage {
    relinquishCertificate(args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<number>
 
+   // Monitor use only:
    updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
+   updateProvenTxReqDynamics(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
+   updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void>
 }
 
 /**
@@ -69,6 +73,7 @@ export interface WalletStorageProvider {
    findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
    listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
    listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
@@ -82,7 +87,9 @@ export interface WalletStorageProvider {
    getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
 
+   // Monitor use only:
    updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
+   updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void>
 }
 
 export interface AuthId {
@@ -310,4 +317,23 @@ export interface UpdateProvenTxReqWithNewProvenTxResult {
    history: string
    provenTxId: number
    log?: string
+}
+
+export type PostReqsToNetworkDetailsStatus = 'success' | 'doubleSpend' | 'unknown'
+
+export interface PostReqsToNetworkDetails {
+    txid: string
+    req: entity.ProvenTxReq
+    status: PostReqsToNetworkDetailsStatus
+    pbrft: sdk.PostTxResultForTxid
+    data?: string
+    error?: string
+}
+
+export interface PostReqsToNetworkResult {
+    status: "success" | "error"
+    beef: bsv.Beef
+    details: PostReqsToNetworkDetails[]
+    pbr?: sdk.PostBeefResult
+    log: string
 }

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
 import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
@@ -216,6 +216,13 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return r
     }
 
+    async updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void> {
+        await this.transaction(async (trx) => {
+            for (const id of transactionIds) {
+                await this.updateTransactionStatus(status, id, undefined, undefined, trx)
+            }
+        })
+    }
 
     /**
      * For all `status` values besides 'failed', just updates the transaction records status property.
@@ -290,7 +297,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return await processAction(this, auth, args)
     }
 
-    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
+    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<sdk.PostReqsToNetworkResult> {
         return await attemptToPostReqsToNetwork(this, reqs, trx)
     }
 
@@ -460,7 +467,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
             const where: Partial<table.Output> = {
                 userId,
                 basketId: defaultBasket.basketId,
-                spendable: true
+                spendable: true,
             }
             const outputs = await this.findOutputs({ partial: where })
             for (let i = outputs.length - 1; i >= 0; i--) {

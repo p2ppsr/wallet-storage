@@ -54,7 +54,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
         for (const req of reqs) {
             // batch passes or fails as a whole...prior to post to network attempt.
             req.status = 'invalid'
-            await req.updateStorageStatusHistoryOnly(storage)
+            await req.updateStorageDynamicProperties(storage)
             r.log += `status set to ${req.status}\n`
         }
         return r;
@@ -119,7 +119,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
             // Only advance the status of req.
             d.req.status = newReqStatus
         }
-        await d.req.updateStorageStatusHistoryOnly(storage)
+        await d.req.updateStorageDynamicProperties(storage)
         if (newTxStatus) {
             const ids = d.req.notify.transactionIds
             if (!ids || ids.length < 1) throw new sdk.WERR_INTERNAL(`req must have at least one transactionId to notify`);

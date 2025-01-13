@@ -1,12 +1,9 @@
 import * as bsv from '@bsv/sdk'
 import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services } from ".."
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
-import { TaskValidate } from './tasks/TaskValidate'
-import { TaskPurge } from './tasks/TaskPurge'
-import { TaskCheckProofs } from './tasks/TaskCheckProofs'
+import { TaskPurge, TaskPurgeParams } from './tasks/TaskPurge'
 import { TaskSyncWhenIdle } from './tasks/TaskSyncWhenIdle'
 import { TaskFailAbandoned } from './tasks/TaskFailAbandoned'
-import { TaskNotifyOfProofs } from './tasks/TaskNotifyOfProofs'
 import { TaskCheckForProofs } from './tasks/TaskCheckForProofs'
 import { TaskSendWaiting } from './tasks/TaskSendWaiting'
 import { WalletMonitorTask } from './tasks/WalletMonitorTask'
@@ -95,22 +92,24 @@ export class Monitor {
     _otherTasks: WalletMonitorTask[] = []
     _tasksRunning = false
     
+    defaultPurgeParams: TaskPurgeParams = {
+        purgeSpent: false,
+        purgeCompleted: false,
+        purgeFailed: true,
+        purgeSpentAge: 2 * this.oneWeek,
+        purgeCompletedAge: 2 * this.oneWeek,
+        purgeFailedAge: 5 * this.oneDay
+    }
+
     addAllTasksToOther() : void {
         this._otherTasks.push(new TaskClock(this))
         this._otherTasks.push(new TaskNewHeader(this))
-        this._otherTasks.push(new TaskCheckForProofs(this))
-        this._otherTasks.push(new TaskCheckProofs(this))
-        this._otherTasks.push(new TaskFailAbandoned(this))
-        this._otherTasks.push(new TaskNotifyOfProofs(this))
-        this._otherTasks.push(new TaskPurge(this, {
-            purgeSpent: false,
-            purgeCompleted: false,
-            purgeFailed: true,
-            purgeSpentAge: 2 * this.oneWeek,
-            purgeCompletedAge: 2 * this.oneWeek,
-            purgeFailedAge: 5 * this.oneDay
-        }))
+        this._otherTasks.push(new TaskPurge(this, this.defaultPurgeParams))
         this._otherTasks.push(new TaskSendWaiting(this))
+        this._otherTasks.push(new TaskCheckForProofs(this))
+        
+        this._otherTasks.push(new TaskFailAbandoned(this))
+        
         this._otherTasks.push(new TaskSyncWhenIdle(this))
     }
     /**
@@ -120,10 +119,8 @@ export class Monitor {
     addDefaultTasks() : void {
         this._tasks.push(new TaskSendWaiting(this))
         this._tasks.push(new TaskCheckForProofs(this))
-        this._tasks.push(new TaskNotifyOfProofs(this))
         this._tasks.push(new TaskFailAbandoned(this))
         this._otherTasks.push(new TaskSyncWhenIdle(this))
-        this._otherTasks.push(new TaskCheckProofs(this))
     }
     
     /**
@@ -137,18 +134,8 @@ export class Monitor {
         const days = hours * 24
         this._tasks.push(new TaskSendWaiting(this, 8 * seconds, 7 * seconds)) // Check every 8 seconds but must be 7 seconds old
         this._tasks.push(new TaskCheckForProofs(this, 2 * hours)) // Every two hours if no block found
-        this._tasks.push(new TaskNotifyOfProofs(this, 5 * minutes)) // Every 5 minutes, supports marking nosend reqs as invalid
         this._tasks.push(new TaskFailAbandoned(this, 8 * minutes))
-        this._tasks.push(new TaskPurge(this, {
-            purgeSpent: false,
-            purgeCompleted: false,
-            purgeFailed: true,
-            purgeSpentAge: 2 * this.oneWeek,
-            purgeCompletedAge: 2 * this.oneWeek,
-            purgeFailedAge: 5 * this.oneDay
-        }, 6 * hours))
-        this._otherTasks.push(new TaskValidate(this))
-        this._otherTasks.push(new TaskCheckProofs(this, 1000 * 60 * 60 * 4))
+        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * hours))
     }
 
     addTask(task: WalletMonitorTask) : void {
@@ -301,14 +288,6 @@ export class Monitor {
         for (; ;) {
             const reqs = await this.storage.findProvenTxReqs({ partial: {}, status: ['unknown'], paged: { limit, offset } })
             await this.getProofs(reqs)
-            if (reqs.length < limit) break
-            offset += limit
-        }
-        
-        offset = 0
-        for (; ;) {
-            const reqs = await this.storage.findProvenTxReqs({ partial: { notified: false }, status: sdk.ProvenTxReqTerminalStatus, paged: { limit, offset } })
-            await this.notifyOfProvenTx(reqs)
             if (reqs.length < limit) break
             offset += limit
         }
@@ -502,31 +481,25 @@ export class Monitor {
             r = await this.services.getMerklePath(req.txid)
             ptx = await entity.ProvenTx.fromReq(req, r, this.chaintracks, countsAsAttempt && req.status !== 'nosend')
 
-            if (r.merklePath && !ptx) {
-                r = await this.services.getMerklePath(req.txid, true)
-                ptx = await entity.ProvenTx.fromReq(req, r, this.chaintracks, countsAsAttempt && req.status !== 'nosend')
-            }
-
-            // fromReq may have set status to unknown (a service returned no proof) or unconfirmed (a proof failed chaintracks lookup)
-            // if ptx is valid, it means the final service attempted returned a valid proof that was confirmed.
-
             if (ptx) {
-                const p = ptx
-                await this.storage.transaction(async trx => {
-                    const p0 = verifyOneOrNone(await this.storage.findProvenTxs({ partial: { txid: p.txid }, trx }))
-                    if (!ptx) throw new sdk.WERR_INTERNAL()
-                    p.provenTxId = p0 ? p0.provenTxId : await this.storage.insertProvenTx(ptx.toApi(), trx)
-                    req.provenTxId = p.provenTxId
+                // We have a merklePath proof for the request (and a block header)
+                const { provenTxReqId, status, txid, attempts, history } = req.toApi()
+                const { index, height, blockHash, merklePath, merkleRoot } = ptx.toApi()
+                const r = await this.storage.updateProvenTxReqWithNewProvenTx({
+                     provenTxReqId, status, txid, attempts, history, index, height, blockHash, merklePath, merkleRoot
                 })
-                // We have a provenTx record, queue the notifications.
-                req.status = 'completed'
-                req.notified = false
-            } else if (countsAsAttempt && req.status !== 'nosend') {
-                req.attempts++
+                req.status = r.status
+                req.apiHistory = r.history
+                req.provenTxId = r.provenTxId
+                req.notified = true
+            } else {
+                if (countsAsAttempt && req.status !== 'nosend') {
+                    req.attempts++
+                }
+                await req.updateStorage(this.storage)
+                await req.refreshFromStorage(this.storage)
             }
 
-            await req.updateStorage(this.storage)
-            await req.refreshFromStorage(this.storage)
 
             log += req.historyPretty(since, indent + 2) + '\n'
 
@@ -536,148 +509,7 @@ export class Monitor {
         
         return { proven, invalid, log }
     }
-
-    /**
-     * Process an array of 'notifying' status table.ProvenTxReq 
-     *
-     * notifying: proven_txs record added, while notifications are being processed.
-     * 
-     * When a proof is received for a transaction, make the following updates:
-     *   1. Set the provenTxId column
-     *   2. Set the proof column to a stringified copy of the proof in standard form until no longer needed.
-     *   3. Set unconfirmedInputChainLength to zero
-     *   4. Set truncatedExternalInputs to '' (why not null?)
-     *   5. Set rawTx to null when clients access through provenTxId instead...
-     * 
-     * Finally set the req status to 'completed' which will clean up the record after a period of time.
-     * 
-     * @param reqs 
-     */
-    async notifyOfProvenTx(reqs: table.ProvenTxReq[], indent = 0)
-    : Promise<{ notified: table.ProvenTxReq[], log: string }>
-    {
-        const notified: table.ProvenTxReq[] = []
-
-        let log = ''
-        for (const reqApi of reqs) {
-            log += ' '.repeat(indent)
-            log += `reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: `
-
-            if (reqApi.notified) {
-                log += `Already notified.\n`
-                continue
-            }
-            
-            const since = new Date()
-            const req = new entity.ProvenTxReq(reqApi)
-            try {
-                // TODO...
-                // log += "\n" + await req.processNotifications(this.storage, undefined, undefined, indent + 2)
-            } catch (eu: unknown) {
-                const e = sdk.WalletError.fromUnknown(eu)
-                log += e.message
-            }
-
-            log += '\n' + req.historyPretty(since, indent + 2) + '\n'
-
-            notified.push(reqApi)
-        }
-
-        return { notified, log }
-    }
     
-    /**
-     * Review all completed transactions to confirm that the transaction satoshis makes sense based on undestood data protocols:
-     * 
-     * Balance displayed by MetaNet Client is sum of owned spendable outputs IN THE 'default' BASKET.
-     * It is NOT the sum of completed transaction satoshiss for userId.
-     * Transaction satoshis value appears to be critical in capturing external value effect (inputs and outputs) of each transaction.
-     * Transaction isOutgoing seems to be incorrect sometimes???
-     * Output 'change' column appears to be unused, always 0. Instead 'purpose' = 'change' appears to be used. Actual value is either 'change' or null currently.
-     * Output 'providedBy' column is currently only 'storage', 'you', or null.
-     * Output 'tracked' ????
-     * Output 'senderIdentityKey' is currently often an uncompressed key
-     * 
-     * A standard funding account from satoshi shopper adds 'purpose' = 'change' outputs
-     * 
-     * Relevant schema columns and conventions:
-     * - owned outputs: outputs where output.userId = transaction.userId
-     * - commission: commissions where commission.transactionId = transaction.transactionId, there is no outputs record for commissions, max one per transaction(?)
-     * - owned input: owned output where output.transactionId != transaction.transactionId, marked by redeemedOutputs in truncatedExternalInputs when under construction and then by outputs.spentBy column when completed???
-     * - 
-     * Case 1: Normal Spend
-     *   satoshis = -(input - mychange)
-     *   spent = owned outputs with purpose null or != 'change'
-     *   txIn = sum of output.spentBy = transactionId, output.userId = userId outputs
-     *   txOut = sum of new owned outputs (change) + sum
-     *   transaction inputs are all owned outputs, all new owned outputs are marked purpose = 'change'
-     * 
-     * 
-     * 
- 
-select txid, transactionId, satoshis, input, spent, mychange, commission, (input - spent - mychange - commission) as fee, if(-satoshis = input - mychange, 'ok', "???") as F
-from
-(select 
-ifnull((select sum(o.satoshis) from outputs as o where o.spentBy = t.transactionId), 0) as 'input',
-ifnull((select sum(o.satoshis) from outputs as o where o.transactionId = t.transactionId and (purpose != 'change' or purpose is null)), 0) as 'spent',
-ifnull((select sum(o.satoshis) from outputs as o where o.transactionId = t.transactionId and purpose = 'change'), 0) as 'mychange',
-ifnull((select sum(c.satoshis) from commissions as c where c.transactionId = t.transactionId), 0) as 'commission',
-t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 and t.status = 'completed' and isOutgoing = 1 order by transactionId) as vals
-;
-
-        THIS IS A WORK IN PROGRESS, PARTS ARE KNOWN TO BE INACCURATE
-     */
-    async reviewTransactionAmounts() {
-        const storage = this.storage
-        const limit = 100;
-
-        const users = await storage.findUsers({ partial: {} })
-        for (const u of users) {
-
-            const userId = verifyId(u.userId)
-            console.log('userId =', userId)
-
-            let offset = 0;
-            for (; ;) {
-                const allSpendableOutputs = await storage.findOutputs({ partial: { userId, spendable: true } })
-                const balance1 = sum(allSpendableOutputs, v => v.satoshis || 0)
-                console.log(`  ${balance1} balance1, sum of spendable outputs`)
-
-                const txs = await storage.findTransactions({ partial: { status: 'completed', userId } }) // , undefined, { limit, offset });
-                const balance2 = sum(txs, v => v.satoshis || 0)
-                console.log(`  ${balance2} balance2, sum of completed transaction satoshiss`)
-
-                for (const tx of txs) if (tx.rawTx) {
-
-                    const tid = verifyId(tx.transactionId)
-
-                    const commissions = await storage.findCommissions({ partial: { transactionId: tid } })
-                    const commissionsSum = sum(commissions, v => v.satoshis)
-
-                    const inputOutpts = await storage.findOutputs({ partial: { spentBy: tid } })
-                    const inputOutputsSum = sum(inputOutpts, v => v.satoshis || 0)
-
-                    const os = await storage.findOutputs({ partial: { transactionId: tid } })
-                    const owned = filter(os, v => v.userId === tx.userId)
-                    const ownedChange = filter(owned.ts, v => v.change || v.purpose === 'change')
-                    const myChange = sum(ownedChange.ts, v => v.satoshis || 0)
-
-
-
-
-                    const txBsv = asBsvSdkTx(tx.rawTx)
-                    const txIns = txBsv.inputs
-                    const txOuts = txBsv.outputs
-                    //const totalIn = txIns.reduce((a, e) => a + e.)
-                }
-
-                if (txs.length < limit)
-                    break;
-                offset += limit
-            }
-        }
-    }
-
     async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef> {
         const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
         if (!beef)
@@ -795,7 +627,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
             for (const req of reqs) {
                 // batch passes or fails as a whole...prior to post to network attempt.
                 req.status = 'invalid'
-                await req.updateStorageStatusHistoryOnly(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 r.log += `status set to ${req.status}\n`
             }
             return r;
@@ -860,7 +692,7 @@ t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 
                 d.req.status = newReqStatus
                 d.req.updateStorage(this.storage)
             }
-            await d.req.updateStorageStatusHistoryOnly(this.storage)
+            await d.req.updateStorageDynamicProperties(this.storage)
             if (newTxStatus) {
                 const ids = d.req.notify.transactionIds
                 if (!ids || ids.length < 1) throw new sdk.WERR_INTERNAL(`req must have at least one transactionId to notify`);

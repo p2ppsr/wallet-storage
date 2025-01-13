@@ -40,6 +40,8 @@ export interface WalletStorage {
 
    relinquishCertificate(args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<number>
+
+   updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
 }
 
 /**
@@ -286,4 +288,24 @@ export interface FindMonitorEventsArgs extends sdk.FindSincePagedArgs {
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TrxToken {
+}
+
+export interface UpdateProvenTxReqWithNewProvenTxArgs {
+   provenTxReqId: number
+   txid: string
+   attempts: number
+   status: sdk.ProvenTxReqStatus
+   history: string
+   height: number
+   index: number
+   blockHash: string
+   merkleRoot: string
+   merklePath: number[]
+}
+
+export interface UpdateProvenTxReqWithNewProvenTxResult {
+   status: sdk.ProvenTxReqStatus
+   history: string
+   provenTxId: number
+   log?: string
 }

@@ -225,9 +225,10 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
      * @param storage 
      * @param trx 
      */
-    async updateStorageStatusHistoryOnly(storage: entity.EntityStorage, trx?: sdk.TrxToken) {
+    async updateStorageDynamicProperties(storage: entity.EntityStorage, trx?: sdk.TrxToken) {
+        this.updated_at = new Date()
         this.updateApi()
-        const update: Partial<table.ProvenTxReq> = { status: this.api.status, history: this.api.history }
+        const update: Partial<table.ProvenTxReq> = { updated_at: this.api.updated_at, status: this.api.status, history: this.api.history, provenTxId: this.api.provenTxId, attempts: this.api.attempts }
         await storage.updateProvenTxReq(this.id, update, trx)
     }
 

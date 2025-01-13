@@ -79,7 +79,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
                 if (req) {
                     req.addHistoryNote({ what: 'aborted' })
                     req.status = 'invalid'
-                    await req.updateStorageStatusHistoryOnly(this, trx)
+                    await req.updateStorageDynamicProperties(this, trx)
                 }
             }
             const r: sdk.AbortActionResult = {
@@ -374,6 +374,74 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         const user = verifyTruthy(await this.findUserByIdentityKey(args.identityKey))
         const ss = new entity.SyncState(verifyOne(await this.findSyncStates({ partial: { storageIdentityKey: args.fromStorageIdentityKey, userId: user.userId }})))
         const r = await ss.processSyncChunk(this, args, chunk)
+        return r
+    }
+
+    /**
+     * Handles storage changes when a valid MerklePath and mined block header are found for a ProvenTxReq txid.
+     * 
+     * Performs the following storage updates (typically):
+     * 1. Lookup the exising `ProvenTxReq` record for its rawTx
+     * 2. Insert a new ProvenTx record using properties from `args` and rawTx, yielding a new provenTxId
+     * 3. Update ProvenTxReq record with status 'completed' and new provenTxId value (and history of status changed)
+     * 4. Unpack notify transactionIds from req and update each transaction's status to 'completed', provenTxId value.
+     * 5. Update ProvenTxReq history again to record that transactions have been notified.
+     * 6. Return results...
+     * 
+     * Alterations of "typically" to handle:
+     */
+    async updateProvenTxReqWithNewProvenTx(args: sdk.UpdateProvenTxReqWithNewProvenTxArgs): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        const req = await entity.ProvenTxReq.fromStorageId(this, args.provenTxReqId)
+        let proven: entity.ProvenTx
+        if (req.provenTxId) {
+            // Someone beat us to it, grab what we need for results...
+            proven = new entity.ProvenTx(verifyOne(await this.findProvenTxs({ partial: { txid: args.txid }})))
+        } else {
+            let isNew: boolean
+            ({ proven, isNew } = await this.transaction(async (trx) => {
+                const { proven: api, isNew } = await this.findOrInsertProvenTx({
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                    provenTxId: 0,
+                    txid: args.txid,
+                    height: args.height,
+                    index: args.index,
+                    merklePath: args.merklePath,
+                    rawTx: req.rawTx,
+                    blockHash: args.blockHash,
+                    merkleRoot: args.merkleRoot
+                }, trx)
+                proven = new entity.ProvenTx(api)
+                if (isNew) {
+                    req.status = 'completed'
+                    req.provenTxId = proven.provenTxId
+                    await req.updateStorageDynamicProperties(this, trx)
+                    // upate the transaction notifications outside of storage transaction....
+                }
+                return { proven, isNew }
+            }))
+            if (isNew) {
+                const ids = req.notify.transactionIds || []
+                if (ids.length > 0) {
+                    for (const id of ids) {
+                        try {
+                            await this.updateTransaction(id, { provenTxId: proven.provenTxId })
+                            await this.updateTransactionStatus('completed', id)
+                            req.addHistoryNote(`transaction ${id} notified of ProvenTx`)
+                        } catch (eu: unknown) {
+                            const e = sdk.WalletError.fromUnknown(eu)
+                            req.addHistoryNote({ what: 'transactionNotificationFailure', error: `${e.code}: ${e.description}`})
+                        }
+                    }
+                    await req.updateStorageDynamicProperties(this)
+                }
+            }
+        }
+        const r: sdk.UpdateProvenTxReqWithNewProvenTxResult = {
+            status: req.status,
+            history: req.apiHistory,
+            provenTxId: proven.provenTxId
+        }
         return r
     }
 }

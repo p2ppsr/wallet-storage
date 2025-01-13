@@ -238,4 +238,10 @@ export class StorageClient implements sdk.WalletStorageProvider {
     ): Promise<sdk.SyncChunk> {
         return this.rpcCall<sdk.SyncChunk>("getSyncChunk", [args])
     }
+
+    async updateProvenTxReqWithNewProvenTx(
+        args: sdk.UpdateProvenTxReqWithNewProvenTxArgs
+    ): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        return this.rpcCall<sdk.UpdateProvenTxReqWithNewProvenTxResult>("updateProvenTxReqWithNewProvenTx", [args])
+    }
 }

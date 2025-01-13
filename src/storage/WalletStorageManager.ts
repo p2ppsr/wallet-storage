@@ -234,6 +234,13 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
+    async updateProvenTxReqWithNewProvenTx(args: sdk.UpdateProvenTxReqWithNewProvenTxArgs): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        return await this.runAsWriter(async (writer) => {
+
+            return await writer.updateProvenTxReqWithNewProvenTx(args)
+
+        })
+    }
 
 
     async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {

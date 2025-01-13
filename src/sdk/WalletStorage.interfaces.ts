@@ -81,6 +81,8 @@ export interface WalletStorageProvider {
 
    getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
+
+   updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
 }
 
 export interface AuthId {

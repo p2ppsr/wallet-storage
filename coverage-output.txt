@@ -1,0 +1,327 @@
+
+> wallet-storage@0.0.1 test:coverage
+> jest --coverage
+
+  console.log
+    [33mmigration file "2024-12-26-001 initial migration" failed[39m
+
+      at Logger._log (node_modules/knex/lib/logger.js:42:13)
+
+  console.log
+    [33mmigration failed with error: drop table `monitor_events` - SQLITE_ERROR: no such table: monitor_events[39m
+
+      at Logger._log (node_modules/knex/lib/logger.js:42:13)
+
+  console.log
+    Loaded real version: 1
+
+      at Object.<anonymous> (test/Wallet/getVersion.test.ts:29:13)
+
+  console.log
+    Beef Object:
+     BEEF with 1 BUMPS and 1 Transactions, isValid true
+      BUMP 0
+        block: 1588740
+        txids: [
+          '2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122'
+        ]
+      TX 0
+        txid: 2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122
+        bumpIndex: 0
+        rawTx length=1349
+
+      at Object.<anonymous> (test/Wallet/action/internalizeAction.test.ts:48:17)
+
+  console.error
+    Test failed with error: JestAssertionError: expect(received).toBeDefined()
+    
+    Received: undefined
+        at Object.<anonymous> (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\Wallet\action\internalizeAction.test.ts:63:33) {
+      matcherResult: {
+        message: 'expect(received).toBeDefined()\n\nReceived: undefined',
+        pass: false
+      }
+    }
+
+    [0m [90m  98 |[39m         expect(r)[33m.[39mtoBeDefined()
+     [90m  99 |[39m       } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 100 |[39m         console[33m.[39merror([32m'Test failed with error:'[39m[33m,[39m error)
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 101 |[39m         [36mthrow[39m error
+     [90m 102 |[39m       }
+     [90m 103 |[39m     }[0m
+
+      at Object.<anonymous> (test/Wallet/action/internalizeAction.test.ts:100:17)
+
+  console.log
+    
+    createAction test 1_invalid_params
+
+      at Object.<anonymous> (test/Wallet/action/createActionbob1.test.ts:66:29)
+
+  console.log
+    Error name TypeError vs class name WERR_INVALID_PARAMETER
+    TypeError: Cannot read properties of null (reading 'height')
+        at Wallet.height [as getHeaderForHeight] (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\Wallet.ts:258:83)
+        at C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\Wallet\getHeaderForHeight.test.ts:40:74
+        at fn (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\utils\TestUtilsWalletStorage.ts:877:11)
+        at Object.<anonymous> (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\Wallet\getHeaderForHeight.test.ts:40:32)
+        at Promise.then.completed (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:95:5)
+        at _runTest (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-runner\build\runTest.js:444:34)
+        at Object.worker (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\node_modules\jest-runner\build\testWorker.js:106:12)
+
+      at log (test/utils/TestUtilsWalletStorage.ts:881:15)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    
+    createAction test 1_invalid_params
+
+      at Object.<anonymous> (test/Wallet/action/createAction.test.ts:65:37)
+
+  console.log
+    Error name WERR_UNKNOWN vs class name WERR_INVALID_PARAMETER
+    Error: {"status":"error","code":"ERR_INTERNAL","description":"Height NaN must be a non-negative integer."}
+        at ChaintracksServiceClient.getJsonOrUndefined (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\services\chaintracker\chaintracks\ChaintracksServiceClient.ts:60:25)
+        at processTicksAndRejections (node:internal/process/task_queues:95:5)
+        at ChaintracksServiceClient.findHeaderHexForHeight (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\services\chaintracker\chaintracks\ChaintracksServiceClient.ts:129:16)
+        at method (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\services\WalletServices.ts:184:28)
+        at WalletServices.invokeChaintracksWithRetry (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\services\WalletServices.ts:171:30)
+        at Wallet.getHeaderForHeight (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\src\Wallet.ts:258:34)
+        at expectToThrowWERR (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\utils\TestUtilsWalletStorage.ts:877:5)
+        at Object.<anonymous> (C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\Wallet\getHeaderForHeight.test.ts:97:7)
+
+      at log (test/utils/TestUtilsWalletStorage.ts:881:15)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    [33mmigration file "2024-12-26-001 initial migration" failed[39m
+
+      at Logger._log (node_modules/knex/lib/logger.js:42:13)
+
+  console.log
+    [33mmigration failed with error: drop table `monitor_events` - SQLITE_ERROR: no such table: monitor_events[39m
+
+      at Logger._log (node_modules/knex/lib/logger.js:42:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+  console.log
+    Loaded 188 valid real txids from SQLite database
+
+      at Object.<anonymous> (test/Wallet/getKnownTxids.test.ts:32:13)
+
+  console.log
+    Temporary SQLite File Path: C:\Users\shimm\Projects\Work\Ninja-Wallet-Testing\wallet-storage\test\data\tmp\getKnownTxidsTests.sqlite
+
+      at Function.log [as createTestWalletFromSQLiteFile] (test/utils/TestUtilsStephen.ts:278:13)
+
+-------------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+File                                       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                                                                                    
+-------------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+All files                                  |   44.29 |    32.54 |   35.46 |   45.44 |                                                                                                                                                                                                                      
+ src                                       |   61.71 |    47.36 |   59.09 |    61.9 |                                                                                                                                                                                                                      
+  Wallet.ts                                |    59.5 |    47.36 |   59.09 |   59.66 | 16,36,92-155,179,181,186,214-245                                                                                                                                                                                     
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/monitor                               |    7.31 |     0.67 |    4.76 |    8.15 |                                                                                                                                                                                                                      
+  WalletMonitor.ts                         |    7.31 |     0.67 |    4.76 |    8.15 | 54,99-904                                                                                                                                                                                                            
+ src/monitor/tasks                         |   23.52 |        0 |       0 |   25.31 |                                                                                                                                                                                                                      
+  TaskCheckForProofs.ts                    |   19.23 |        0 |       0 |   21.73 | 27-59                                                                                                                                                                                                                
+  TaskCheckProofs.ts                       |      50 |        0 |       0 |      50 | 13-27                                                                                                                                                                                                                
+  TaskClock.ts                             |      25 |        0 |       0 |      25 | 9-28                                                                                                                                                                                                                 
+  TaskFailAbandoned.ts                     |      15 |        0 |       0 |   16.66 | 17-38                                                                                                                                                                                                                
+  TaskNewHeader.ts                         |   17.39 |        0 |       0 |   17.39 | 11-40                                                                                                                                                                                                                
+  TaskNotifyOfProofs.ts                    |   21.73 |        0 |       0 |    23.8 | 14-44                                                                                                                                                                                                                
+  TaskPurge.ts                             |   36.36 |        0 |       0 |      40 | 41-58                                                                                                                                                                                                                
+  TaskSendWaiting.ts                       |      16 |        0 |       0 |   19.04 | 9-31                                                                                                                                                                                                                 
+  TaskSyncWhenIdle.ts                      |    37.5 |        0 |       0 |    37.5 | 8-17                                                                                                                                                                                                                 
+  TaskValidate.ts                          |   44.44 |        0 |       0 |   44.44 | 13-30                                                                                                                                                                                                                
+  WalletMonitorTask.ts                     |      20 |      100 |       0 |      20 | 24-32                                                                                                                                                                                                                
+ src/sdk                                   |    36.4 |    35.86 |   37.03 |   36.85 |                                                                                                                                                                                                                      
+  CachedKeyDeriver.ts                      |    5.45 |        0 |       0 |    5.66 | 22-193                                                                                                                                                                                                               
+  CertOps.ts                               |    5.55 |        0 |       0 |    5.61 | 12-245                                                                                                                                                                                                               
+  Certificate.ts                           |     5.4 |        0 |       0 |    5.47 | 67-232                                                                                                                                                                                                               
+  KeyDeriver.ts                            |   41.93 |       30 |    62.5 |   41.93 | 81,99,127-174,185,187,189,193,207,211,214,219-227,231,234,237,240                                                                                                                                                    
+  WERR_errors.ts                           |   66.66 |    32.25 |      40 |   81.25 | 73-78                                                                                                                                                                                                                
+  WalletCrypto.ts                          |    9.58 |        0 |    9.09 |    9.58 | 38,50-262                                                                                                                                                                                                            
+  WalletError.ts                           |   67.34 |    60.46 |   42.85 |   72.09 | 32-38,78-80,83-87,101                                                                                                                                                                                                
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  types.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  validationHelpers.ts                     |   54.09 |     53.7 |   55.22 |   56.86 | 19-25,30,32,44,47,50,52,71-75,83,90,92,97-98,113,115,122,140,142,147-153,169,173,200,219,289,362-368,378-384,395-403,426-441,445-446,450-455,464-469,479-485,540-569,579-600,625-646,666-680,693-715,721-727,765,819 
+ src/services                              |   74.87 |    57.62 |   70.45 |   74.61 |                                                                                                                                                                                                                      
+  ServiceCollection.ts                     |   70.58 |      100 |   61.53 |   73.33 | 16-19,26-28                                                                                                                                                                                                          
+  WalletServices.ts                        |   74.73 |    50.98 |   73.33 |   74.15 | 55,60-61,75-79,84,95,126-131,137,154-155,168,179,203,212,228,245,262-265,269-271,284,287,289,296-308,315-318,322-325,330                                                                                             
+  createDefaultWalletServicesOptions.ts    |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/services/chaintracker                 |   85.71 |    76.47 |     100 |   85.18 |                                                                                                                                                                                                                      
+  ChaintracksChainTracker.ts               |   84.61 |    76.47 |     100 |      84 | 30,47-48,53                                                                                                                                                                                                          
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/services/chaintracker/chaintracks     |    43.8 |    31.25 |   19.56 |   42.57 |                                                                                                                                                                                                                      
+  BlockHeaderApi.ts                        |   51.85 |        0 |       0 |   51.85 | 124,132,140,148,156,164,172,180,195,212,226,241,258                                                                                                                                                                  
+  ChaintracksServiceClient.ts              |   38.66 |    41.66 |   27.27 |   36.61 | 41-49,62,73,78-112,119-120,122-126,132,138-173                                                                                                                                                                       
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/services/providers                    |   37.03 |    18.86 |   35.71 |   38.16 |                                                                                                                                                                                                                      
+  arcServices.ts                           |   26.56 |    15.06 |   28.57 |   27.77 | 38,43-97,104-120,150,158,168,172,184,241-279,289-355,360-430,441-462                                                                                                                                                 
+  echangeRates.ts                          |   32.43 |       20 |   33.33 |   32.43 | 8,13,24-56,68-78                                                                                                                                                                                                     
+  whatsonchain.ts                          |   69.11 |    33.33 |      75 |   69.69 | 27,36,57,111,117-124,135-157                                                                                                                                                                                         
+ src/signer                                |   63.63 |        0 |   57.89 |   65.62 |                                                                                                                                                                                                                      
+  WalletSigner.ts                          |   63.63 |        0 |   57.89 |   65.62 | 38-40,94-125                                                                                                                                                                                                         
+ src/signer/methods                        |   64.54 |    45.16 |   66.66 |   64.59 |                                                                                                                                                                                                                      
+  acquireDirectCertificate.ts              |    12.5 |        0 |       0 |    12.5 | 10-50                                                                                                                                                                                                                
+  createAction.ts                          |   82.35 |    62.26 |   86.66 |   81.98 | 50,55,97-106,143-150,199,210,260                                                                                                                                                                                     
+  internalizeAction.ts                     |    7.89 |        0 |       0 |    8.57 | 43-107                                                                                                                                                                                                               
+  proveCertificate.ts                      |   16.66 |        0 |       0 |   16.66 | 10-42                                                                                                                                                                                                                
+  signAction.ts                            |   88.37 |    64.28 |     100 |   88.37 | 13,15,53,55,58                                                                                                                                                                                                       
+ src/storage                               |   56.09 |    44.75 |   59.39 |   58.77 |                                                                                                                                                                                                                      
+  StorageBase.ts                           |   65.82 |    48.27 |   67.85 |   70.39 | 29-33,70,100,128,136-137,139-140,142,145-146,150-151,160-161,179,203-222,251,312-314,332,340-341,347,358,369,378,387,395-415                                                                                         
+  StorageBaseReader.ts                     |   78.08 |    52.94 |   92.85 |   84.84 | 35,78,95,138,142,160,165,191-192,196                                                                                                                                                                                 
+  StorageBaseReaderWriter.ts               |   11.45 |     4.76 |   18.18 |    11.5 | 55-58,67-85,96-106,116-259                                                                                                                                                                                           
+  StorageClient.ts                         |    6.66 |        0 |       0 |    6.66 | 16-232                                                                                                                                                                                                               
+  StorageKnex.ts                           |   79.49 |    59.79 |   86.88 |   83.37 | 63,69,81-145,184-187,197-200,322,331-332,344,349-350,455-464,468,663,676,713-714,796,838,874                                                                                                                         
+  StorageServer.ts                         |   13.72 |        0 |       0 |   13.72 | 27-126,134-153                                                                                                                                                                                                       
+  StorageSyncReader.ts                     |    2.27 |        0 |       0 |    2.77 | 12-121                                                                                                                                                                                                               
+  WalletStorage.ts                         |   42.85 |    18.18 |   57.14 |    44.3 | 38,61,74-76,82-88,99,114-119,126-129,135-190                                                                                                                                                                         
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/storage/methods                       |   53.98 |    48.99 |   52.57 |   55.92 |                                                                                                                                                                                                                      
+  attemptToPostReqsToNetwork.ts            |    4.05 |        0 |       0 |    4.61 | 14-134                                                                                                                                                                                                               
+  createAction.ts                          |   66.32 |    50.92 |   74.19 |   66.41 | 12,176-192,212,218,227-247,279-280,315,319-320,329,364-365,411-413,474-480,489-490,497-499,512,514,519-534,549-564,591-604,619-624,711-724,729-739,743-751,757                                                       
+  generateChange.ts                        |   86.49 |    73.21 |   95.65 |   89.65 | 50,240,269,273-274,296-297,301-302,306-307,314-322,402                                                                                                                                                               
+  getBeefForTransaction.ts                 |   33.33 |    28.57 |   66.66 |   34.21 | 39-44,59-60,70-105                                                                                                                                                                                                   
+  getSyncChunk.ts                          |    2.38 |        0 |       0 |    3.17 | 16-133                                                                                                                                                                                                               
+  internalizeAction.ts                     |    2.11 |        0 |       0 |    2.29 | 48-421                                                                                                                                                                                                               
+  listActions.ts                           |   93.97 |    76.82 |      90 |   93.82 | 38,42,75-77                                                                                                                                                                                                          
+  listCertificates.ts                      |   59.37 |    22.22 |     100 |   73.07 | 18-24                                                                                                                                                                                                                
+  listOutputs.ts                           |   98.87 |    97.05 |     100 |   98.78 | 64                                                                                                                                                                                                                   
+  processAction.ts                         |   70.28 |    40.62 |   84.61 |   72.22 | 31-32,79,96-120,127,173,178,181,183,195,203-207,229-235,274,276,285                                                                                                                                                  
+  purgeData.ts                             |    3.15 |        0 |       0 |     3.7 | 7-217                                                                                                                                                                                                                
+ src/storage/methods/__test/GenerateChange |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  randomValsUsed1.ts                       |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/storage/schema                        |   92.91 |     37.5 |     100 |   93.64 |                                                                                                                                                                                                                      
+  KnexMigrations.ts                        |   92.91 |     37.5 |     100 |   93.64 | 70-71,269-274,335-340,345                                                                                                                                                                                            
+ src/storage/schema/entities               |   14.47 |     5.69 |    6.19 |    14.6 |                                                                                                                                                                                                                      
+  Certificate.ts                           |    5.55 |        0 |       0 |    5.55 | 8-107                                                                                                                                                                                                                
+  CertificateField.ts                      |    7.69 |        0 |       0 |    7.69 | 8-80                                                                                                                                                                                                                 
+  Commission.ts                            |    6.66 |        0 |       0 |    6.81 | 8-89                                                                                                                                                                                                                 
+  EntityBase.ts                            |   71.42 |      100 |   66.66 |   71.42 | 123-137                                                                                                                                                                                                              
+  MergeEntity.ts                           |     7.4 |        0 |       0 |       8 | 13-54                                                                                                                                                                                                                
+  Output.ts                                |    3.37 |        0 |       0 |    3.37 | 8-167                                                                                                                                                                                                                
+  OutputBasket.ts                          |    6.12 |        0 |       0 |    6.12 | 7-93                                                                                                                                                                                                                 
+  OutputTag.ts                             |     7.5 |        0 |       0 |     7.5 | 8-81                                                                                                                                                                                                                 
+  OutputTagMap.ts                          |    8.33 |        0 |       0 |    8.33 | 8-76                                                                                                                                                                                                                 
+  ProvenTx.ts                              |   11.57 |     3.92 |    5.71 |   10.34 | 28-61,90-159,192-249                                                                                                                                                                                                 
+  ProvenTxReq.ts                           |    29.7 |    16.34 |   29.31 |   31.72 | 16-18,68-70,96-173,178,188,210-216,237-241,250,261-277,279-280,283-409                                                                                                                                               
+  SyncState.ts                             |    2.88 |        0 |       0 |    2.97 | 6-228                                                                                                                                                                                                                
+  Transaction.ts                           |   18.68 |     8.33 |   15.55 |   18.82 | 15,25,38-39,66-85,88-106,109,116-199                                                                                                                                                                                 
+  TxLabel.ts                               |     7.5 |        0 |       0 |     7.5 | 8-81                                                                                                                                                                                                                 
+  TxLabelMap.ts                            |    8.33 |        0 |       0 |    8.33 | 8-76                                                                                                                                                                                                                 
+  User.ts                                  |   11.11 |        0 |       0 |   11.11 | 8-41                                                                                                                                                                                                                 
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/storage/schema/tables                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  Output.ts                                |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  Transaction.ts                           |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/storage/sync                          |    3.01 |        0 |       0 |    3.34 |                                                                                                                                                                                                                      
+  StorageMySQLDojoReader.ts                |    2.59 |        0 |       0 |    2.88 | 35-564                                                                                                                                                                                                               
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+ src/utility                               |   58.13 |    35.05 |      70 |   63.11 |                                                                                                                                                                                                                      
+  ScriptTemplateSABPPP.ts                  |   95.45 |       75 |     100 |   95.45 | 29                                                                                                                                                                                                                   
+  index.ts                                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  parseTxScriptOffsets.ts                  |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                      
+  stampLog.ts                              |   13.33 |     8.33 |      50 |   14.63 | 22-68                                                                                                                                                                                                                
+  tscProofToMerklePath.ts                  |   60.97 |    53.33 |   66.66 |   62.16 | 6-20,46,58                                                                                                                                                                                                           
+  utilityHelpers.ts                        |   58.06 |    33.33 |   65.51 |   67.32 | 22-27,37,57,76-78,87-88,159,185-188,212-214,224-228,232-234,238-244                                                                                                                                                  
+ test/utils                                |   55.26 |    40.58 |   53.06 |   55.55 |                                                                                                                                                                                                                      
+  TestUtilsStephen.ts                      |    23.1 |    13.68 |   16.27 |   23.79 | 54-152,182-187,191-192,217-265,290-367,390-394,420-724,828,836-847                                                                                                                                                   
+  TestUtilsWalletStorage.ts                |   80.14 |    65.26 |   78.57 |    81.2 | 46,72-149,206-211,215-216,241-248,282-296,387-392,404-405,428-432,866                                                                                                                                                
+  testUtilsUpdate.ts                       |   75.47 |    44.89 |    92.3 |   73.68 | 17,82,98,106,120,154-162,168-169,187-191,228,232,236,240,244,252,291,295,299                                                                                                                                         
+-------------------------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+=== Simple Coverage ===
+Total Coverage: 38.59%
+=======================

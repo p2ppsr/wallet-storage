@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex, Wallet } from '../../../src'
+import { sdk, StorageKnex, table, Wallet } from '../../../src'
 
 import { _tu, expectToThrowWERR, TestKeyPair, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { parseWalletOutpoint } from '../../../src/sdk'
@@ -185,7 +185,6 @@ describe('createActionToGenerateBeefs test', () => {
         txidPair: [txid1, txid2],
         Beef: beef1
       } = await createAndConsume(wallet, root, kp)
-
       const {
         txidPair: [txid3, txid4],
         Beef: beef2
@@ -203,7 +202,6 @@ describe('createActionToGenerateBeefs test', () => {
       {
         const createArgs: sdk.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
-          inputBEEF,
           options: {
             acceptDelayedBroadcast: false,
             sendWith: [txid1, txid2, txid3, txid4]
@@ -226,7 +224,53 @@ describe('createActionToGenerateBeefs test', () => {
       }
     }
   })
+
+  test('4_test_tranaction log', async () => {
+    const root = '02135476'
+    const kp = _tu.getKeyPair(root.repeat(8))
+
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const txid: bsv.HexString = 'ed11e4b7402e38bac0ec7431063ae7c14ee82370e5f1963d48ae27a70527f784'
+      const rl = await logTransaction(storage, txid)
+      if (!noLog) console.log(rl)
+      break
+    }
+  })
 })
+
+const truncate = (s: string) => (s.length > 80 ? s.slice(0, 77) + '...' : s)
+
+async function logTransaction(storage: StorageKnex, txid: bsv.HexString): Promise<string> {
+  let log = `txid: ${txid}\n`
+  const rt = await storage.findTransactions({ partial: { txid } })
+  for (const t of rt) {
+    log += `status: ${t.status}\n`
+    log += `description: ${t.description}\n`
+    const ro = await storage.findOutputs({ partial: { transactionId: t.transactionId } })
+    for (const o of ro) {
+      log += `${await logOutput(storage, o)}`
+    }
+  }
+  return log
+}
+
+async function logOutput(storage: StorageKnex, output: table.Output): Promise<string> {
+  let log = `satoshis: ${output.satoshis}\n`
+  log += `spendable: ${output.spendable}\n`
+  log += `change: ${output.change}\n`
+  log += `providedBy: ${output.providedBy}\n`
+  log += `spentBy: ${output.providedBy}\n`
+  if (output.basketId) {
+    const rb = await storage.findOutputBaskets({ partial: { basketId: output.basketId } })
+    log += `basket:${await logBasket(storage, rb[0])}\n`
+  }
+  return log
+}
+
+function logBasket(storage: StorageKnex, basket: table.OutputBasket): string {
+  let log = `${basket.name}\n`
+  return log
+}
 
 async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): Promise<{ txidPair: sdk.TXIDHexString[]; Beef: bsv.Beef }> {
   let txid1: sdk.TXIDHexString

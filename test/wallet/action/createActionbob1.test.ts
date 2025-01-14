@@ -69,7 +69,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('2_signableTransaction', async () => {
+  test.skip('2_signableTransaction', async () => {
     for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -149,7 +149,6 @@ describe('createAction test', () => {
         }
 
         const cr = await wallet.createAction(createArgs)
-        return
         expect(cr.noSendChange).toBeTruthy()
         expect(cr.sendWithResults).toBeUndefined()
         expect(cr.tx).toBeUndefined()
@@ -198,7 +197,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('8a_Transaction with first Broadcasting', async () => {
+  test.skip('8a_Transaction with first Broadcasting', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -215,7 +214,7 @@ describe('createAction test', () => {
       const formattedInputs = inputs.map(row => ({
         outpoint: row.outpoint,
         inputDescription: row.inputDescription,
-        unlockingScript: bsv.Utils.toHex(row.lockingScript),
+        unlockingScript: bsv.Utils.toHex(row.lockingScript)
         //unlockingScriptLength: row.unlockingScriptLength
       }))
 

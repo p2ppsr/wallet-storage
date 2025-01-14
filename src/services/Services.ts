@@ -208,8 +208,6 @@ export class Services implements sdk.WalletServices {
 
     async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> {
 
-        txid = '1'.repeat(64)
-
         if (useNext)
             this.getMerklePathServices.next()
 

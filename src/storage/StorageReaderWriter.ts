@@ -9,7 +9,7 @@ export abstract class StorageReaderWriter extends StorageReader {
     }
 
     abstract dropAllData(): Promise<void>
-    abstract migrate(storageName: string): Promise<string>
+    abstract migrate(storageName: string, storageIdentityKey: string): Promise<string>
 
     abstract findOutputTagMaps(args: sdk.FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
     abstract findProvenTxReqs(args: sdk.FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>

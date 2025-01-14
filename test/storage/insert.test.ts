@@ -20,7 +20,7 @@ describe('insert tests', () => {
 
         for (const storage of storages) {
             await storage.dropAllData()
-            await storage.migrate('insert tests')
+            await storage.migrate('insert tests', '1'.repeat(64))
         }
     })
 

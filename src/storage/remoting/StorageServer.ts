@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * StorageServer.ts
  *
@@ -6,16 +5,13 @@
  * and exposes it via a JSON-RPC POST endpoint using Express.
  */
 
+import * as bsv from '@bsv/sdk'
 import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
-import { ProtoWallet, Wallet } from '@bsv/sdk'
-import { sdk } from '../..'
+import { randomBytesHex, sdk, Wallet } from '../..'
 
-// You have your local or imported `WalletStorage` interface:
-import { SignerStorage } from './SignerStorage' // adjust import path
-// Or your known local implementation:
-import { StorageKnex } from '../StorageKnex' // adjust path as needed
+import { StorageKnex } from '../StorageKnex'
 
 export interface WalletStorageServerOptions {
   port: number
@@ -42,13 +38,13 @@ export class StorageServer {
   private setupRoutes(): void {
     this.app.use(express.json())
     const options: AuthMiddlewareOptions = {
-      wallet: this.wallet
+      wallet: this.wallet as bsv.Wallet
     }
     this.app.use(createAuthMiddleware(options))
     if (this.monetize) {
       this.app.use(
         createPaymentMiddleware({
-          wallet: this.wallet,
+          wallet: this.wallet as bsv.Wallet,
           calculateRequestPrice: () => 100
         })
       )
@@ -79,18 +75,9 @@ export class StorageServer {
           // method is on the walletStorage:
           // Find user
           if (method !== 'getSettings') {
-            const user = await this.walletStorage.findUserByIdentityKey(req.auth.identityKey)
-            if (!user) {
-              const userId = await this.walletStorage.insertUser({
-                identityKey: req.auth.identityKey as string,
-                userId: 0,
-                created_at: new Date(),
-                updated_at: new Date()
-              })
-              params[0].userId = userId
-            } else {
-              params[0].userId = user.userId
-            }
+            console.log('looking up user with identityKey:', req.auth.identityKey)
+            const { user, isNew } = await this.walletStorage.findOrInsertUser(req.auth.identityKey)
+            params[0].reqAuthUserId = user.userId
           }
           const result = await (this.walletStorage as any)[method](...(params || []))
           return res.json({ jsonrpc: '2.0', result, id })
@@ -127,30 +114,3 @@ export class StorageServer {
     })
   }
 }
-
-import Knex from 'knex'
-
-async function main() {
-  const knexInstance = Knex({
-    client: 'sqlite3', // or 'mysql', etc.
-    connection: { filename: './test.db' },
-    useNullAsDefault: true
-  })
-
-  const storage = new StorageKnex({
-    knex: knexInstance,
-    chain: 'main',
-    feeModel: { model: 'sat/kb', value: 1 },
-    commissionSatoshis: 0
-  })
-
-  // Must init storage (migrate, or otherwise):
-  await storage.migrate('MyRemoteStorage')
-  await storage.makeAvailable()
-
-  const serverOptions: WalletStorageServerOptions = { port: 3000, wallet: new ProtoWallet('anyone'), monetize: false }
-  const server = new StorageServer(storage, serverOptions)
-  server.start()
-}
-
-//main().catch(console.error)

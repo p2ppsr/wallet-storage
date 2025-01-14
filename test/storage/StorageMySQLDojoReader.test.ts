@@ -22,7 +22,7 @@ describe.skip('StorageMySQLDojoReader tests', () => {
     const writerKnex = !env.noMySQL ? _tu.createLocalMySQL('stagingdojotone') : _tu.createLocalSQLite(await _tu.newTmpFile('stagingdojotone', false, false, true))
     writer = new StorageKnex({ ...StorageKnex.defaultOptions(), chain, knex: writerKnex })
     await writer.dropAllData()
-    await writer.migrate('stagingdojotone')
+    await writer.migrate('stagingdojotone', '1'.repeat(64))
   })
 
   afterAll(async () => {

@@ -24,8 +24,15 @@ export class KnexMigrations implements MigrationSource<string> {
      * @param storageName human readable name for this storage instance
      * @param maxOutputScriptLength limit for scripts kept in outputs table, longer scripts will be pulled from rawTx
      */
-    constructor(public chain: sdk.Chain, public storageName: string, public maxOutputScriptLength: number) {
-        this.migrations = this.setupMigrations(chain, storageName, maxOutputScriptLength)
+    constructor(
+        public chain: sdk.Chain,
+        public storageName: string,
+        public storageIdentityKey: string,
+        public maxOutputScriptLength: number
+    ) {
+        this.migrations = this.setupMigrations(
+            chain, storageName, storageIdentityKey, maxOutputScriptLength
+        )
     }
 
     async getMigrations(): Promise<string[]> { return Object.keys(this.migrations).sort() }
@@ -38,11 +45,16 @@ export class KnexMigrations implements MigrationSource<string> {
     }
 
     static async latestMigration() : Promise<string> {
-        const km = new KnexMigrations('test', 'dummy', 100)
+        const km = new KnexMigrations('test', 'dummy', '1'.repeat(64), 100)
         return await km.getLatestMigration()
     }
 
-    setupMigrations(chain: string, storageName: string, maxOutputScriptLength: number): Record<string, Migration> {
+    setupMigrations(
+        chain: string,
+        storageName: string,
+        storageIdentityKey: string,
+        maxOutputScriptLength: number
+    ): Record<string, Migration> {
 
         const migrations: Record<string, Migration> = {}
 /*
@@ -291,7 +303,7 @@ export class KnexMigrations implements MigrationSource<string> {
                 }
 
                 await knex('settings').insert({
-                    storageIdentityKey: randomBytesHex(32),
+                    storageIdentityKey,
                     storageName,
                     chain,
                     dbtype,

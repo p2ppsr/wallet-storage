@@ -189,9 +189,9 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async migrate(storageName: string): Promise<string> {
+    async migrate(storageName: string, storageIdentityKey: string): Promise<string> {
         return await this.runAsWriter(async (writer) => {
-            return writer.migrate(storageName)
+            return writer.migrate(storageName, storageIdentityKey)
         })
     }
 

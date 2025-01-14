@@ -361,7 +361,7 @@ export abstract class TestUtilsWalletStorage {
         const chain = args.chain
         const activeStorage = new StorageKnex({ chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
         if (args.dropAll) await activeStorage.dropAllData()
-        await activeStorage.migrate(args.databaseName)
+        await activeStorage.migrate(args.databaseName, identityKey)
         await activeStorage.makeAvailable()
         const setup = await args.insertSetup(activeStorage, identityKey)
         const storage = new WalletStorageManager(identityKey, activeStorage)
@@ -427,7 +427,7 @@ export abstract class TestUtilsWalletStorage {
         const keyDeriver = new sdk.KeyDeriver(rootKey)
         const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
         if (useReader) await activeStorage.dropAllData()
-        await activeStorage.migrate(databaseName)
+        await activeStorage.migrate(databaseName, identityKey)
         await activeStorage.makeAvailable()
         const storage = new WalletStorageManager(identityKey, activeStorage)
         await storage.makeAvailable()

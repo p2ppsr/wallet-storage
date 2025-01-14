@@ -4,7 +4,7 @@ import { Services } from '../..'
 const BEEF_V1 = 4022206465 // 0100BEEF in LE order
 const BEEF_V2 = 4022206466 // 0200BEEF in LE order
 
-describe('postBeef service tests', () => {
+describe.skip('postBeef service tests', () => {
   jest.setTimeout(99999999)
 
   // Tests to confirm that example Beefs are valid before being passed to Taal

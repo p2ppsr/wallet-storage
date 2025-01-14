@@ -25,28 +25,8 @@ export async function getSyncChunk(
     let done = false
 
     const user = verifyTruthy(await storage.findUserByIdentityKey(args.identityKey))
-
-    const addItems = async (a: ChunkerArgs) => {
-        if (i >= args.offsets.length) { done = true; return }
-        let { offset, name: oname } = args.offsets[i++]
-        if (a.name !== oname) throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. '${a.name}' expected, found ${oname}.`);
-        let preAddCalled = false
-        for (; !done;) {
-            const limit = Math.min(itemCount, Math.max(10, args.maxItems / a.maxDivider))
-            if (limit <= 0) break;
-            const items = await a.findItems(storage, { userId: user.userId, since: args.since, paged: { limit, offset } })
-            checkEntityValues(items)
-            if (!preAddCalled) { a.preAdd(); preAddCalled = true }
-            if (items.length === 0) break;
-            for (const item of items) {
-                offset++
-                a.addItem(item)
-                itemCount--
-                roughSize -= JSON.stringify(item).length
-                if (itemCount <= 0 || roughSize < 0) { done = true; break; }
-            }
-        }
-    }
+    if (!args.since || user.updated_at > args.since)
+        r.user = user
 
     const chunkers: ChunkerArgs[] = [
         {
@@ -98,6 +78,28 @@ export async function getSyncChunk(
             findItems: async (storage: StorageReader, args: sdk.FindForUserSincePagedArgs) => { return await storage.getProvenTxReqsForUser(args) }
         },
     ]
+
+    const addItems = async (a: ChunkerArgs) => {
+        if (i >= args.offsets.length) { done = true; return }
+        let { offset, name: oname } = args.offsets[i++]
+        if (a.name !== oname) throw new sdk.WERR_INVALID_PARAMETER('offsets', `in dependency order. '${a.name}' expected, found ${oname}.`);
+        let preAddCalled = false
+        for (; !done;) {
+            const limit = Math.min(itemCount, Math.max(10, args.maxItems / a.maxDivider))
+            if (limit <= 0) break;
+            const items = await a.findItems(storage, { userId: user.userId, since: args.since, paged: { limit, offset } })
+            checkEntityValues(items)
+            if (!preAddCalled) { a.preAdd(); preAddCalled = true }
+            if (items.length === 0) break;
+            for (const item of items) {
+                offset++
+                a.addItem(item)
+                itemCount--
+                roughSize -= JSON.stringify(item).length
+                if (itemCount <= 0 || roughSize < 0) { done = true; break; }
+            }
+        }
+    }
 
     for (; !done;) {
         for (const c of chunkers) {

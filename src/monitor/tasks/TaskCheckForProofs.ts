@@ -1,4 +1,3 @@
-import { TaskNotifyOfProofs } from './TaskNotifyOfProofs';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 
@@ -54,7 +53,6 @@ export class TaskCheckForProofs extends WalletMonitorTask {
             const r = await this.monitor.getProofs(reqs, 2, countsAsAttempt);
             log += r.log;
             console.log(log);
-            if (r.proven.length > 0) TaskNotifyOfProofs.checkNow = true;
             if (reqs.length < limit) break;
             offset += limit;
         }

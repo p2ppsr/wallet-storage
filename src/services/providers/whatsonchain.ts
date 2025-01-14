@@ -19,7 +19,8 @@ export async function getMerklePathFromWhatsOnChainTsc(txid: string, chain: sdk.
     const r: sdk.GetMerklePathResult = { name: 'WoCTsc' }
 
     try {
-        let { data } = await axios.get(`https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`)
+        const url = `https://api.whatsonchain.com/v1/bsv/${chain}/tx/${txid}/proof/tsc`
+        let { data } = await axios.get(url)
         if (!data || data.length < 1)
            return r 
 

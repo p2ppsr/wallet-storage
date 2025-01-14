@@ -19,6 +19,8 @@ export interface TuEnv {
   testTaalApiKey: string
   devKeys: Record<string, string>
   noMySQL: boolean
+  runSlowTests: boolean
+  logTests: boolean
 }
 
 export abstract class TestUtilsWalletStorage {
@@ -28,7 +30,9 @@ export abstract class TestUtilsWalletStorage {
     if (!identityKey) throw new sdk.WERR_INTERNAL('.env file configuration is missing or incomplete.')
     const userId = Number(chain === 'main' ? process.env.MY_MAIN_USERID : process.env.MY_TEST_USERID)
     const DEV_KEYS = process.env.DEV_KEYS || '{}'
+    const logTests = !!process.env.LOGTESTS
     const noMySQL = !!process.env.NOMYSQL
+    const runSlowTests = !!process.env.RUNSLOWTESTS
     return {
       chain,
       userId,
@@ -36,7 +40,9 @@ export abstract class TestUtilsWalletStorage {
       mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
       testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
       devKeys: JSON.parse(DEV_KEYS),
-      noMySQL
+      noMySQL,
+      runSlowTests,
+      logTests
     }
   }
 
@@ -306,7 +312,7 @@ export abstract class TestUtilsWalletStorage {
     await storage.makeAvailable()
     const signer = new WalletSigner(chain, keyDeriver, storage)
     const services = new Services(args.chain)
-    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
     const monitor = new Monitor(monopts)
     const wallet = new Wallet(signer, keyDeriver, services, monitor)
     const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
@@ -429,12 +435,8 @@ export abstract class TestUtilsWalletStorage {
     if (useReader) await activeStorage.dropAllData()
     await activeStorage.migrate(databaseName)
     await activeStorage.makeAvailable()
-    console.log('activeStorage:', activeStorage)
-
     const storage = new WalletStorageManager(identityKey, activeStorage)
     await storage.makeAvailable()
-    console.log('storage:', storage)
-
     if (useReader) {
       const readerKnex = _tu.createLocalSQLite(readerFile)
       const reader = new StorageKnex({ chain, knex: readerKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
@@ -444,7 +446,7 @@ export abstract class TestUtilsWalletStorage {
     }
     const signer = new WalletSigner(chain, keyDeriver, storage)
     const services = new Services(chain)
-    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
     const monitor = new Monitor(monopts)
     const wallet = new Wallet(signer, keyDeriver, services, monitor)
     const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
@@ -813,6 +815,25 @@ export abstract class TestUtilsWalletStorage {
       we1
     }
   }
+
+  static mockPostServicesAsSuccess<T>(ctxs: TestWallet<T>[]): void {
+    mockPostServices(ctxs, 'success')
+  }
+  static mockPostServicesAsError<T>(ctxs: TestWallet<T>[]): void {
+    mockPostServices(ctxs, 'error')
+  }
+  static mockPostServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void {
+    mockPostServices(ctxs, 'error', callback)
+  }
+
+  static mockMerklePathServicesAsCallback<T>(ctxs: TestWallet<T>[], callback: (txid: string) => Promise<sdk.GetMerklePathResult>): void {
+    for (const { services } of ctxs) {
+      services.getMerklePath = jest.fn().mockImplementation(async (txid: string): Promise<sdk.GetMerklePathResult> => {
+        const r = await callback(txid)
+        return r
+      })
+    }
+  }
 }
 
 export abstract class _tu extends TestUtilsWalletStorage {}
@@ -901,4 +922,27 @@ export type TestKeyPair = {
   privateKey: bsv.PrivateKey
   publicKey: bsv.PublicKey
   address: string
+}
+
+function mockPostServices<T>(ctxs: TestWallet<T>[], status: 'success' | 'error' = 'success', callback?: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void {
+  for (const { services } of ctxs) {
+    // Mock the services postBeef to avoid actually broadcasting new transactions.
+    services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+      status = !callback ? status : callback(beef, txids)
+      const r: sdk.PostBeefResult = {
+        name: 'mock',
+        status: 'success',
+        txidResults: txids.map(txid => ({ txid, status }))
+      }
+      return Promise.resolve([r])
+    })
+    services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+      const r: sdk.PostBeefResult = {
+        name: 'mock',
+        status: 'success',
+        txidResults: txids.map(txid => ({ txid, status }))
+      }
+      return Promise.resolve([r])
+    })
+  }
 }

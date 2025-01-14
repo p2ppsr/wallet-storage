@@ -1,7 +1,7 @@
 import * as bsv from "@bsv/sdk"
-import { sdk, StorageKnex, wait, Wallet, WalletSigner, WalletStorageManager } from "../../../src"
-import { KeyDeriver } from "../../../src/sdk"
-import { _tu, TestSetup1Wallet } from "../../utils/TestUtilsWalletStorage"
+import { sdk, StorageKnex, wait, Wallet, WalletSigner, WalletStorageManager } from "../../src"
+import { KeyDeriver } from "../../src/sdk"
+import { _tu, TestSetup1Wallet } from "../utils/TestUtilsWalletStorage"
 
 describe('Wallet services tests', () => {
     jest.setTimeout(99999999)

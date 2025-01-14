@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { StorageProvider } from "../StorageProvider"
-import { entity, PostReqsToNetworkResult, sdk } from '../..'
+import { entity, sdk } from '../..'
 import { PostBeefResultForTxidApi } from './processAction'
 
 /**
@@ -54,7 +54,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
         for (const req of reqs) {
             // batch passes or fails as a whole...prior to post to network attempt.
             req.status = 'invalid'
-            await req.updateStorageStatusHistoryOnly(storage)
+            await req.updateStorageDynamicProperties(storage)
             r.log += `status set to ${req.status}\n`
         }
         return r;
@@ -66,7 +66,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
     const pbrs = await services.postBeef(r.beef, txids)
     const pbrOk = pbrs.find(p => p.status === 'success')
     r.pbr = pbrOk ? pbrOk : pbrs.length > 0 ? pbrs[0] : undefined
-    
+
     if (!r.pbr) {
         r.status = 'error'
     } else {
@@ -99,7 +99,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
         // For each req, three outcomes are handled:
         // 1. success: req status from unprocessed(!isDelayed)/sending(isDelayed) to unmined, tx from sending to unproven
         if (d.status === 'success') {
-            if (['nosend', 'unprocessed', 'sending'].indexOf(d.req.status) > -1)
+            if (['nosend', 'unprocessed', 'sending', 'unsent'].indexOf(d.req.status) > -1)
                 newReqStatus = 'unmined';
             newTxStatus = 'unproven' // but only if sending
         }
@@ -119,7 +119,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
             // Only advance the status of req.
             d.req.status = newReqStatus
         }
-        await d.req.updateStorageStatusHistoryOnly(storage)
+        await d.req.updateStorageDynamicProperties(storage)
         if (newTxStatus) {
             const ids = d.req.notify.transactionIds
             if (!ids || ids.length < 1) throw new sdk.WERR_INTERNAL(`req must have at least one transactionId to notify`);
@@ -134,13 +134,22 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
     return r
 }
 
+
 export type PostReqsToNetworkDetailsStatus = 'success' | 'doubleSpend' | 'unknown'
 
 export interface PostReqsToNetworkDetails {
     txid: string
     req: entity.ProvenTxReq
     status: PostReqsToNetworkDetailsStatus
-    pbrft: PostBeefResultForTxidApi
+    pbrft: sdk.PostTxResultForTxid
     data?: string
     error?: string
+}
+
+export interface PostReqsToNetworkResult {
+    status: "success" | "error"
+    beef: bsv.Beef
+    details: PostReqsToNetworkDetails[]
+    pbr?: sdk.PostBeefResult
+    log: string
 }

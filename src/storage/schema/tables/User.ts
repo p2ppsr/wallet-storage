@@ -9,6 +9,10 @@ export interface User extends sdk.EntityTimeStamp {
     * Typically 66 hex digits. 
     */
    identityKey: string
+   /**
+    * The storageIdentityKey value of the active wallet storage.
+    */
+   activeStorage?: string
 }
 
 

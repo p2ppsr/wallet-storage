@@ -1,8 +1,8 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, entity, PostReqsToNetworkResult, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
-import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
+import { attemptToPostReqsToNetwork, PostReqsToNetworkResult } from './methods/attemptToPostReqsToNetwork';
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
 import { internalizeAction } from './methods/internalizeAction';
@@ -40,6 +40,8 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         this.commissionSatoshis = options.commissionSatoshis
     }
 
+    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
+
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
 
     abstract getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
@@ -58,14 +60,14 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     abstract findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
     abstract insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>
 
+    override isStorageProvider(): boolean { return true }
+
     setServices(v: sdk.WalletServices) { this._services = v }
     getServices(): sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
         return this._services
     }
-
-    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
     async abortAction(auth: sdk.AuthId, args: Partial<table.Transaction>): Promise<sdk.AbortActionResult> {
         const r = await this.transaction(async trx => {
@@ -79,7 +81,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
                 if (req) {
                     req.addHistoryNote({ what: 'aborted' })
                     req.status = 'invalid'
-                    await req.updateStorageStatusHistoryOnly(this, trx)
+                    await req.updateStorageDynamicProperties(this, trx)
                 }
             }
             const r: sdk.AbortActionResult = {
@@ -216,6 +218,13 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return r
     }
 
+    async updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void> {
+        await this.transaction(async (trx) => {
+            for (const id of transactionIds) {
+                await this.updateTransactionStatus(status, id, undefined, undefined, trx)
+            }
+        })
+    }
 
     /**
      * For all `status` values besides 'failed', just updates the transaction records status property.
@@ -376,6 +385,120 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         const r = await ss.processSyncChunk(this, args, chunk)
         return r
     }
+
+    /**
+     * Handles storage changes when a valid MerklePath and mined block header are found for a ProvenTxReq txid.
+     * 
+     * Performs the following storage updates (typically):
+     * 1. Lookup the exising `ProvenTxReq` record for its rawTx
+     * 2. Insert a new ProvenTx record using properties from `args` and rawTx, yielding a new provenTxId
+     * 3. Update ProvenTxReq record with status 'completed' and new provenTxId value (and history of status changed)
+     * 4. Unpack notify transactionIds from req and update each transaction's status to 'completed', provenTxId value.
+     * 5. Update ProvenTxReq history again to record that transactions have been notified.
+     * 6. Return results...
+     * 
+     * Alterations of "typically" to handle:
+     */
+    async updateProvenTxReqWithNewProvenTx(args: sdk.UpdateProvenTxReqWithNewProvenTxArgs): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        const req = await entity.ProvenTxReq.fromStorageId(this, args.provenTxReqId)
+        let proven: entity.ProvenTx
+        if (req.provenTxId) {
+            // Someone beat us to it, grab what we need for results...
+            proven = new entity.ProvenTx(verifyOne(await this.findProvenTxs({ partial: { txid: args.txid }})))
+        } else {
+            let isNew: boolean
+            ({ proven, isNew } = await this.transaction(async (trx) => {
+                const { proven: api, isNew } = await this.findOrInsertProvenTx({
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                    provenTxId: 0,
+                    txid: args.txid,
+                    height: args.height,
+                    index: args.index,
+                    merklePath: args.merklePath,
+                    rawTx: req.rawTx,
+                    blockHash: args.blockHash,
+                    merkleRoot: args.merkleRoot
+                }, trx)
+                proven = new entity.ProvenTx(api)
+                if (isNew) {
+                    req.status = 'completed'
+                    req.provenTxId = proven.provenTxId
+                    await req.updateStorageDynamicProperties(this, trx)
+                    // upate the transaction notifications outside of storage transaction....
+                }
+                return { proven, isNew }
+            }))
+            if (isNew) {
+                const ids = req.notify.transactionIds || []
+                if (ids.length > 0) {
+                    for (const id of ids) {
+                        try {
+                            await this.updateTransaction(id, { provenTxId: proven.provenTxId })
+                            await this.updateTransactionStatus('completed', id)
+                            req.addHistoryNote(`transaction ${id} notified of ProvenTx`)
+                        } catch (eu: unknown) {
+                            const e = sdk.WalletError.fromUnknown(eu)
+                            req.addHistoryNote({ what: 'transactionNotificationFailure', error: `${e.code}: ${e.description}`})
+                        }
+                    }
+                    await req.updateStorageDynamicProperties(this)
+                }
+            }
+        }
+        const r: sdk.UpdateProvenTxReqWithNewProvenTxResult = {
+            status: req.status,
+            history: req.apiHistory,
+            provenTxId: proven.provenTxId
+        }
+        return r
+    }
+
+    /**
+     * For each spendable output in the 'default' basket of the authenticated user,
+     * verify that the output script, satoshis, vout and txid match that of an output
+     * still in the mempool of at least one service provider.
+     * 
+     * @returns object with invalidSpendableOutputs array. A good result is an empty array. 
+     */
+    async confirmSpendableOutputs() : Promise<{ invalidSpendableOutputs: table.Output[] }> {
+        const invalidSpendableOutputs: table.Output[] = []
+        const users = await this.findUsers({ partial: {} })
+        for (const { userId } of users) {
+            const defaultBasket = verifyOne(await this.findOutputBaskets({ partial: { userId, name: 'default' } }))
+            const where: Partial<table.Output> = {
+                userId,
+                basketId: defaultBasket.basketId,
+                spendable: true,
+            }
+            const outputs = await this.findOutputs({ partial: where })
+            for (let i = outputs.length - 1; i >= 0; i--) {
+                const o = outputs[i]
+                const oid = verifyId(o.outputId)
+                if (o.spendable) {
+                    let ok = false
+                    if (o.lockingScript && o.lockingScript.length > 0) {
+                        const r = await this.getServices().getUtxoStatus(asString(o.lockingScript), 'script')
+                        if (r.status === 'success' && r.isUtxo && r.details?.length > 0) {
+                            const tx = await this.findTransactionById(o.transactionId)
+                            if (tx && tx.txid && r.details.some(d => d.txid === tx.txid && d.satoshis === o.satoshis && d.index === o.vout)) {
+                                ok = true
+                            }
+                        }
+                    }
+                    if (!ok)
+                        invalidSpendableOutputs.push(o)
+                }
+            }
+        }
+        return { invalidSpendableOutputs }
+    }
+
+    async updateProvenTxReqDynamics(id: number, update: Partial<table.ProvenTxReqDynamics>, trx?: sdk.TrxToken): Promise<number> {
+        const partial: Partial<table.ProvenTxReq> = {...update}
+        return await this.updateProvenTxReq(id, partial, trx)
+    }
+
 }
 
 export interface StorageProviderOptions extends StorageReaderWriterOptions {

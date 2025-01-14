@@ -24,6 +24,8 @@ export class StorageClient implements sdk.WalletStorageProvider {
         this.endpointUrl = endpointUrl
     }
 
+    isStorageProvider(): boolean { return false }
+
     //////////////////////////////////////////////////////////////////////////////
     // JSON-RPC helper
     //////////////////////////////////////////////////////////////////////////////
@@ -212,6 +214,12 @@ export class StorageClient implements sdk.WalletStorageProvider {
         return this.rpcCall<table.Output[]>("findOutputsAuth", [auth, args])
     }
 
+    findProvenTxReqs(
+        args: sdk.FindProvenTxReqsArgs
+    ): Promise<table.ProvenTxReq[]> {
+        return this.rpcCall<table.ProvenTxReq[]>("findProvenTxReqs", [args])
+    }
+
     async relinquishCertificate(
         auth: sdk.AuthId,
         args: sdk.RelinquishCertificateArgs
@@ -237,5 +245,11 @@ export class StorageClient implements sdk.WalletStorageProvider {
         args: sdk.RequestSyncChunkArgs
     ): Promise<sdk.SyncChunk> {
         return this.rpcCall<sdk.SyncChunk>("getSyncChunk", [args])
+    }
+
+    async updateProvenTxReqWithNewProvenTx(
+        args: sdk.UpdateProvenTxReqWithNewProvenTxArgs
+    ): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        return this.rpcCall<sdk.UpdateProvenTxReqWithNewProvenTxResult>("updateProvenTxReqWithNewProvenTx", [args])
     }
 }

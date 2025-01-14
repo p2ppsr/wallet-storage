@@ -10,8 +10,8 @@ import { WalletMonitorTask } from './tasks/WalletMonitorTask'
 import { TaskClock } from './tasks/TaskClock'
 import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
-//export type MonitorStorage = sdk.StorageSyncReaderWriter
-export type MonitorStorage = sdk.WalletStorage
+export type MonitorStorage = sdk.StorageSyncReaderWriter
+//export type MonitorStorage = sdk.WalletStorage
 
 export interface MonitorOptions {
 

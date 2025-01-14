@@ -2,7 +2,7 @@ import * as bsv from '@bsv/sdk'
 import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
-import { attemptToPostReqsToNetwork } from './methods/attemptToPostReqsToNetwork';
+import { attemptToPostReqsToNetwork, PostReqsToNetworkResult } from './methods/attemptToPostReqsToNetwork';
 import { listCertificates } from './methods/listCertificates';
 import { createAction } from './methods/createAction';
 import { internalizeAction } from './methods/internalizeAction';
@@ -40,6 +40,8 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         this.commissionSatoshis = options.commissionSatoshis
     }
 
+    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
+
     abstract allocateChangeInput(userId: number, basketId: number, targetSatoshis: number, exactSatoshis: number | undefined, excludeSending: boolean, transactionId: number): Promise<table.Output | undefined>
 
     abstract getProvenOrRawTx(txid: string, trx?: sdk.TrxToken): Promise<sdk.ProvenOrRawTx>
@@ -58,14 +60,14 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     abstract findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
     abstract insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>
 
+    override isStorageProvider(): boolean { return true }
+
     setServices(v: sdk.WalletServices) { this._services = v }
     getServices(): sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
         return this._services
     }
-
-    abstract purgeData(params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults>
 
     async abortAction(auth: sdk.AuthId, args: Partial<table.Transaction>): Promise<sdk.AbortActionResult> {
         const r = await this.transaction(async trx => {
@@ -297,7 +299,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return await processAction(this, auth, args)
     }
 
-    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<sdk.PostReqsToNetworkResult> {
+    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
         return await attemptToPostReqsToNetwork(this, reqs, trx)
     }
 
@@ -490,6 +492,11 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
             }
         }
         return { invalidSpendableOutputs }
+    }
+
+    async updateProvenTxReqDynamics(id: number, update: Partial<table.ProvenTxReqDynamics>, trx?: sdk.TrxToken): Promise<number> {
+        const partial: Partial<table.ProvenTxReq> = {...update}
+        return await this.updateProvenTxReq(id, partial, trx)
     }
 
 }

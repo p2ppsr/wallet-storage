@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { StorageProvider } from "../StorageProvider"
-import { entity, PostReqsToNetworkResult, sdk } from '../..'
+import { entity, sdk } from '../..'
 import { PostBeefResultForTxidApi } from './processAction'
 
 /**
@@ -140,7 +140,15 @@ export interface PostReqsToNetworkDetails {
     txid: string
     req: entity.ProvenTxReq
     status: PostReqsToNetworkDetailsStatus
-    pbrft: PostBeefResultForTxidApi
+    pbrft: sdk.PostTxResultForTxid
     data?: string
     error?: string
+}
+
+export interface PostReqsToNetworkResult {
+    status: "success" | "error"
+    beef: bsv.Beef
+    details: PostReqsToNetworkDetails[]
+    pbr?: sdk.PostBeefResult
+    log: string
 }

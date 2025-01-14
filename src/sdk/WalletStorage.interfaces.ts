@@ -42,10 +42,6 @@ export interface WalletStorage {
    relinquishCertificate(args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<number>
 
-   // Monitor use only:
-   updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
-   updateProvenTxReqDynamics(id: number, update: Partial<table.ProvenTxReq>, trx?: sdk.TrxToken): Promise<number>
-   updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void>
 }
 
 /**
@@ -53,6 +49,12 @@ export interface WalletStorage {
  * is the actual minimal interface implemented by storage and remoted storage providers.
  */
 export interface WalletStorageProvider {
+
+   /**
+    * @returns true if this object's interface can be extended to the full `StorageProvider` interface
+    */
+   isStorageProvider() : boolean
+
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>
@@ -87,9 +89,6 @@ export interface WalletStorageProvider {
    getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
 
-   // Monitor use only:
-   updateProvenTxReqWithNewProvenTx(args: UpdateProvenTxReqWithNewProvenTxArgs): Promise<UpdateProvenTxReqWithNewProvenTxResult>
-   updateTransactionsStatus(transactionIds: number[], status: sdk.TransactionStatus): Promise<void>
 }
 
 export interface AuthId {
@@ -317,23 +316,4 @@ export interface UpdateProvenTxReqWithNewProvenTxResult {
    history: string
    provenTxId: number
    log?: string
-}
-
-export type PostReqsToNetworkDetailsStatus = 'success' | 'doubleSpend' | 'unknown'
-
-export interface PostReqsToNetworkDetails {
-    txid: string
-    req: entity.ProvenTxReq
-    status: PostReqsToNetworkDetailsStatus
-    pbrft: sdk.PostTxResultForTxid
-    data?: string
-    error?: string
-}
-
-export interface PostReqsToNetworkResult {
-    status: "success" | "error"
-    beef: bsv.Beef
-    details: PostReqsToNetworkDetails[]
-    pbr?: sdk.PostBeefResult
-    log: string
 }

@@ -23,6 +23,7 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
         this.storageParty = `storage ${signer.storageIdentity!.storageIdentityKey}`
         this.userParty = `user ${signer.getClientChangeKeyPair().publicKey}`
+        console.log('adding parties:', this.storageParty, this.userParty)
         this.beef = new BeefParty([this.storageParty, this.userParty])
         this.trustSelf = 'known'
 

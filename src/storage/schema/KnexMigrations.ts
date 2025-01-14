@@ -112,6 +112,7 @@ export class KnexMigrations implements MigrationSource<string> {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('userId')
                     table.string('identityKey', 130).notNullable().unique()
+                    table.string('activeStorage', 130).nullable().defaultTo(null)
                 })
                 await knex.schema.createTable('certificates', table => {
                     addTimeStamps(knex, table, dbtype)

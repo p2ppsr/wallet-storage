@@ -1,6 +1,6 @@
-import { sdk } from "../../..";
+import { sdk, StorageProvider } from "../../..";
 
-export type EntityStorage = sdk.StorageSyncReaderWriter
+export type EntityStorage = StorageProvider
 
 export abstract class EntityBase<T> {
     api: T;

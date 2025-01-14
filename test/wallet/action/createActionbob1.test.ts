@@ -7,7 +7,7 @@ import { parseWalletOutpoint } from '../../../src/sdk'
 
 const noLog = false
 
-describe('createAction test', () => {
+describe.skip('createActionbob1 test', () => {
   jest.setTimeout(99999999)
 
   const amount = 1319

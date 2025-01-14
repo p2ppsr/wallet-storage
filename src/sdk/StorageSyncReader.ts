@@ -115,6 +115,7 @@ export interface SyncChunk {
     toStorageIdentityKey: string
     userIdentityKey: string
 
+    user?: table.User
     provenTxs?: table.ProvenTx[]
     provenTxReqs?: table.ProvenTxReq[]
     outputBaskets?: table.OutputBasket[]

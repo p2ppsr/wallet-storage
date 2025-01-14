@@ -17,25 +17,7 @@ describe('createAction test', () => {
     beforeAll(async () => {
         if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('createActionTests'))
         ctxs.push(await _tu.createLegacyWalletSQLiteCopy('createActionTests'))
-        for (const { services } of ctxs) {
-            // Mock the services postBeef to avoid actually broadcasting new transactions.
-            services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]) : Promise<sdk.PostBeefResult[]> => {
-                const r: sdk.PostBeefResult = {
-                    name: 'mock',
-                    status: 'success',
-                    txidResults: txids.map(txid => ({ txid, status: 'success' }))
-                }
-                return Promise.resolve([r])
-            })
-            services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]) : Promise<sdk.PostBeefResult[]> => {
-                const r: sdk.PostBeefResult = {
-                    name: 'mock',
-                    status: 'success',
-                    txidResults: txids.map(txid => ({ txid, status: 'success' }))
-                }
-                return Promise.resolve([r])
-            })
-        }
+        _tu.mockPostServicesAsSuccess(ctxs)
     })
 
     afterAll(async () => {
@@ -108,6 +90,7 @@ describe('createAction test', () => {
                 for (const input of tx.inputs) {
                     expect(atomicBeef.findTxid(input.sourceTXID!)).toBeTruthy()
                 }
+                console.log(atomicBeef.toLogString())
 
                 // Spending authorization check happens here...
                 //expect(st.amount > 242 && st.amount < 300).toBe(true)

@@ -268,6 +268,26 @@ export abstract class StorageReaderWriter extends StorageReader {
         return { req, isNew }
     }
 
+    async findOrInsertProvenTx(newProven: table.ProvenTx, trx?: sdk.TrxToken)
+    : Promise<{ proven: table.ProvenTx, isNew: boolean }>
+    {
+        let proven: table.ProvenTx | undefined
+        let isNew = false
+        for (let retry = 0; ; retry++) {
+            try {
+                proven = verifyOneOrNone(await this.findProvenTxs({ partial: { txid: newProven.txid }, trx }))
+                if (proven) break;
+                newProven.provenTxId = await this.insertProvenTx(newProven, trx)
+                isNew = true
+                proven = newProven
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+        return { proven, isNew }
+    }
+
     abstract processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult>
 
     async tagOutput(partial: Partial<table.Output>, tag: string, trx?: sdk.TrxToken): Promise<void> {

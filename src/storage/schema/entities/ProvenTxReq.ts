@@ -1,8 +1,9 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../..";
+import { arraysEqual, asString, entity, sdk, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy, WalletStorageManager } from "../../..";
 import { EntityBase } from ".";
 
 import prettyjson from "prettyjson"
+import { StorageProcessActionArgs } from "../../../sdk";
 
 export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
 
@@ -64,7 +65,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         }
     }
 
-    async refreshFromStorage(storage: entity.EntityStorage) : Promise<void> {
+    async refreshFromStorage(storage: entity.EntityStorage | WalletStorageManager) : Promise<void> {
         const newApi = verifyOne(await storage.findProvenTxReqs({ partial: { provenTxReqId: this.id } }))
         this.api = newApi
         this.unpackApi()
@@ -147,6 +148,10 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
         try {
             const v = JSON.parse(note);
             switch (v.what) {
+                case "postReqsToNetwork result": {
+                    const r = v["result"] as any
+                    return `posted by ${v["name"]} status=${r.status} txid=${r.txid}`
+                } break;
                 case "getMerkleProof invalid": {
                     return `getMerkleProof failing after ${v["attempts"]} attempts over ${v["ageInMinutes"]} minutes`
                 } break;
@@ -161,7 +166,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
                         case 'unconfirmed': c.setToUnconfirmed = true; break;
                         default: break;
                     }
-                    return `set status ${v.new} (was ${v.old})`;
+                    return `set status ${v.old} to ${v.new}`;
                 } break;
                 case "notified":
                     return `notified`;
@@ -221,10 +226,28 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
      * @param storage 
      * @param trx 
      */
-    async updateStorageStatusHistoryOnly(storage: entity.EntityStorage, trx?: sdk.TrxToken) {
+    async updateStorageDynamicProperties(storage: WalletStorageManager | StorageProvider, trx?: sdk.TrxToken) {
+        this.updated_at = new Date()
         this.updateApi()
-        const update: Partial<table.ProvenTxReq> = { status: this.api.status, history: this.api.history }
-        await storage.updateProvenTxReq(this.id, update, trx)
+        const update: Partial<table.ProvenTxReqDynamics> = {
+            updated_at: this.api.updated_at,
+            provenTxId: this.api.provenTxId,
+            status: this.api.status,
+            history: this.api.history,
+            notify: this.api.notify,
+            notified: this.api.notified,
+            attempts: this.api.attempts,
+            batch: this.api.batch
+        }
+        if (storage.isStorageProvider()) {
+            const sp = storage as StorageProvider
+            await sp.updateProvenTxReqDynamics(this.id, update, trx)
+        } else {
+            const wsm = storage as WalletStorageManager
+            await wsm.runAsStorageProvider(async (sp) => {
+                await sp.updateProvenTxReqDynamics(this.id, update, trx)
+            })
+        }
     }
 
     async insertOrMerge(storage: entity.EntityStorage, trx?: sdk.TrxToken): Promise<ProvenTxReq> {

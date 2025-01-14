@@ -36,6 +36,8 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
         return this._settings
     }
 
+    isStorageProvider(): boolean { return false }
+
     abstract destroy(): Promise<void>
 
     abstract transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T>

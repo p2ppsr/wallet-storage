@@ -9,7 +9,7 @@ import * as bsv from '@bsv/sdk'
 import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
-import { randomBytesHex, sdk, Wallet } from '../..'
+import { sdk, Wallet, StorageProvider } from '../..'
 
 import { StorageKnex } from '../StorageKnex'
 
@@ -22,12 +22,12 @@ export interface WalletStorageServerOptions {
 export class StorageServer {
   private app = express()
   private port: number
-  private walletStorage: sdk.WalletStorage
+  private storage: StorageProvider
   private wallet: Wallet
   private monetize: boolean
 
-  constructor(walletStorage: sdk.WalletStorage, options: WalletStorageServerOptions) {
-    this.walletStorage = walletStorage
+  constructor(storage: StorageProvider, options: WalletStorageServerOptions) {
+    this.storage = storage
     this.port = options.port
     this.wallet = options.wallet
     this.monetize = options.monetize
@@ -71,15 +71,16 @@ export class StorageServer {
           // if you wanted to handle certain methods on the server class itself
           // e.g. this['someServerMethod'](params)
           throw new Error('Server method dispatch not used in this approach.')
-        } else if (typeof (this.walletStorage as any)[method] === 'function') {
+        } else if (typeof (this.storage as any)[method] === 'function') {
           // method is on the walletStorage:
           // Find user
           if (method !== 'getSettings') {
             console.log('looking up user with identityKey:', req.auth.identityKey)
-            const { user, isNew } = await this.walletStorage.findOrInsertUser(req.auth.identityKey)
+            const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
             params[0].reqAuthUserId = user.userId
+            if (params[0]['identityKey']) params[0].userId = user.userId
           }
-          const result = await (this.walletStorage as any)[method](...(params || []))
+          const result = await (this.storage as any)[method](...(params || []))
           return res.json({ jsonrpc: '2.0', result, id })
         } else {
           // Unknown method

@@ -52,13 +52,7 @@ export class StorageServer {
 
     // A single POST endpoint for JSON-RPC:
     this.app.post('/', async (req: Request, res: Response) => {
-      debugger
       let { jsonrpc, method, params, id } = req.body
-      if (method !== 'getSettings') {
-        if (typeof params[0] !== 'object' || !params[0]) {
-          params = [{}]
-        }
-      }
 
       // Basic JSON-RPC protocol checks:
       if (jsonrpc !== '2.0' || !method || typeof method !== 'string') {
@@ -74,11 +68,23 @@ export class StorageServer {
         } else if (typeof (this.storage as any)[method] === 'function') {
           // method is on the walletStorage:
           // Find user
-          if (method !== 'getSettings') {
-            console.log('looking up user with identityKey:', req.auth.identityKey)
-            const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
-            params[0].reqAuthUserId = user.userId
-            if (params[0]['identityKey']) params[0].userId = user.userId
+          switch (method) {
+            case 'getSettings': {
+              /** */
+            } break;
+            case 'findOrInsertUser': {
+              if (params[0] !== req.auth.identityKey)
+                throw new sdk.WERR_UNAUTHORIZED('function may only access authenticated user.');
+            } break;
+            default: {
+              if (typeof params[0] !== 'object' || !params[0]) {
+                params = [{}]
+              }
+              console.log('looking up user with identityKey:', req.auth.identityKey)
+              const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
+              params[0].reqAuthUserId = user.userId
+              if (params[0]['identityKey']) params[0].userId = user.userId;
+            } break;
           }
           const result = await (this.storage as any)[method](...(params || []))
           return res.json({ jsonrpc: '2.0', result, id })

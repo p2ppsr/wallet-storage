@@ -46,6 +46,8 @@ export class WalletStorageManager implements sdk.WalletStorage {
         this._authId = { identityKey }
     }
 
+    isStorageProvider(): boolean { return false }
+
     async getUserId(): Promise<number> {
         let userId = this._authId.userId
         if (!userId) {

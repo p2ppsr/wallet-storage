@@ -10,6 +10,11 @@ import { sdk, table } from "..";
  */
 export interface WalletStorage {
 
+   /**
+    * @returns false
+    */
+   isStorageProvider() : boolean
+
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
    migrate(storageName: string): Promise<string>

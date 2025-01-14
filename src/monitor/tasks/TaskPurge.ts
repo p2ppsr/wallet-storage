@@ -54,7 +54,10 @@ export class TaskPurge extends WalletMonitorTask {
     async runTask(): Promise<void> {
         TaskPurge.checkNow = false;
 
-        const r = await this.storage.purgeData(this.params)
+        const r = await this.storage.runAsStorageProvider(async (sp) => {
+            return await sp.purgeData(this.params)
+        })
+
         console.log(`TaskPurge ${r.count} records updated or deleted.\n${r.log}`)
     }
 }

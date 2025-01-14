@@ -66,7 +66,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
     const pbrs = await services.postBeef(r.beef, txids)
     const pbrOk = pbrs.find(p => p.status === 'success')
     r.pbr = pbrOk ? pbrOk : pbrs.length > 0 ? pbrs[0] : undefined
-    
+
     if (!r.pbr) {
         r.status = 'error'
     } else {
@@ -99,7 +99,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
         // For each req, three outcomes are handled:
         // 1. success: req status from unprocessed(!isDelayed)/sending(isDelayed) to unmined, tx from sending to unproven
         if (d.status === 'success') {
-            if (['nosend', 'unprocessed', 'sending'].indexOf(d.req.status) > -1)
+            if (['nosend', 'unprocessed', 'sending', 'unsent'].indexOf(d.req.status) > -1)
                 newReqStatus = 'unmined';
             newTxStatus = 'unproven' // but only if sending
         }
@@ -133,6 +133,7 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
     // log += .req.historyPretty(since, indent + 2)
     return r
 }
+
 
 export type PostReqsToNetworkDetailsStatus = 'success' | 'doubleSpend' | 'unknown'
 

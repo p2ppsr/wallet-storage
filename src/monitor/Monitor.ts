@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services } from ".."
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services, WalletStorageManager } from ".."
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskPurge, TaskPurgeParams } from './tasks/TaskPurge'
 import { TaskSyncWhenIdle } from './tasks/TaskSyncWhenIdle'
@@ -10,7 +10,8 @@ import { WalletMonitorTask } from './tasks/WalletMonitorTask'
 import { TaskClock } from './tasks/TaskClock'
 import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
-export type MonitorStorage = sdk.StorageSyncReaderWriter
+export type MonitorStorage = WalletStorageManager
+//export type MonitorStorage = sdk.WalletStorage
 //export type MonitorStorage = sdk.WalletStorage
 
 export interface MonitorOptions {
@@ -308,7 +309,7 @@ export class Monitor {
                 log += `Already linked to provenTxId ${req.provenTxId}.\n`
                 req.notified = false
                 req.status = 'completed'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 proven.push(reqApi)
                 continue
             }
@@ -326,7 +327,7 @@ export class Monitor {
                 log += ` rawTx doesn't hash to txid. status => invalid.\n`
                 req.notified = false
                 req.status = 'invalid'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 invalid.push(reqApi)
                 continue
             }
@@ -336,7 +337,7 @@ export class Monitor {
                 log += ` too many failed attempts ${req.attempts}\n`
                 req.notified = false
                 req.status = 'invalid'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 invalid.push(reqApi)
                 continue
             }
@@ -368,8 +369,10 @@ export class Monitor {
                 // We have a merklePath proof for the request (and a block header)
                 const { provenTxReqId, status, txid, attempts, history } = req.toApi()
                 const { index, height, blockHash, merklePath, merkleRoot } = ptx.toApi()
-                const r = await this.storage.updateProvenTxReqWithNewProvenTx({
-                     provenTxReqId, status, txid, attempts, history, index, height, blockHash, merklePath, merkleRoot
+                const r = await this.storage.runAsStorageProvider(async (sp) => {
+                    return await sp.updateProvenTxReqWithNewProvenTx({
+                        provenTxReqId, status, txid, attempts, history, index, height, blockHash, merklePath, merkleRoot
+                    })
                 })
                 req.status = r.status
                 req.apiHistory = r.history
@@ -379,7 +382,7 @@ export class Monitor {
                 if (countsAsAttempt && req.status !== 'nosend') {
                     req.attempts++
                 }
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 await req.refreshFromStorage(this.storage)
             }
 
@@ -392,53 +395,6 @@ export class Monitor {
         
         return { proven, invalid, log }
     }
-    
-    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef> {
-        const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
-        if (!beef)
-            throw new sdk.WERR_INVALID_PARAMETER('txid', `${txid} is not known to storage.`)
-        return beef
-    }
-
-    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef | undefined> {
-
-        const beef = mergeToBeef || new bsv.Beef()
-
-        const r = await this.storage.getProvenOrRawTx(txid, trx)
-        if (r.proven) {
-            if (trustSelf === 'known')
-                beef.mergeTxidOnly(txid)
-            else {
-                beef.mergeRawTx(r.proven.rawTx)
-                const mp = new entity.ProvenTx(r.proven).getMerklePath()
-                beef.mergeBump(mp)
-                return beef
-            }
-        }
-
-        if (r.rawTx && r.inputBEEF) {
-            if (trustSelf === 'known')
-                beef.mergeTxidOnly(txid)
-            else {
-                beef.mergeRawTx(r.rawTx)
-                beef.mergeBeef(r.inputBEEF)
-                const tx = bsv.Transaction.fromBinary(r.rawTx)
-                for (const input of tx.inputs) {
-                    const btx = beef.findTxid(input.sourceTXID!)
-                    if (!btx) {
-                        if (knownTxids && knownTxids.indexOf(input.sourceTXID!) > -1)
-                            beef.mergeTxidOnly(input.sourceTXID!)
-                        else
-                            await this.getValidBeefForKnownTxid(input.sourceTXID!, beef, trustSelf, knownTxids, trx)
-                    }
-                }
-                return beef
-            }
-        }
-
-        return undefined
-    }
-
 }
 
 function sum<T>(a: T[], getNum: (v: T) => number) : number {

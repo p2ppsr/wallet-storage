@@ -368,7 +368,7 @@ export abstract class TestUtilsWalletStorage {
         await storage.makeAvailable()
         const signer = new WalletSigner(chain, keyDeriver, storage)
         const services = new Services(args.chain)
-        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
         const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
@@ -440,7 +440,7 @@ export abstract class TestUtilsWalletStorage {
         }
         const signer = new WalletSigner(chain, keyDeriver, storage)
         const services = new Services(chain)
-        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+        const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
         const monitor = new Monitor(monopts)
         const wallet = new Wallet(signer, keyDeriver, services, monitor)
         const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId

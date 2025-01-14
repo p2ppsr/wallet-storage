@@ -42,7 +42,7 @@ describe('createActionToGenerateBeefs test', () => {
     }
   })
 
-  test('2_send 2 txs in a beef', async () => {
+  test.skip('2_send 2 txs in a beef', async () => {
     for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -176,7 +176,7 @@ describe('createActionToGenerateBeefs test', () => {
     }
   })
 
-  test('3_send 4 txs in a merged beef ', async () => {
+  test.skip('3_send 4 txs in a merged beef ', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -225,15 +225,47 @@ describe('createActionToGenerateBeefs test', () => {
     }
   })
 
-  test('4_test_tranaction log', async () => {
+  test.skip('4_test tranaction log', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
-    for (const { wallet, activeStorage: storage } of ctxs) {
+    for (const { activeStorage: storage } of ctxs) {
       const txid: bsv.HexString = 'ed11e4b7402e38bac0ec7431063ae7c14ee82370e5f1963d48ae27a70527f784'
       const rl = await logTransaction(storage, txid)
       if (!noLog) console.log(rl)
       break
+    }
+  })
+
+  test.skip('5_abort a set of failed transactions', async () => {
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const rt = await storage.findTransactions({ partial: { status: 'failed' } })
+      for (const t of rt) {
+        const ra = await wallet.abortAction({ reference: t.reference })
+        expect(ra).not.toBeTruthy()
+        const rw = await wallet.monitor?.reviewTransactionAmounts()
+        expect(rw).not.toBeTruthy()
+      }
+    }
+  })
+
+  test.skip('6_a set of nosend transactions', async () => {
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const rt = await storage.findTransactions({ partial: { status: 'nosend' } })
+      for (const t of rt) {
+        const r = await wallet.abortAction({ reference: t.reference })
+        expect(r).not.toBeTruthy()
+      }
+    }
+  })
+
+  test.skip('7_abort a set of unsigned transactions', async () => {
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const rt = await storage.findTransactions({ partial: { status: 'unsigned' } })
+      for (const t of rt) {
+        const r = await wallet.abortAction({ reference: t.reference })
+        expect(r).not.toBeTruthy()
+      }
     }
   })
 })

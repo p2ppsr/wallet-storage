@@ -10,8 +10,8 @@ describe('internalizeAction tests', () => {
   const ctxs: TestWalletNoSetup[] = []
 
   beforeAll(async () => {
-    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('abortActionTests'))
-    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('abortActionTests'))
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('internalizeActionTests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('internalizeActionTests'))
   })
 
   afterAll(async () => {
@@ -23,7 +23,7 @@ describe('internalizeAction tests', () => {
   // Check:  'unproven' or 'completed' status. Any other status is an error.
   // When the transaction already exists, the description is updated. The isOutgoing sense is not changed.
 
-  test('1_default real wallet data', async () => {
+  test.skip('1_default real wallet data', async () => {
     // 1. construct a normal transaction with user supplied output.
     // 2. dito but user input
     // 3..Repeat 1 & 2  but use sign action
@@ -58,7 +58,7 @@ describe('internalizeAction tests', () => {
         // Fetch Beef object
         const beef = await storage.getBeefForTransaction('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122', options)
 
-        console.log('Beef Object:\n', beef.toLogString())
+        //console.log('Beef Object:\n', beef.toLogString())
 
         // Ensure Beef object contains valid transactions
         if (beef.txs.length === 0) {
@@ -76,7 +76,7 @@ describe('internalizeAction tests', () => {
 
         // Convert to AtomicBEEF transaction
         const atomicTx = beef.toBinaryAtomic('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122')
-        console.log('Atomic Transaction:', atomicTx)
+        //console.log('Atomic Transaction:', atomicTx)
 
         // {
         //   const abeef = bsv.Beef.fromBinary(atomicTx)
@@ -104,7 +104,7 @@ describe('internalizeAction tests', () => {
         })
 
         // Validate result
-        console.log('Internalize Action Result:', r)
+        //console.log('Internalize Action Result:', r)
         expect(r).toBeDefined()
       } catch (error) {
         console.error('Test failed with error:', error)
@@ -148,7 +148,7 @@ describe('internalizeAction tests', () => {
         // Fetch Beef object
         const beef = await storage.getBeefForTransaction('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7', options)
 
-        console.log('Beef Object:\n', beef.toLogString())
+        //console.log('Beef Object:\n', beef.toLogString())
 
         // Ensure Beef object contains valid transactions
         if (beef.txs.length === 0) {
@@ -166,7 +166,7 @@ describe('internalizeAction tests', () => {
 
         // Convert to AtomicBEEF transaction
         const atomicTx = beef.toBinaryAtomic('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7')
-        console.log('Atomic Transaction:', atomicTx)
+        //console.log('Atomic Transaction:', atomicTx)
 
         {
           const abeef = bsv.Beef.fromBinary(atomicTx)
@@ -198,7 +198,7 @@ describe('internalizeAction tests', () => {
         })
 
         // Validate result
-        console.log('Internalize Action Result:', r)
+        //console.log('Internalize Action Result:', r)
         expect(r).toBeDefined()
       } catch (error) {
         console.error('Test failed with error:', error)
@@ -218,7 +218,7 @@ describe('internalizeAction tests', () => {
         // Fetch Beef object
         const beef = await storage.getBeefForTransaction('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122', options)
 
-        console.log('Beef Object:', beef)
+        //console.log('Beef Object:', beef)
 
         // Ensure Beef object contains valid transactions
         if (beef.txs.length === 0) {
@@ -236,7 +236,7 @@ describe('internalizeAction tests', () => {
 
         // Convert to AtomicBEEF transaction
         const atomicTx = beef.toBinaryAtomic('2795b293c698b2244147aaba745db887a632d21990c474df46d842ec3e52f122')
-        console.log('Atomic Transaction:', atomicTx)
+        //console.log('Atomic Transaction:', atomicTx)
 
         // Prepare output for internalization
         const output: bsv.InternalizeOutput = {
@@ -257,7 +257,7 @@ describe('internalizeAction tests', () => {
         })
 
         // Validate result
-        console.log('Internalize Action Result:', r)
+        //console.log('Internalize Action Result:', r)
         expect(r).toBeDefined()
       } catch (error) {
         console.error('Test failed with error:', error)

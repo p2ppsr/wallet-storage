@@ -4363,9 +4363,9 @@ the `NinjaWallet` implementation of the `Wallet.interface` API
 export interface WalletSigner {
     chain: sdk.Chain;
     keyDeriver: sdk.KeyDeriverApi;
-    storageIdentity: StorageIdentity;
     setServices(v: sdk.WalletServices): void;
     getServices(): sdk.WalletServices;
+    getStorageIdentity(): StorageIdentity;
     listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>;
     listOutputs(args: sdk.ListOutputsArgs, knwonTxids: string[]): Promise<sdk.ListOutputsResult>;
     createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult>;
@@ -5194,7 +5194,7 @@ export class Monitor {
     addTask(task: WalletMonitorTask): void 
     removeTask(name: string): void 
     async setupChaintracksListeners(): Promise<void> 
-    async runTask(name: string): Promise<void> 
+    async runTask(name: string): Promise<string> 
     async startTasks(): Promise<void> 
     stopTasks(): void 
     lastNewHeader: BlockHeader | undefined;
@@ -5809,7 +5809,7 @@ export class TaskCheckForProofs extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
 }
 ```
 
@@ -5853,7 +5853,7 @@ export class TaskClock extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
     getNextMinute(): number 
 }
 ```
@@ -5879,7 +5879,7 @@ export class TaskFailAbandoned extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
 }
 ```
 
@@ -5899,7 +5899,7 @@ export class TaskNewHeader extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
 }
 ```
 
@@ -5918,7 +5918,7 @@ export class TaskPurge extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
 }
 ```
 
@@ -5950,7 +5950,7 @@ export class TaskSendWaiting extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
     async processUnsent(reqApis: table.ProvenTxReq[], indent = 0): Promise<string> 
 }
 ```
@@ -5995,7 +5995,7 @@ export class TaskSyncWhenIdle extends WalletMonitorTask {
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
-    async runTask(): Promise<void> 
+    async runTask(): Promise<string> 
 }
 ```
 
@@ -6211,12 +6211,12 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     monitor?: Monitor;
     beef: BeefParty;
     trustSelf?: sdk.TrustSelf;
-    storageParty: string;
     userParty: string;
     constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) 
     getServices(): sdk.WalletServices 
     getKnownTxids(newKnownTxids?: string[]): string[] 
     async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> 
+    get storageParty(): string 
     async listOutputs(args: sdk.ListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> 
     async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> 
     async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult> 
@@ -6409,7 +6409,7 @@ export abstract class WalletMonitorTask {
     abstract trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     };
-    abstract runTask(): Promise<void>;
+    abstract runTask(): Promise<string>;
 }
 ```
 
@@ -6459,13 +6459,13 @@ export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain;
     keyDeriver: sdk.KeyDeriverApi;
     storage: WalletStorageManager;
-    storageIdentity: sdk.StorageIdentity;
     _services?: sdk.WalletServices;
     identityKey: string;
     pendingSignActions: Record<string, PendingSignAction>;
     constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorageManager) 
     setServices(v: sdk.WalletServices) 
     getServices(): sdk.WalletServices 
+    getStorageIdentity(): sdk.StorageIdentity 
     getClientChangeKeyPair(): sdk.KeyPair 
     async getChain(): Promise<sdk.Chain> 
     async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> 
@@ -6516,7 +6516,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
     _isSingleWriter: boolean = true;
     _syncLocked: boolean = false;
     _storageProviderLocked: boolean = false;
-    constructor(identityKey: string, active: sdk.WalletStorageProvider, backups?: sdk.WalletStorageProvider[]) 
+    constructor(identityKey: string, active?: sdk.WalletStorageProvider, backups?: sdk.WalletStorageProvider[]) 
     isStorageProvider(): boolean 
     async getUserId(): Promise<number> 
     async getAuth(): Promise<sdk.AuthId> 
@@ -6531,6 +6531,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
     async runAsStorageProvider<R>(sync: (active: StorageProvider) => Promise<R>): Promise<R> 
     isActiveStorageProvider(): boolean 
     isAvailable(): boolean 
+    async addWalletStorageProvider(provider: sdk.WalletStorageProvider): Promise<void> 
     setServices(v: sdk.WalletServices) 
     getServices(): sdk.WalletServices 
     getSettings(): table.Settings 

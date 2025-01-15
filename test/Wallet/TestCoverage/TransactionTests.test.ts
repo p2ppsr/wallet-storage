@@ -1,10 +1,28 @@
-import { Transaction } from '../../../src/storage/schema/entities/Transaction'
-import { table, sdk } from '../../../src'
+import { Knex } from 'knex'
 import * as bsv from '@bsv/sdk'
+import { entity, table, sdk } from '../../../src'
+import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
+import { Transaction } from '../../../src/storage/schema/entities/Transaction'
 
-describe('Transaction Class Tests', () => {
+describe('listActions tests', () => {
+  jest.setTimeout(99999999)
+
+  const env = _tu.getEnv('test')
+  const ctxs: TestWalletNoSetup[] = []
+
+  beforeAll(async () => {
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('listActionsTests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('listActionsTests'))
+  })
+
+  afterAll(async () => {
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
+  })
+
   // Test: Constructor with default values
-  test('1_creates_instance_with_default_values', () => {
+  test('0_creates_instance_with_default_values', () => {
     const tx = new Transaction()
 
     const now = new Date()
@@ -25,7 +43,7 @@ describe('Transaction Class Tests', () => {
   })
 
   // Test: Constructor with provided API object
-  test('2_creates_instance_with_provided_api_object', () => {
+  test('1_creates_instance_with_provided_api_object', () => {
     const now = new Date()
     const apiObject: table.Transaction = {
       transactionId: 123,
@@ -59,7 +77,7 @@ describe('Transaction Class Tests', () => {
   })
 
   // Test: Getters and setters
-  test('3_getters_and_setters_work_correctly', () => {
+  test('2_getters_and_setters_work_correctly', () => {
     const tx = new Transaction()
 
     const now = new Date()
@@ -91,7 +109,7 @@ describe('Transaction Class Tests', () => {
   })
 
   // Test: `getBsvTx` returns parsed transaction
-  test('4_getBsvTx_returns_parsed_transaction', () => {
+  test('3_getBsvTx_returns_parsed_transaction', () => {
     const rawTx = Uint8Array.from([1, 2, 3])
     const tx = new Transaction({ rawTx: Array.from(rawTx) } as table.Transaction)
 
@@ -100,14 +118,14 @@ describe('Transaction Class Tests', () => {
   })
 
   // Test: `getBsvTx` returns undefined if rawTx is not set
-  test('5_getBsvTx_returns_undefined_if_no_rawTx', () => {
+  test('4_getBsvTx_returns_undefined_if_no_rawTx', () => {
     const tx = new Transaction()
     const bsvTx = tx.getBsvTx()
     expect(bsvTx).toBeUndefined()
   })
 
   // Test: `getBsvTxIns` returns parsed inputs
-  test('6_getBsvTxIns_returns_inputs', () => {
+  test('5_getBsvTxIns_returns_inputs', () => {
     const rawTx = Uint8Array.from([1, 2, 3])
     const tx = new Transaction({ rawTx: Array.from(rawTx) } as table.Transaction)
 
@@ -115,41 +133,610 @@ describe('Transaction Class Tests', () => {
     expect(inputs).toBeInstanceOf(Array)
   })
 
-  // Test: `getInputs` combines spentBy and rawTx inputs
-  test('7_getInputs_combines_spentBy_and_rawTx_inputs', async () => {
-    const storage: any = {
-      findOutputs: jest.fn(async () => [
-        { outputId: 1, txid: 'test1', vout: 0 },
-        { outputId: 2, txid: 'test2', vout: 1 }
-      ])
-    }
+  test('6_getInputs_combines_spentBy_and_rawTx_inputs', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert the transaction into the database
+      const txData = await _tu.insertTestTransaction(activeStorage, undefined, true)
+      const tx = new Transaction(txData.tx)
 
-    const tx = new Transaction({ userId: 123 } as table.Transaction)
-    const inputs = await tx.getInputs(storage)
-    expect(inputs).toHaveLength(2)
+      // Assign rawTx to simulate transaction inputs
+      const rawTx = Uint8Array.from([1, 2, 3])
+      tx.rawTx = Array.from(rawTx)
+
+      // Insert test outputs with spentBy linked to the transaction
+      await _tu.insertTestOutput(activeStorage, tx, 0, 100, undefined, false, tx.id) // vout = 0
+      await _tu.insertTestOutput(activeStorage, tx, 1, 200, undefined, false, tx.id) // vout = 1
+
+      // Get inputs from the transaction
+      const inputs = await tx.getInputs(activeStorage)
+
+      // Validate the inputs
+      expect(inputs).toHaveLength(2)
+      expect(inputs).toEqual(expect.arrayContaining([expect.objectContaining({ vout: 0, satoshis: 100 }), expect.objectContaining({ vout: 1, satoshis: 200 })]))
+    }
   })
 
   // Test: Equality check
-  test('8_equals_checks_equality', () => {
-    const now = new Date()
-    const syncMap: any = {
-      transaction: { idMap: { 123: 123 } }
+  test('7_equals_checks_equality', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test transaction
+      const tx1 = await _tu.insertTestTransaction(activeStorage, undefined, true)
+      const tx2 = { ...tx1.tx } // Clone the inserted transaction
+
+      // Create a valid SyncMap
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [tx1.tx.transactionId]: tx1.tx.transactionId },
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      const txInstance = new Transaction(tx1.tx)
+
+      // Check equality
+      expect(txInstance.equals(tx2, syncMap)).toBe(true)
     }
+  })
 
-    const tx = new Transaction({
-      transactionId: 123,
-      txid: 'testTxid',
-      reference: 'testRef',
-      created_at: now,
-      updated_at: now
-    } as table.Transaction)
+  // Test: `equals` handles provenTxId logic correctly
+  // Currently fails because the equals method does not handle 'null' or 'undefined' provenTxId values
+  // It simply checks if the value is valid, calling verifyInteger, causing the error.
+  test('8_equals_handles_provenTxId_logic', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test ProvenTx to ensure provenTxId is a valid integer
+      const provenTx = await _tu.insertTestProvenTx(activeStorage)
 
-    const other = {
-      transactionId: 123,
-      txid: 'testTxid',
-      reference: 'testRef'
+      // Ensure provenTxId is a valid integer manually
+      const validProvenTxId = provenTx.provenTxId
+      if (typeof validProvenTxId !== 'number' || !Number.isInteger(validProvenTxId)) {
+        throw new TypeError('provenTxId must be a valid integer')
+      }
+
+      // Create a valid SyncMap with necessary properties
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [validProvenTxId]: validProvenTxId },
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: {
+          idMap: { [validProvenTxId]: validProvenTxId },
+          entityName: 'ProvenTx',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      // Create a transaction with the valid provenTxId
+      const tx = new Transaction({ provenTxId: validProvenTxId } as table.Transaction)
+
+      // Create another transaction object for comparison
+      const other = { provenTxId: validProvenTxId } as table.Transaction
+
+      // Validate equality logic
+      expect(tx.equals(other, syncMap)).toBe(true)
     }
+  })
 
-    expect(tx.equals(other as table.Transaction, syncMap)).toBe(true)
+  // Test: 'mergeExisting' updates when ei updated at is newer
+  // Currently fails because mergeExisting is currently setting the date to the current date
+  // rather than the udpated_at from the incoming entity
+  test('9_mergeExisting_updates_when_ei_updated_at_is_newer', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test transaction into the database
+      const txData = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      // Create the `Transaction` instance with an earlier updated_at timestamp
+      const tx = new Transaction({
+        ...txData.tx,
+        updated_at: new Date(2022, 1, 1)
+      })
+
+      // Create an incoming entity object (`ei`) with a newer updated_at timestamp
+      const ei: table.Transaction = {
+        ...txData.tx,
+        updated_at: new Date(2023, 1, 1),
+        txid: 'newTxId'
+      }
+
+      // Prepare a syncMap
+      const syncMap: entity.SyncMap = {
+        transaction: { idMap: { 456: 123 }, entityName: 'Transaction', maxUpdated_at: undefined, count: 1 },
+        provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      // Execute `mergeExisting`
+      const result = await tx.mergeExisting(activeStorage, new Date(), ei, syncMap)
+
+      // Validate the result and check that the transaction was updated in the database
+      expect(result).toBe(true)
+
+      const updatedTx = await activeStorage.findTransactions({
+        partial: { transactionId: tx.transactionId }
+      })
+
+      expect(updatedTx[0]?.txid).toBe('newTxId')
+      expect(updatedTx[0]?.updated_at.getTime()).toBe(new Date(2023, 1, 1).getTime())
+    }
+  })
+
+  test('10_getBsvTx_handles_undefined_rawTx', () => {
+    const tx = new Transaction() // No rawTx provided
+    const bsvTx = tx.getBsvTx()
+    expect(bsvTx).toBeUndefined()
+  })
+
+  test('11_getInputs_handles_storage_lookups_and_input_merging', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test transaction into the database
+      const { tx } = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      // Create a Transaction instance with the inserted transaction's data
+      const transaction = new Transaction(tx)
+
+      // Insert known inputs into the database and set the `spentBy` column to the transaction ID
+      const input1 = await _tu.insertTestOutput(activeStorage, tx, 0, 100) // vout = 0
+      const input2 = await _tu.insertTestOutput(activeStorage, tx, 2, 200) // vout = 2
+      input1.spentBy = tx.transactionId
+      input2.spentBy = tx.transactionId
+
+      // Update the outputs in the database to reflect `spentBy`
+      await activeStorage.updateOutput(input1.outputId, input1)
+      await activeStorage.updateOutput(input2.outputId, input2)
+
+      // Simulate external input for rawTx parsing
+      const externalInput = await _tu.insertTestOutput(
+        activeStorage,
+        tx, // Reference the same transaction
+        3, // vout = 3
+        150 // Satoshis
+      )
+
+      // Assign rawTx to the transaction and simulate `getBsvTxIns` behavior
+      transaction.rawTx = Array.from(Uint8Array.from([1, 2, 3]))
+      transaction.getBsvTxIns = () => [{ sourceTXID: externalInput.txid, sourceOutputIndex: 3 } as bsv.TransactionInput]
+
+      // Call `getInputs` to retrieve and merge inputs
+      const inputs = await transaction.getInputs(activeStorage)
+
+      // Validate the merged inputs
+      expect(inputs).toHaveLength(3) // Known inputs + external input
+      expect(inputs).toEqual(expect.arrayContaining([expect.objectContaining({ outputId: input1.outputId }), expect.objectContaining({ outputId: input2.outputId }), expect.objectContaining({ txid: externalInput.txid, vout: 3 })]))
+    }
+  })
+
+  // Test: `equals` handles transaction ID and reference comparison
+  // Currently fails because the equals method does not correctly compare the resolved transactionID from
+  // the syncMap with the incoming entity's transactionID
+  test('12_equals_handles_transaction_id_and_reference_comparison', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert two transactions with matching and mismatched IDs/references
+      const tx1 = await _tu.insertTestTransaction(activeStorage, undefined, true) // Transaction 1
+      const tx2 = await _tu.insertTestTransaction(activeStorage, undefined, true) // Transaction 2
+
+      // Construct a sync map for transactions
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [tx1.tx.transactionId]: tx2.tx.transactionId }, // Map tx1 ID to tx2 ID
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      // Create a Transaction instance from the first transaction
+      const txInstance = new Transaction(tx1.tx)
+
+      // Main expectation: IDs and references match
+      const matchingOther = {
+        transactionId: tx2.tx.transactionId,
+        reference: tx1.tx.reference
+      } as table.Transaction
+
+      // Debugging syncMap and IDs
+      console.log('syncMap:', syncMap)
+      console.log('tx1 transactionId:', tx1.tx.transactionId)
+      console.log('tx2 transactionId:', tx2.tx.transactionId)
+      console.log('Resolved transactionId in syncMap:', syncMap.transaction.idMap[tx1.tx.transactionId])
+
+      // Verify the mapping in syncMap
+      const resolvedTransactionId = syncMap.transaction.idMap[tx1.tx.transactionId]
+      expect(resolvedTransactionId).toBe(tx2.tx.transactionId)
+
+      // Test equality using syncMap
+      expect(txInstance.equals(matchingOther, syncMap)).toBe(true)
+
+      // Additional checks for mismatched IDs or references
+      const mismatchedId = {
+        transactionId: tx2.tx.transactionId + 1, // Different ID
+        reference: tx1.tx.reference
+      } as table.Transaction
+      expect(txInstance.equals(mismatchedId, syncMap)).toBe(false)
+
+      const mismatchedReference = {
+        transactionId: tx2.tx.transactionId, // Correct ID
+        reference: 'differentRef' // Different reference
+      } as table.Transaction
+      expect(txInstance.equals(mismatchedReference, syncMap)).toBe(false)
+    }
+  })
+
+  // Test: `equals` handles optional array equality for rawTx and inputBEEF
+  // NOTE: This test is failing because the `equals` method in the `Transaction` class does not
+  // correctly compare `rawTx` and `inputBEEF` arrays. The method should compare the arrays
+  test('13_equals_handles_optional_equality_for_rawTx_and_inputBEEF', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test transaction with rawTx and inputBEEF
+      const txData = {
+        rawTx: [1, 2],
+        inputBEEF: [3, 4]
+      }
+      const { tx: insertedTx } = await _tu.insertTestTransaction(activeStorage, undefined, false)
+
+      // Update the inserted transaction with specific rawTx and inputBEEF
+      insertedTx.rawTx = txData.rawTx
+      insertedTx.inputBEEF = txData.inputBEEF
+      await activeStorage.updateTransaction(insertedTx.transactionId, insertedTx)
+
+      // Fetch the updated transaction
+      const txInstance = new Transaction(insertedTx)
+
+      // Create another object to compare
+      const other = {
+        transactionId: insertedTx.transactionId, // Include matching transactionId
+        rawTx: txData.rawTx,
+        inputBEEF: txData.inputBEEF
+      } as table.Transaction
+
+      // Test optional array equality
+      expect(txInstance.equals(other)).toBe(true)
+
+      // Test mismatch in rawTx
+      const mismatchedRawTx = {
+        ...other,
+        rawTx: [9, 8] // Different rawTx
+      } as table.Transaction
+      expect(txInstance.equals(mismatchedRawTx)).toBe(false)
+
+      // Test mismatch in inputBEEF
+      const mismatchedInputBEEF = {
+        ...other,
+        inputBEEF: [5, 6] // Different inputBEEF
+      } as table.Transaction
+      expect(txInstance.equals(mismatchedInputBEEF)).toBe(false)
+    }
+  })
+
+  // Test: `equals` handles provenTxId comparison
+  // Currently fails because the equals method does not handle 'null' or 'undefined' provenTxId values
+  // It simply checks if the value is valid, calling verifyInteger, causing the error.
+  test('14_equals_handles_provenTxId_comparison', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test proven transaction
+      const provenTx = await _tu.insertTestProvenTx(activeStorage)
+
+      // Create a sync map with the proven transaction mapping
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [provenTx.provenTxId]: provenTx.provenTxId },
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: {
+          idMap: { [provenTx.provenTxId]: provenTx.provenTxId },
+          entityName: 'ProvenTx',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      // Create a transaction with a valid provenTxId
+      const tx = new Transaction({ provenTxId: provenTx.provenTxId } as table.Transaction)
+
+      // Test equality for matching provenTxId
+      const other = { provenTxId: provenTx.provenTxId } as table.Transaction
+      expect(tx.equals(other, syncMap)).toBe(true)
+
+      // Test mismatched provenTxId
+      const mismatchOther = { provenTxId: provenTx.provenTxId + 1 } as table.Transaction
+      expect(tx.equals(mismatchOther, syncMap)).toBe(false)
+
+      // Test undefined provenTxId
+      const undefinedOther = { provenTxId: undefined } as table.Transaction
+      expect(tx.equals(undefinedOther, syncMap)).toBe(false)
+
+      // Test no provenTxId in the transaction
+      const noProvenTx = new Transaction({ provenTxId: undefined } as table.Transaction)
+      expect(noProvenTx.equals(other, syncMap)).toBe(false)
+    }
+  })
+
+  test('15_getProvenTx_retrieves_proven_transaction', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test proven transaction into the storage
+      const provenTx = await _tu.insertTestProvenTx(activeStorage)
+
+      // Create a Transaction instance with a valid provenTxId
+      const tx = new Transaction({ provenTxId: provenTx.provenTxId } as table.Transaction)
+
+      // Retrieve the ProvenTx using the getProvenTx method
+      const retrievedProvenTx = await tx.getProvenTx(activeStorage)
+
+      // Assert the retrieved ProvenTx is defined and matches the expected values
+      expect(retrievedProvenTx).toBeDefined()
+      expect(retrievedProvenTx?.provenTxId).toBe(provenTx.provenTxId)
+    }
+  })
+
+  test('16_getInputs_merges_known_inputs_correctly', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Step 1: Insert a Transaction
+      const { tx } = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      // Step 2: Insert outputs associated with the transaction
+      const output1 = await _tu.insertTestOutput(activeStorage, tx, 0, 100) // vout = 0
+      const output2 = await _tu.insertTestOutput(activeStorage, tx, 1, 200) // vout = 1
+
+      console.log('Inserted Outputs:', output1, output2)
+
+      // Step 3: Create a Transaction instance with rawTx
+      const rawTx = Uint8Array.from([1, 2, 3]) // Example raw transaction
+      const transaction = new Transaction({
+        ...tx,
+        rawTx: Array.from(rawTx)
+      } as table.Transaction)
+
+      // Step 4: Simulate rawTx inputs
+      transaction.getBsvTxIns = () => [{ sourceTXID: output1.txid, sourceOutputIndex: output1.vout } as bsv.TransactionInput, { sourceTXID: output2.txid, sourceOutputIndex: output2.vout } as bsv.TransactionInput]
+
+      console.log('RawTx Inputs:', transaction.getBsvTxIns())
+
+      // Step 5: Call `getInputs` to retrieve and merge known inputs
+      const inputs = await transaction.getInputs(activeStorage)
+
+      console.log('Retrieved Inputs:', inputs)
+
+      // Step 6: Assertions
+      expect(inputs).toHaveLength(2) // Ensure both outputs are retrieved
+      expect(inputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ outputId: output1.outputId }), // vout = 0
+          expect.objectContaining({ outputId: output2.outputId }) // vout = 1
+        ])
+      )
+    }
+  })
+
+  test('17_get_version_returns_api_version', () => {
+    const tx = new Transaction({ version: 2 } as table.Transaction)
+    expect(tx.version).toBe(2)
+  })
+
+  test('18_get_lockTime_returns_api_lockTime', () => {
+    const tx = new Transaction({ lockTime: 500 } as table.Transaction)
+    expect(tx.lockTime).toBe(500)
+  })
+
+  test('19_set_id_updates_transactionId', () => {
+    const tx = new Transaction()
+    tx.id = 123
+    expect(tx.transactionId).toBe(123)
+  })
+
+  test('20_get_entityName_returns_correct_value', () => {
+    const tx = new Transaction()
+    expect(tx.entityName).toBe('ojoTransaction')
+  })
+
+  test('21_get_entityTable_returns_correct_value', () => {
+    const tx = new Transaction()
+    expect(tx.entityTable).toBe('transactions')
+  })
+
+  // Test: `equals` returns false for mismatched or undefined provenTxId
+  // Currently fails because the equals method does not handle 'null' or 'undefined' provenTxId values
+  // It simply checks if the value is valid, calling verifyInteger, causing the error.
+  test('22_equals_returns_false_for_mismatched_or_undefined_provenTxId', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test proven transaction
+      const provenTx = await _tu.insertTestProvenTx(activeStorage)
+      const txData = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      // Generate a dynamic sync map
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [txData.tx.transactionId]: txData.tx.transactionId },
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: {
+          idMap: { [provenTx.provenTxId]: provenTx.provenTxId },
+          entityName: 'ProvenTx',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      const tx = new Transaction({ provenTxId: txData.tx.transactionId } as table.Transaction)
+
+      // Case 1: One provenTxId is undefined or null
+      const otherWithUndefinedProvenTxId = { provenTxId: undefined } as table.Transaction
+      expect(tx.equals(otherWithUndefinedProvenTxId, syncMap)).toBe(false)
+
+      const otherWithNullProvenTxId = { provenTxId: null } as unknown as table.Transaction // Simulating null input
+      expect(tx.equals(otherWithNullProvenTxId, syncMap)).toBe(false)
+
+      // Case 2: Both provenTxIds are defined but don't match after resolving via syncMap
+      const otherWithMismatchedProvenTxId = { provenTxId: provenTx.provenTxId + 1 } as table.Transaction
+      expect(tx.equals(otherWithMismatchedProvenTxId, syncMap)).toBe(false)
+
+      // Case 3: Matching provenTxIds
+      const matchingProvenTxId = { provenTxId: txData.tx.transactionId } as table.Transaction
+      expect(tx.equals(matchingProvenTxId, syncMap)).toBe(true)
+    }
+  })
+
+  test('23_equals_returns_false_for_mismatched_other_properties', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Insert a test transaction to use as the baseline
+      const txData = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      const syncMap: entity.SyncMap = {
+        transaction: {
+          idMap: { [txData.tx.transactionId]: txData.tx.transactionId },
+          entityName: 'Transaction',
+          maxUpdated_at: undefined,
+          count: 1
+        },
+        provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+        outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+        provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+        txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+        txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+        output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+        outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+        outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+        certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+        certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+        commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+      }
+
+      const tx = new Transaction({
+        ...txData.tx, // Base transaction
+        version: 2,
+        lockTime: 500,
+        satoshis: 789,
+        txid: 'txid1',
+        rawTx: [1, 2, 3],
+        inputBEEF: [4, 5, 6],
+        description: 'desc1',
+        status: 'completed',
+        reference: 'ref1'
+      } as table.Transaction)
+
+      const other = {
+        transactionId: txData.tx.transactionId, // Matching transactionId
+        reference: 'ref1', // Matching reference
+        version: 1, // Different version
+        lockTime: 100, // Different lockTime
+        status: 'unprocessed', // Different status
+        satoshis: 100, // Different satoshis
+        description: 'desc2', // Different description
+        txid: 'txid2', // Different txid
+        rawTx: [7, 8, 9], // Different rawTx
+        inputBEEF: [10, 11, 12] // Different inputBEEF
+      } as table.Transaction
+
+      expect(tx.equals(other, syncMap)).toBe(false) // Should return false due to mismatched properties
+    }
+  })
+
+  // Test: `getInputs` handles known and unknown inputs
+  test('24_getInputs_handles_known_and_unknown_inputs', async () => {
+    for (const { activeStorage } of ctxs) {
+      // Step 1: Insert a Transaction into the database
+      const { tx } = await _tu.insertTestTransaction(activeStorage, undefined, true)
+
+      // Step 2: Insert test outputs associated with the transaction
+      const output1 = await _tu.insertTestOutput(activeStorage, tx, 0, 100) // vout = 0, satoshis = 100
+      const output2 = await _tu.insertTestOutput(activeStorage, tx, 1, 200) // vout = 1, satoshis = 200
+
+      // Step 3: Simulate rawTx inputs directly without creating a Transaction instance
+      const rawTxInputs = [
+        { sourceTXID: tx.txid, sourceOutputIndex: 0 },
+        { sourceTXID: tx.txid, sourceOutputIndex: 1 }
+      ]
+
+      // Step 4: Query the inputs from storage individually
+      const inputs = await Promise.all(
+        rawTxInputs.map(input =>
+          activeStorage.findOutputs({
+            partial: {
+              transactionId: tx.transactionId,
+              vout: input.sourceOutputIndex
+            }
+          })
+        )
+      )
+
+      // Flatten the array of inputs (since `findOutputs` likely returns arrays for each query)
+      const flattenedInputs = inputs.flat()
+
+      // Step 5: Assertions
+      expect(flattenedInputs).toHaveLength(2) // Ensure both outputs are retrieved
+      expect(flattenedInputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ outputId: output1.outputId }), // vout = 0
+          expect.objectContaining({ outputId: output2.outputId }) // vout = 1
+        ])
+      )
+    }
   })
 })

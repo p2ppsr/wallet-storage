@@ -177,4 +177,136 @@ describe('TxLabelMap Class Tests', () => {
       undefined
     )
   })
+
+  // Test: `entityName` getter
+  test('10_entityName_returns_correct_value', () => {
+    const txLabelMap = new TxLabelMap()
+    expect(txLabelMap.entityName).toBe('TxLabelMap') // Ensure entityName returns the correct string
+  })
+
+  // Test: `entityTable` getter
+  test('11_entityTable_returns_correct_value', () => {
+    const txLabelMap = new TxLabelMap()
+    expect(txLabelMap.entityTable).toBe('tx_labels_map') // Ensure entityTable returns the correct table name
+  })
+
+  // Test: Equality check for matching objects
+  test('12_equals_returns_true_for_matching_objects', () => {
+    const syncMap: any = {
+      transaction: { idMap: { 123: 123 } },
+      txLabel: { idMap: { 456: 456 } }
+    }
+
+    const txLabelMap = new TxLabelMap({
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    })
+
+    const other = {
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false
+    }
+
+    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
+    expect(result).toBe(true)
+  })
+
+  // Test: Equality check for non-matching objects
+  test('13_equals_returns_false_for_non_matching_objects', () => {
+    const syncMap: any = {
+      transaction: { idMap: { 123: 999 } },
+      txLabel: { idMap: { 456: 888 } }
+    }
+
+    const txLabelMap = new TxLabelMap({
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    })
+
+    const other = {
+      transactionId: 999,
+      txLabelId: 456,
+      isDeleted: false
+    }
+
+    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
+    expect(result).toBe(false)
+  })
+
+  // Test: Equality check when syncMap has mismatched transactionId
+  test('14_equals_returns_false_when_transactionId_mismatch_with_syncMap', () => {
+    const syncMap: any = {
+      transaction: { idMap: { 123: 999 } },
+      txLabel: { idMap: { 456: 456 } }
+    }
+
+    const txLabelMap = new TxLabelMap({
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    })
+
+    const other = {
+      transactionId: 888, // Different from mapped ID in syncMap
+      txLabelId: 456,
+      isDeleted: false
+    }
+
+    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
+    expect(result).toBe(false) // Mismatch should result in false
+  })
+
+  // Test: Equality check when syncMap has mismatched txLabelId
+  test('15_equals_returns_false_when_txLabelId_mismatch_with_syncMap', () => {
+    const syncMap: any = {
+      transaction: { idMap: { 123: 123 } },
+      txLabel: { idMap: { 456: 999 } }
+    }
+
+    const txLabelMap = new TxLabelMap({
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    })
+
+    const other = {
+      transactionId: 123,
+      txLabelId: 888, // Different from mapped ID in syncMap
+      isDeleted: false
+    }
+
+    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
+    expect(result).toBe(false) // Mismatch should result in false
+  })
+
+  // Test: Equality check when syncMap is not provided
+  test('16_equals_returns_true_when_syncMap_not_provided_and_ids_match', () => {
+    const txLabelMap = new TxLabelMap({
+      transactionId: 123,
+      txLabelId: 456,
+      isDeleted: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    })
+
+    const other = {
+      transactionId: 123, // Direct comparison since syncMap is not provided
+      txLabelId: 456,
+      isDeleted: false
+    }
+
+    const result = txLabelMap.equals(other as table.TxLabelMap)
+    expect(result).toBe(true) // IDs match without syncMap
+  })
 })

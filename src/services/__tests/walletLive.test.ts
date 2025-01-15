@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { asString, StorageKnex } from '../../index'
-import { table, verifyOne, verifyId } from '../..'
+import { sdk, table, verifyOne, verifyId } from '../..'
 import { Services } from '../..'
 import { _tu, TestWalletNoSetup } from '../../../test/utils/TestUtilsWalletStorage'
 
@@ -19,18 +19,57 @@ describe('createAction test', () => {
     }
   })
 
-  test.skip('1_Used to burn satoshis using confirmSpendableOutputs function', async () => {
-    // Check the list of outputs first using the debugger breakpoint, before performing the burn
+  test('1 set change outputs spendable false if not valid utxos', async () => {
+    // Check the list of outputs first using the debugger breakpoint, before updating spendable flags.
     for (const { wallet, activeStorage: storage, services } of ctxs) {
-      const r = await confirmSpendableOutputs(storage, services)
-      const r1 = r.invalidSpendableOutputs.map(o => ({ id: o.outputId, satoshis: o.satoshis }))
+      const { invalidSpendableOutputs: notUtxos } = await confirmSpendableOutputs(storage, services)
+      const outputsToUpdate = notUtxos.map(o => ({ id: o.outputId, satoshis: o.satoshis }))
 
-      // *** About to burn Satoshis ***/
+      const total: number = outputsToUpdate.reduce((t, o) => t + o.satoshis, 0)
+
       debugger
-      for (const o of r1) {
+      // *** About set spendable = false for outputs ***/
+      for (const o of outputsToUpdate) {
         await storage.updateOutput(o.id, { spendable: false })
       }
+    }
+  })
+
+  test('2 review available change', async () => {
+    for (const { wallet, activeStorage: storage, services, userId } of ctxs) {
+      const { basketId } = verifyOne(await storage.findOutputBaskets({ partial: { userId, name: 'default' } }))
+
+      const r: object = {}
+      for (const { name, txStatus } of [
+        { name: 'completed', txStatus: <sdk.TransactionStatus[]>['completed'] },
+        { name: 'nosend', txStatus: <sdk.TransactionStatus[]>['nosend'] },
+        { name: 'unproven', txStatus: <sdk.TransactionStatus[]>['unproven'] },
+        { name: 'failed', txStatus: <sdk.TransactionStatus[]>['failed'] },
+        { name: 'sending', txStatus: <sdk.TransactionStatus[]>['sending'] },
+        { name: 'unprocessed', txStatus: <sdk.TransactionStatus[]>['unprocessed'] },
+        { name: 'unsigned', txStatus: <sdk.TransactionStatus[]>['unsigned'] },
+      ]) {
+        const or = {
+          txStatus,
+          outputs: await storage.findOutputs({ partial: { basketId, spendable: true }, txStatus }),
+          total: <number>0
+        }
+        or.total = or.outputs.reduce((t, o) => t + o.satoshis, 0)
+        r[name] = or
+      }
+
       expect(r).toBeTruthy()
+    }
+  })
+
+  test('3 abort incomplete transactions', async () => {
+    for (const { wallet, activeStorage: storage, services, userId } of ctxs) {
+      const txs = await storage.findTransactions({ partial: { userId }, status: ['unsigned'] })
+      const total = txs.reduce((s, t) => s + t.satoshis, 0)
+      debugger;
+      for (const tx of txs) {
+        await wallet.abortAction({ reference: tx.reference })
+      }
     }
   })
 })

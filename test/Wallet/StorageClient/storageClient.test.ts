@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
 import { sdk, StorageClient } from '../../../src'
-import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
+import { _tu, expectToThrowWERR, TestWalletNoSetup, TestWalletOnly } from '../../utils/TestUtilsWalletStorage'
 
 const noLog = false
 
@@ -11,11 +11,10 @@ describe('walletStorageClient test', () => {
     const env = _tu.getEnv('test')
     const testName = () => expect.getState().currentTestName || 'test'
 
-    const ctxs: TestWalletNoSetup[] = []
+    const ctxs: TestWalletOnly[] = []
 
     beforeAll(async () => {
-        ctxs.push(await _tu.createLegacyWalletSQLiteCopy('walletStorageClient'))
-        _tu.mockPostServicesAsSuccess(ctxs)
+        //_tu.mockPostServicesAsSuccess(ctxs)
     })
 
     afterAll(async () => {
@@ -24,14 +23,26 @@ describe('walletStorageClient test', () => {
         }
     })
 
-    test('1_backup to client', async () => {
-        for (const { wallet, storage } of ctxs) {
-            {
-                const client = new StorageClient(wallet as unknown as bsv.Wallet, 'https://staging-dojo.babbage.systems')
-                const s = await client.makeAvailable()
-                storage.stores.push(client)
-                await storage.updateBackups()
-            }
+    test('1 backup to client', async () => {
+        const ctx = await _tu.createLegacyWalletSQLiteCopy('walletStorageClient1')
+        ctxs.push(ctx)
+        const { wallet, storage } = ctx
+
+        {
+            const client = new StorageClient(wallet, 'https://staging-dojo.babbage.systems')
+            await storage.addWalletStorageProvider(client)
+            await storage.updateBackups()
+        }
+    })
+
+    test('2 create storage client wallet', async () => {
+        const ctx = await _tu.createTestWalletWithStorageClient({ rootKeyHex: '1'.repeat(64) })
+        ctxs.push(ctx)
+        const { wallet, storage } = ctx
+
+        {
+            const auth = await storage.getAuth()
+            expect(auth.userId).toBeTruthy()
         }
     })
 })

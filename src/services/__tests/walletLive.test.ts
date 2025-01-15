@@ -4,7 +4,7 @@ import { sdk, table, verifyOne, verifyId } from '../..'
 import { Services } from '../..'
 import { _tu, TestWalletNoSetup } from '../../../test/utils/TestUtilsWalletStorage'
 
-describe.skip('createAction test', () => {
+describe('createAction test', () => {
   jest.setTimeout(99999999)
 
   const ctxs: TestWalletNoSetup[] = []
@@ -19,7 +19,7 @@ describe.skip('createAction test', () => {
     }
   })
 
-  test('1 set change outputs spendable false if not valid utxos', async () => {
+  test.skip('1 set change outputs spendable false if not valid utxos', async () => {
     // Check the list of outputs first using the debugger breakpoint, before updating spendable flags.
     for (const { wallet, activeStorage: storage, services } of ctxs) {
       const { invalidSpendableOutputs: notUtxos } = await confirmSpendableOutputs(storage, services)
@@ -62,7 +62,7 @@ describe.skip('createAction test', () => {
     }
   })
 
-  test('3 abort incomplete transactions', async () => {
+  test.skip('3 abort incomplete transactions', async () => {
     for (const { wallet, activeStorage: storage, services, userId } of ctxs) {
       const txs = await storage.findTransactions({ partial: { userId }, status: ['unsigned'] })
       const total = txs.reduce((s, t) => s + t.satoshis, 0)

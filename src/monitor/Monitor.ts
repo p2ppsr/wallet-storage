@@ -192,7 +192,7 @@ export class Monitor {
             if (this.storage.isStorageProvider()) {
                 if (!this._tasksRunning) break
 
-                // console.log(`${new Date().toISOString()} tasks review triggers`)
+                console.log(`${new Date().toISOString()} tasks review triggers`)
 
                 const tasksToRun: WalletMonitorTask[] = []
                 const now = new Date().getTime()
@@ -208,10 +208,11 @@ export class Monitor {
                 for (const ttr of tasksToRun) {
 
                     try {
-                        //console.log(`${new Date().toISOString()} running  ${ttr.name}`)
+                        console.log(`${new Date().toISOString()} running  ${ttr.name}`)
                         if (this.storage.isStorageProvider()) {
                             const log = await ttr.runTask()
                             if (log && log.length > 0) {
+                                console.log(`Task${ttr.name} ${log}`)
                                 await this.storage.runAsStorageProvider(async (sp) => {
                                     await sp.insertMonitorEvent({
                                         created_at: new Date(),

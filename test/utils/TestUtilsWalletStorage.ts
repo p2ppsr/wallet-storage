@@ -377,7 +377,7 @@ export abstract class TestUtilsWalletStorage {
 
       // Migrate and make the live DB available
       const databaseName = path.parse(databaseFullPath).name
-      await activeStorage.migrate(databaseName)
+      await activeStorage.migrate(databaseName, identityKey)
       await activeStorage.makeAvailable()
 
       // Set up storage without reader sync
@@ -433,7 +433,7 @@ export abstract class TestUtilsWalletStorage {
     const keyDeriver = new sdk.KeyDeriver(rootKey)
     const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
     if (useReader) await activeStorage.dropAllData()
-    await activeStorage.migrate(databaseName)
+    await activeStorage.migrate(databaseName, identityKey)
     await activeStorage.makeAvailable()
     const storage = new WalletStorageManager(identityKey, activeStorage)
     await storage.makeAvailable()

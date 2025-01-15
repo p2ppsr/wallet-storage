@@ -36,7 +36,7 @@ export class StorageServer {
   }
 
   private setupRoutes(): void {
-    this.app.use(express.json())
+    this.app.use(express.json({ limit: '30mb' }))
     const options: AuthMiddlewareOptions = {
       wallet: this.wallet as bsv.Wallet
     }

@@ -153,7 +153,7 @@ export class SyncState extends EntityBase<table.SyncState> {
     makeRequestSyncChunkArgs(forIdentityKey: string, forStorageIdentityKey: string, maxRoughSize?: number, maxItems?: number) : sdk.RequestSyncChunkArgs {
         const a: sdk.RequestSyncChunkArgs = {
             identityKey: forIdentityKey,
-            maxRoughSize: maxRoughSize || 100000,
+            maxRoughSize: maxRoughSize || 20000000,
             maxItems: maxItems || 1000,
             offsets: [],
             since: this.when,

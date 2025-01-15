@@ -17,7 +17,7 @@ export interface WalletStorage {
 
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
-   migrate(storageName: string): Promise<string>
+   migrate(storageName: string, storageIdentityKey: string): Promise<string>
    destroy(): Promise<void>
 
    setServices(v: sdk.WalletServices) : void
@@ -62,7 +62,7 @@ export interface WalletStorageProvider {
 
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
-   migrate(storageName: string): Promise<string>
+   migrate(storageName: string, storageIdentityKey: string): Promise<string>
    destroy(): Promise<void>
 
    setServices(v: sdk.WalletServices) : void

@@ -79,10 +79,10 @@ export class StorageClient implements sdk.WalletStorageProvider {
     }
 
     async makeAvailable(): Promise<table.Settings> {
-        // Try getSettings from remote to confirm.
-        const settings = await this.getSettings()
-        this.settings = settings
-        return settings
+        if (!this.settings) {
+            this.settings = await this.rpcCall<table.Settings>("makeAvailable", [])
+        }
+        return this.settings
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ export class StorageClient implements sdk.WalletStorageProvider {
         return this.rpcCall<void>("destroy", [])
     }
 
-    async migrate(storageName: string): Promise<string> {
+    async migrate(storageName: string, storageIdentityKey: string): Promise<string> {
         return this.rpcCall<string>("migrate", [storageName])
     }
 
@@ -167,8 +167,9 @@ export class StorageClient implements sdk.WalletStorageProvider {
     _settings?: table.Settings
 
     getSettings(): table.Settings {
-        if (!this._settings)
-            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
+        if (!this._settings) {
+            throw new sdk.WERR_INVALID_OPERATION('call makeAvailable at least once before getSettings')
+        }
         return this._settings!
     }
 

@@ -19,7 +19,7 @@ export class WalletSigner implements sdk.WalletSigner {
 
     constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorageManager) {
         if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`);
-        if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey as the keyDeriver.`);
+        if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey (${storage._authId.identityKey}) as the keyDeriver (${keyDeriver.identityKey}).`);
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage

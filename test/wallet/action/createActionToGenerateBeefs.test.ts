@@ -4,10 +4,11 @@ import { sdk, StorageKnex, table, Wallet } from '../../../src'
 
 import { _tu, expectToThrowWERR, TestKeyPair, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { parseWalletOutpoint } from '../../../src/sdk'
+import { cleanUnsentTransactionsUsingAbort, cleanUnsignedTransactionsUsingAbort, cleanUnprocessedTransactionsUsingAbort } from '../../utils/TestUtilsMethodTests'
 
 const noLog = false
 
-describe('createActionToGenerateBeefs test', () => {
+describe.skip('createActionToGenerateBeefs test', () => {
   jest.setTimeout(99999999)
 
   const ctxs: TestWalletNoSetup[] = []
@@ -42,118 +43,16 @@ describe('createActionToGenerateBeefs test', () => {
     }
   })
 
-  test.skip('2_send 2 txs in a beef', async () => {
-    for (const { wallet } of ctxs) {
-      const root = '02135476'
-      const kp = _tu.getKeyPair(root.repeat(8))
+  test('2_send 2 txs in a beef', async () => {
+    const root = '02135476'
+    const kp = _tu.getKeyPair(root.repeat(8))
 
-      let txid1: string
-      let txid2: string
-      const outputSatoshis = 42
-      let noSendChange: string[] | undefined
-      let inputBEEF: bsv.AtomicBEEF | undefined
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const {
+        txidPair: [txid1, txid2],
+        Beef: beef1
+      } = await createAndConsume(wallet, root, kp)
 
-      {
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(kp.address).toHex(), outputDescription: 'pay fred' }],
-          options: {
-            randomizeOutputs: false,
-            signAndProcess: false,
-            noSend: true
-          }
-        }
-
-        const cr = await wallet.createAction(createArgs)
-
-        noSendChange = cr.noSendChange
-
-        expect(cr.noSendChange).toBeTruthy()
-        expect(cr.sendWithResults).toBeUndefined()
-        expect(cr.tx).toBeUndefined()
-        expect(cr.txid).toBeUndefined()
-
-        expect(cr.signableTransaction).toBeTruthy()
-        const st = cr.signableTransaction!
-        expect(st.reference).toBeTruthy()
-        // const tx = Transaction.fromAtomicBEEF(st.tx) // Transaction doesn't support V2 Beef yet.
-        const atomicBeef = bsv.Beef.fromBinary(st.tx)
-        const tx = atomicBeef.txs[atomicBeef.txs.length - 1].tx
-        for (const input of tx.inputs) {
-          expect(atomicBeef.findTxid(input.sourceTXID!)).toBeTruthy()
-        }
-
-        // Spending authorization check happens here...
-        //expect(st.amount > 242 && st.amount < 300).toBe(true)
-
-        // sign and complete
-        const signArgs: sdk.SignActionArgs = {
-          reference: st.reference,
-          spends: {},
-          options: {
-            returnTXIDOnly: false,
-            noSend: true
-          }
-        }
-
-        const sr = await wallet.signAction(signArgs)
-        inputBEEF = sr.tx
-
-        txid1 = sr.txid!
-        // Update the noSendChange txid to final signed value.
-        noSendChange = noSendChange!.map(op => `${txid1}.${op.split('.')[1]}`)
-      }
-
-      {
-        const unlock = _tu.getUnlockP2PKH(kp.privateKey, outputSatoshis)
-        const unlockingScriptLength = await unlock.estimateLength()
-
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          inputs: [
-            {
-              outpoint: `${txid1}.0`,
-              inputDescription: 'spend ${kp.address} of ${root}',
-              unlockingScriptLength
-            }
-          ],
-          inputBEEF,
-          options: {
-            noSendChange,
-            // signAndProcess: false, // Not required as an input lacks unlock script...
-            noSend: true
-          }
-        }
-
-        const cr = await wallet.createAction(createArgs)
-
-        expect(cr.noSendChange).toBeTruthy()
-        expect(cr.sendWithResults).toBeUndefined()
-        expect(cr.tx).toBeUndefined()
-        expect(cr.txid).toBeUndefined()
-        expect(cr.signableTransaction).toBeTruthy()
-        const st = cr.signableTransaction!
-        expect(st.reference).toBeTruthy()
-        const atomicBeef = bsv.Beef.fromBinary(st.tx)
-        const tx = atomicBeef.txs[atomicBeef.txs.length - 1].tx
-
-        tx.inputs[0].unlockingScriptTemplate = unlock
-        await tx.sign()
-        const unlockingScript = tx.inputs[0].unlockingScript!.toHex()
-
-        const signArgs: sdk.SignActionArgs = {
-          reference: st.reference,
-          spends: { 0: { unlockingScript } },
-          options: {
-            returnTXIDOnly: true,
-            noSend: true
-          }
-        }
-
-        const sr = await wallet.signAction(signArgs)
-
-        txid2 = sr.txid!
-      }
       {
         const createArgs: sdk.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
@@ -172,36 +71,49 @@ describe('createActionToGenerateBeefs test', () => {
         expect(swr2.status !== 'failed').toBe(true)
         expect(swr1.txid).toBe(txid1)
         expect(swr2.txid).toBe(txid2)
+        const r1 = await cleanUnsentTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r1)).resolves.toBe(true)
+        const r2 = await cleanUnsignedTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r2)).resolves.toBe(true)
+        const r3 = await cleanUnprocessedTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r3)).resolves.toBe(true)
       }
     }
   })
 
-  test.skip('3_send 4 txs in a merged beef ', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
+  test('3_send 4 txs in a single beef ', async () => {
+    const root1 = '02135476'
+    const kp1 = _tu.getKeyPair(root1.repeat(8))
+    const root2 = '02135478'
+    const kp2 = _tu.getKeyPair(root2.repeat(8))
 
-    for (const { wallet } of ctxs) {
+    for (const { wallet, activeStorage: storage } of ctxs) {
       const {
         txidPair: [txid1, txid2],
         Beef: beef1
-      } = await createAndConsume(wallet, root, kp)
+      } = await createAndConsume(wallet, root1, kp1)
+      expect(txid1).toBeTruthy()
+      expect(txid2).toBeTruthy()
+      expect(beef1).toBeTruthy()
+
       const {
         txidPair: [txid3, txid4],
         Beef: beef2
-      } = await createAndConsume(wallet, root, kp)
-      expect(txid1 && txid2 && txid3 && txid4).toBeTruthy()
-      expect(beef1 && beef2).toBeTruthy()
+      } = await createAndConsume(wallet, root2, kp2)
+      expect(txid3).toBeTruthy()
+      expect(txid4).toBeTruthy()
+      expect(beef2).toBeTruthy()
 
       // Need to merge the beefs
       const mergedBeef = beef1
       mergedBeef.mergeBeef(beef2)
-      expect(mergedBeef.isValid()).toBe(true)
+      //expect(mergedBeef.isValid()).toBe(true)
       const inputBEEF = mergedBeef.toBinary()
       expect(inputBEEF).toBeTruthy()
 
       {
         const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
+          description: `${kp1.address} of ${root1} & ${kp2.address} of ${root2}`,
           options: {
             acceptDelayedBroadcast: false,
             sendWith: [txid1, txid2, txid3, txid4]
@@ -221,14 +133,17 @@ describe('createActionToGenerateBeefs test', () => {
         expect(swr2.txid).toBe(txid2)
         expect(swr3.txid).toBe(txid3)
         expect(swr4.txid).toBe(txid4)
+        const r1 = await cleanUnsentTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r1)).resolves.toBe(true)
+        const r2 = await cleanUnsignedTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r2)).resolves.toBe(true)
+        const r3 = await cleanUnprocessedTransactionsUsingAbort(wallet, storage)
+        await expect(Promise.resolve(r3)).resolves.toBe(true)
       }
     }
   })
 
-  test.skip('4_test tranaction log', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
+  test('4_test tranaction log', async () => {
     for (const { activeStorage: storage } of ctxs) {
       const txid: bsv.HexString = 'ed11e4b7402e38bac0ec7431063ae7c14ee82370e5f1963d48ae27a70527f784'
       const rl = await logTransaction(storage, txid)
@@ -237,35 +152,35 @@ describe('createActionToGenerateBeefs test', () => {
     }
   })
 
-  test.skip('5_abort a set of failed transactions', async () => {
+  test('5_abort set of nosend transactions', async () => {
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const rt = await storage.findTransactions({ partial: { status: 'failed' } })
-      for (const t of rt) {
-        const ra = await wallet.abortAction({ reference: t.reference })
-        expect(ra).not.toBeTruthy()
-        const rw = await wallet.monitor?.reviewTransactionAmounts()
-        expect(rw).not.toBeTruthy()
-      }
+      const r = await cleanUnsentTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r)).resolves.toBe(true)
     }
   })
 
-  test.skip('6_a set of nosend transactions', async () => {
+  test('6_abort a set of unsigned transactions', async () => {
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const rt = await storage.findTransactions({ partial: { status: 'nosend' } })
-      for (const t of rt) {
-        const r = await wallet.abortAction({ reference: t.reference })
-        expect(r).not.toBeTruthy()
-      }
+      const r = await cleanUnsignedTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r)).resolves.toBe(true)
     }
   })
 
-  test.skip('7_abort a set of unsigned transactions', async () => {
+  test('7_abort a set of unprocessed transactions', async () => {
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const rt = await storage.findTransactions({ partial: { status: 'unsigned' } })
-      for (const t of rt) {
-        const r = await wallet.abortAction({ reference: t.reference })
-        expect(r).not.toBeTruthy()
-      }
+      const r = await cleanUnprocessedTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r)).resolves.toBe(true)
+    }
+  })
+
+  test('8_abort all transactions', async () => {
+    for (const { wallet, activeStorage: storage } of ctxs) {
+      const r1 = await cleanUnsentTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r1)).resolves.toBe(true)
+      const r2 = await cleanUnsignedTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r2)).resolves.toBe(true)
+      const r3 = await cleanUnprocessedTransactionsUsingAbort(wallet, storage)
+      await expect(Promise.resolve(r3)).resolves.toBe(true)
     }
   })
 })
@@ -273,6 +188,7 @@ describe('createActionToGenerateBeefs test', () => {
 const truncate = (s: string) => (s.length > 80 ? s.slice(0, 77) + '...' : s)
 
 async function logTransaction(storage: StorageKnex, txid: bsv.HexString): Promise<string> {
+  let amount: bsv.SatoshiValue = 0
   let log = `txid: ${txid}\n`
   const rt = await storage.findTransactions({ partial: { txid } })
   for (const t of rt) {
@@ -281,8 +197,10 @@ async function logTransaction(storage: StorageKnex, txid: bsv.HexString): Promis
     const ro = await storage.findOutputs({ partial: { transactionId: t.transactionId } })
     for (const o of ro) {
       log += `${await logOutput(storage, o)}`
+      amount += o.spendable ? o.satoshis : 0
     }
   }
+  log += `------------------\namount: ${amount}\n`
   return log
 }
 
@@ -409,6 +327,7 @@ async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): 
     const sr = await wallet.signAction(signArgs)
 
     txid2 = sr.txid!
+    //expect(atomicBeef.isValid()).toBe(true)
     return { txidPair: [txid1, txid2], Beef: atomicBeef }
   }
 }

@@ -386,7 +386,7 @@ export abstract class TestUtilsWalletStorage {
 
       const signer = new WalletSigner(chain, keyDeriver, storage)
       const services = new Services(chain)
-      const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+      const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
       const monitor = new Monitor(monopts)
       const wallet = new Wallet(signer, keyDeriver, services, monitor)
 

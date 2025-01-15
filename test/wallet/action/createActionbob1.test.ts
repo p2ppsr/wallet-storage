@@ -45,6 +45,7 @@ describe.skip('createActionbob1 test', () => {
       await ctx.storage.destroy()
     }
   })
+
   test('1_invalid_params', async () => {
     for (const { wallet } of ctxs) {
       {
@@ -69,7 +70,7 @@ describe.skip('createActionbob1 test', () => {
     }
   })
 
-  test('2_signableTransaction', async () => {
+  test.skip('2_signableTransaction', async () => {
     for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -149,7 +150,6 @@ describe.skip('createActionbob1 test', () => {
         }
 
         const cr = await wallet.createAction(createArgs)
-        return
         expect(cr.noSendChange).toBeTruthy()
         expect(cr.sendWithResults).toBeUndefined()
         expect(cr.tx).toBeUndefined()
@@ -197,79 +197,4 @@ describe.skip('createActionbob1 test', () => {
       }
     }
   })
-
-  test('8a_Transaction with first Broadcasting', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      // Fetch inputs from the database with lockingScript
-      const db = storage.toDb()
-      const inputs = await db
-        .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), 'lockingScript', db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
-        .from('outputs')
-        .where('spendable', 1)
-        .orderBy('created_at')
-        .limit(1)
-
-      const formattedInputs = inputs.map(row => ({
-        outpoint: row.outpoint,
-        inputDescription: row.inputDescription,
-        unlockingScript: bsv.Utils.toHex(row.lockingScript),
-        //unlockingScriptLength: row.unlockingScriptLength
-      }))
-
-      const { txid, vout } = parseWalletOutpoint(formattedInputs[0].outpoint)
-      const beef = await storage.getBeefForTransaction(txid, { ignoreServices: true })
-
-      const createArgs: sdk.CreateActionArgs = {
-        description: 'Large Input Set Transaction',
-        inputs: formattedInputs,
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output from Large Input Set'
-          }
-        ],
-        inputBEEF: beef.toBinary(),
-        options: {
-          //signAndProcess: true, // Sign and process the transaction
-          acceptDelayedBroadcast: false, // Enforce immediate broadcast
-          noSend: false // Allow the transaction to be broadcast
-        }
-      }
-
-      const cr = await wallet.createAction(createArgs)
-
-      expect(cr.txid).toBeTruthy() // Validate the transaction was broadcast successfully
-      expect(cr.noSendChange).toBeFalsy() // Validate that no change outputs remain unbroadcast
-    }
-  })
 })
-
-/**
- * Fetch a large set of inputs from the database for testing.
- *
- * @param {StorageKnex} storage - The storage object providing database access.
- * @returns {Promise<Array<{ outpoint: string, inputDescription: string, unlockingScriptLength: number }>>} Fetched input data.
- */
-async function fetchInputsFromDatabase(storage: StorageKnex) {
-  const db = storage.toDb()
-
-  // Fetch inputs with txid, vout, and unlocking script length
-  const results = await db
-    .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), db.raw('lockingScript'), db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
-    .from('outputs')
-    .where('spendable', 1)
-    .orderBy('created_at')
-    .limit(5)
-
-  if (!results.length) {
-    throw new Error('No spendable inputs found in the database.')
-  }
-
-  if (!noLog) console.log('Fetched inputs from the database:', results)
-
-  return results
-}

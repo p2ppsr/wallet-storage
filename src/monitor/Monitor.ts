@@ -189,7 +189,7 @@ export class Monitor {
 
         for (;;) {
 
-            if (this.storage.isStorageProvider()) {
+            if (this.storage.getActive().isStorageProvider()) {
                 if (!this._tasksRunning) break
 
                 console.log(`${new Date().toISOString()} tasks review triggers`)
@@ -209,7 +209,7 @@ export class Monitor {
 
                     try {
                         console.log(`${new Date().toISOString()} running  ${ttr.name}`)
-                        if (this.storage.isStorageProvider()) {
+                        if (this.storage.getActive().isStorageProvider()) {
                             const log = await ttr.runTask()
                             if (log && log.length > 0) {
                                 console.log(`Task${ttr.name} ${log}`)

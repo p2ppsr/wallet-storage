@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, StorageSyncReader, table, verifyTruthy, Wallet, Monitor, MonitorOptions, Services, WalletSigner, WalletStorageManager, verifyOne } from '../../src'
+import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, StorageSyncReader, table, verifyTruthy, Wallet, Monitor, MonitorOptions, Services, WalletSigner, WalletStorageManager, verifyOne, StorageClient } from '../../src'
 
 import { Knex, knex as makeKnex } from 'knex'
 import { Beef } from '@bsv/sdk'
@@ -19,6 +19,8 @@ export interface TuEnv {
   testTaalApiKey: string
   devKeys: Record<string, string>
   noMySQL: boolean
+  runSlowTests: boolean
+  logTests: boolean
 }
 
 export abstract class TestUtilsWalletStorage {
@@ -28,7 +30,9 @@ export abstract class TestUtilsWalletStorage {
     if (!identityKey) throw new sdk.WERR_INTERNAL('.env file configuration is missing or incomplete.')
     const userId = Number(chain === 'main' ? process.env.MY_MAIN_USERID : process.env.MY_TEST_USERID)
     const DEV_KEYS = process.env.DEV_KEYS || '{}'
+    const logTests = !!process.env.LOGTESTS
     const noMySQL = !!process.env.NOMYSQL
+    const runSlowTests = !!process.env.RUNSLOWTESTS
     return {
       chain,
       userId,
@@ -36,7 +40,9 @@ export abstract class TestUtilsWalletStorage {
       mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
       testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
       devKeys: JSON.parse(DEV_KEYS),
-      noMySQL
+      noMySQL,
+      runSlowTests,
+      logTests
     }
   }
 
@@ -152,6 +158,67 @@ export abstract class TestUtilsWalletStorage {
     return unlock
   }
 
+  static async createWalletOnly(args: { chain?: sdk.Chain; rootKeyHex?: string; active?: sdk.WalletStorageProvider; backups?: sdk.WalletStorageProvider[] }): Promise<TestWalletOnly> {
+    args.chain ||= 'test'
+    args.rootKeyHex ||= '1'.repeat(64)
+    const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
+    const identityKey = rootKey.toPublicKey().toString()
+    const keyDeriver = new sdk.KeyDeriver(rootKey)
+    const chain = args.chain
+    const storage = new WalletStorageManager(identityKey, args.active, args.backups)
+    if (storage.stores.length > 0) await storage.makeAvailable()
+    const signer = new WalletSigner(chain, keyDeriver, storage)
+    const services = new Services(args.chain)
+    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
+    const monitor = new Monitor(monopts)
+    const wallet = new Wallet(signer, keyDeriver, services, monitor)
+    const r: TestWalletOnly = {
+      rootKey,
+      identityKey,
+      keyDeriver,
+      chain,
+      storage,
+      signer,
+      services,
+      monitor,
+      wallet
+    }
+    return r
+  }
+
+  static async createTestWalletWithStorageClient(args: { rootKeyHex?: string }): Promise<TestWalletOnly> {
+    const wo = await _tu.createWalletOnly({ chain: 'test', rootKeyHex: args.rootKeyHex })
+    const client = new StorageClient(wo.wallet, 'https://staging-dojo.babbage.systems')
+    await wo.storage.addWalletStorageProvider(client)
+    return wo
+  }
+
+  static async createKnexTestWalletWithSetup<T>(args: {
+    knex: Knex<any, any[]>
+    databaseName: string
+    chain?: sdk.Chain
+    rootKeyHex?: string
+    dropAll?: boolean
+    insertSetup: (storage: StorageKnex, identityKey: string) => Promise<T>
+  }): Promise<TestWallet<T>> {
+    const wo = await _tu.createWalletOnly({ chain: args.chain, rootKeyHex: args.rootKeyHex })
+    const activeStorage = new StorageKnex({ chain: wo.chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
+    if (args.dropAll) await activeStorage.dropAllData()
+    await activeStorage.migrate(args.databaseName, wo.identityKey)
+    await activeStorage.makeAvailable()
+    const setup = await args.insertSetup(activeStorage, wo.identityKey)
+    await wo.storage.addWalletStorageProvider(activeStorage)
+    const { user, isNew } = await activeStorage.findOrInsertUser(wo.identityKey)
+    const userId = user.userId
+    const r: TestWallet<T> = {
+      ...wo,
+      activeStorage,
+      setup,
+      userId
+    }
+    return r
+  }
+
   /**
    * Returns path to temporary file in project's './test/data/tmp/' folder.
    *
@@ -252,8 +319,8 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
-  static async createSQLiteTestWallet(args: { databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWallet<{}>> {
-    const localSQLiteFile = await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
+  static async createSQLiteTestWallet(args: { filePath?: string; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWalletNoSetup> {
+    const localSQLiteFile = args.filePath || (await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true))
     return await this.createKnexTestWallet({
       ...args,
       knex: _tu.createLocalSQLite(localSQLiteFile)
@@ -269,7 +336,7 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
-  static async createKnexTestWallet(args: { knex: Knex<any, any[]>; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWallet<{}>> {
+  static async createKnexTestWallet(args: { knex: Knex<any, any[]>; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWalletNoSetup> {
     return await _tu.createKnexTestWalletWithSetup({
       ...args,
       insertSetup: insertEmptySetup
@@ -281,51 +348,6 @@ export abstract class TestUtilsWalletStorage {
       ...args,
       insertSetup: _tu.createTestSetup1
     })
-  }
-
-  static async createKnexTestWalletWithSetup<T>(args: {
-    knex: Knex<any, any[]>
-    databaseName: string
-    chain?: sdk.Chain
-    rootKeyHex?: string
-    dropAll?: boolean
-    insertSetup: (storage: StorageKnex, identityKey: string) => Promise<T>
-  }): Promise<TestWallet<T>> {
-    args.chain ||= 'test'
-    args.rootKeyHex ||= '1'.repeat(64)
-    const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
-    const identityKey = rootKey.toPublicKey().toString()
-    const keyDeriver = new sdk.KeyDeriver(rootKey)
-    const chain = args.chain
-    const activeStorage = new StorageKnex({ chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
-    if (args.dropAll) await activeStorage.dropAllData()
-    await activeStorage.migrate(args.databaseName)
-    await activeStorage.makeAvailable()
-    const setup = await args.insertSetup(activeStorage, identityKey)
-    const storage = new WalletStorageManager(identityKey, activeStorage)
-    await storage.makeAvailable()
-    const signer = new WalletSigner(chain, keyDeriver, storage)
-    const services = new Services(args.chain)
-    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
-    const monitor = new Monitor(monopts)
-    const wallet = new Wallet(signer, keyDeriver, services, monitor)
-    const { user, isNew } = await activeStorage.findOrInsertUser(identityKey)
-    const userId = user.userId
-    const r: TestWallet<T> = {
-      rootKey,
-      identityKey,
-      keyDeriver,
-      chain,
-      activeStorage,
-      storage,
-      setup,
-      signer,
-      services,
-      monitor,
-      wallet,
-      userId
-    }
-    return r
   }
 
   static async fileExists(file: string): Promise<boolean> {
@@ -350,8 +372,18 @@ export abstract class TestUtilsWalletStorage {
     return await _tu.createLegacyWalletCopy(databaseName, walletKnex)
   }
 
+  static async createLiveWalletSQLiteWARNING(databaseFullPath: string = './test/data/walletLiveTestData.sqlite'): Promise<TestWalletNoSetup> {
+    return await this.createKnexTestWallet({
+      chain: 'test',
+      rootKeyHex: _tu.legacyRootKeyHex,
+      databaseName: 'walletLiveTestData',
+      knex: _tu.createLocalSQLite(databaseFullPath)
+    })
+  }
+
+  static legacyRootKeyHex = '153a3df216' + '686f55b253991c' + '7039da1f648' + 'ffc5bfe93d6ac2c25ac' + '2d4070918d'
+
   static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>, tryCopyToPath?: string): Promise<TestWalletNoSetup> {
-    const chain: sdk.Chain = 'test'
     const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
     let useReader = true
     if (tryCopyToPath) {
@@ -359,13 +391,14 @@ export abstract class TestUtilsWalletStorage {
       //console.log('USING FILE COPY INSTEAD OF SOURCE DB SYNC')
       useReader = false
     }
-    const rootKeyHex = '153a3df216' + '686f55b253991c' + '7039da1f648' + 'ffc5bfe93d6ac2c25ac' + '2d4070918d'
+    const chain: sdk.Chain = 'test'
+    const rootKeyHex = _tu.legacyRootKeyHex
     const identityKey = '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
     const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
     const keyDeriver = new sdk.KeyDeriver(rootKey)
     const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
     if (useReader) await activeStorage.dropAllData()
-    await activeStorage.migrate(databaseName)
+    await activeStorage.migrate(databaseName, identityKey)
     await activeStorage.makeAvailable()
     const storage = new WalletStorageManager(identityKey, activeStorage)
     await storage.makeAvailable()
@@ -378,7 +411,7 @@ export abstract class TestUtilsWalletStorage {
     }
     const signer = new WalletSigner(chain, keyDeriver, storage)
     const services = new Services(chain)
-    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, activeStorage, services)
+    const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
     const monitor = new Monitor(monopts)
     const wallet = new Wallet(signer, keyDeriver, services, monitor)
     const userId = verifyTruthy(await activeStorage.findUserByIdentityKey(identityKey)).userId
@@ -571,18 +604,6 @@ export abstract class TestUtilsWalletStorage {
     return e
   }
 
-  static async insertTestTransactionWithOutputs(storage: StorageProvider): Promise<{ tx: table.Transaction; outputs: table.Output[] }> {
-    // Step 1: Insert a test transaction
-    const { tx } = await this.insertTestTransaction(storage)
-
-    // Step 2: Insert outputs linked to the transaction
-    const output1 = await this.insertTestOutput(storage, tx, 0, 100) // Output 1
-    const output2 = await this.insertTestOutput(storage, tx, 1, 200) // Output 2
-
-    // Step 3: Return transaction and outputs
-    return { tx, outputs: [output1, output2] }
-  }
-
   static async insertTestOutputTag(storage: StorageProvider, u: table.User) {
     const now = new Date()
     const e: table.OutputTag = {
@@ -595,6 +616,18 @@ export abstract class TestUtilsWalletStorage {
     }
     await storage.insertOutputTag(e)
     return e
+  }
+
+  static async insertTestTransactionWithOutputs(storage: StorageProvider): Promise<{ tx: table.Transaction; outputs: table.Output[] }> {
+    // Step 1: Insert a test transaction
+    const { tx } = await this.insertTestTransaction(storage)
+
+    // Step 2: Insert outputs linked to the transaction
+    const output1 = await this.insertTestOutput(storage, tx, 0, 100) // Output 1
+    const output2 = await this.insertTestOutput(storage, tx, 1, 200) // Output 2
+
+    // Step 3: Return transaction and outputs
+    return { tx, outputs: [output1, output2] }
   }
 
   static async insertTestOutputTagMap(storage: StorageProvider, o: table.Output, tag: table.OutputTag) {
@@ -767,6 +800,25 @@ export abstract class TestUtilsWalletStorage {
       we1
     }
   }
+
+  static mockPostServicesAsSuccess(ctxs: TestWalletOnly[]): void {
+    mockPostServices(ctxs, 'success')
+  }
+  static mockPostServicesAsError(ctxs: TestWalletOnly[]): void {
+    mockPostServices(ctxs, 'error')
+  }
+  static mockPostServicesAsCallback(ctxs: TestWalletOnly[], callback: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void {
+    mockPostServices(ctxs, 'error', callback)
+  }
+
+  static mockMerklePathServicesAsCallback(ctxs: TestWalletOnly[], callback: (txid: string) => Promise<sdk.GetMerklePathResult>): void {
+    for (const { services } of ctxs) {
+      services.getMerklePath = jest.fn().mockImplementation(async (txid: string): Promise<sdk.GetMerklePathResult> => {
+        const r = await callback(txid)
+        return r
+      })
+    }
+  }
 }
 
 export abstract class _tu extends TestUtilsWalletStorage {}
@@ -813,19 +865,32 @@ export interface TestSetup1 {
   we1: table.MonitorEvent
 }
 
-export interface TestWallet<T> {
+export interface TestWallet<T> extends TestWalletOnly {
+  activeStorage: StorageKnex
+  setup?: T
+  userId: number
+
   rootKey: bsv.PrivateKey
   identityKey: string
   keyDeriver: sdk.KeyDeriver
   chain: sdk.Chain
-  activeStorage: StorageKnex
   storage: WalletStorageManager
-  setup?: T
   signer: WalletSigner
   services: Services
   monitor: Monitor
   wallet: Wallet
-  userId: number
+}
+
+export interface TestWalletOnly {
+  rootKey: bsv.PrivateKey
+  identityKey: string
+  keyDeriver: sdk.KeyDeriver
+  chain: sdk.Chain
+  storage: WalletStorageManager
+  signer: WalletSigner
+  services: Services
+  monitor: Monitor
+  wallet: Wallet
 }
 
 async function insertEmptySetup(storage: StorageKnex, identityKey: string): Promise<object> {
@@ -855,4 +920,27 @@ export type TestKeyPair = {
   privateKey: bsv.PrivateKey
   publicKey: bsv.PublicKey
   address: string
+}
+
+function mockPostServices(ctxs: TestWalletOnly[], status: 'success' | 'error' = 'success', callback?: (beef: bsv.Beef, txids: string[]) => 'success' | 'error'): void {
+  for (const { services } of ctxs) {
+    // Mock the services postBeef to avoid actually broadcasting new transactions.
+    services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+      status = !callback ? status : callback(beef, txids)
+      const r: sdk.PostBeefResult = {
+        name: 'mock',
+        status: 'success',
+        txidResults: txids.map(txid => ({ txid, status }))
+      }
+      return Promise.resolve([r])
+    })
+    services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
+      const r: sdk.PostBeefResult = {
+        name: 'mock',
+        status: 'success',
+        txidResults: txids.map(txid => ({ txid, status }))
+      }
+      return Promise.resolve([r])
+    })
+  }
 }

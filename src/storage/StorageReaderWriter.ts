@@ -9,7 +9,7 @@ export abstract class StorageReaderWriter extends StorageReader {
     }
 
     abstract dropAllData(): Promise<void>
-    abstract migrate(storageName: string): Promise<string>
+    abstract migrate(storageName: string, storageIdentityKey: string): Promise<string>
 
     abstract findOutputTagMaps(args: sdk.FindOutputTagMapsArgs ): Promise<table.OutputTagMap[]>
     abstract findProvenTxReqs(args: sdk.FindProvenTxReqsArgs ): Promise<table.ProvenTxReq[]>
@@ -266,6 +266,26 @@ export abstract class StorageReaderWriter extends StorageReader {
             }
         }
         return { req, isNew }
+    }
+
+    async findOrInsertProvenTx(newProven: table.ProvenTx, trx?: sdk.TrxToken)
+    : Promise<{ proven: table.ProvenTx, isNew: boolean }>
+    {
+        let proven: table.ProvenTx | undefined
+        let isNew = false
+        for (let retry = 0; ; retry++) {
+            try {
+                proven = verifyOneOrNone(await this.findProvenTxs({ partial: { txid: newProven.txid }, trx }))
+                if (proven) break;
+                newProven.provenTxId = await this.insertProvenTx(newProven, trx)
+                isNew = true
+                proven = newProven
+                break;
+            } catch (eu: unknown) {
+                if (retry > 0) throw eu;
+            }
+        }
+        return { proven, isNew }
     }
 
     abstract processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult>

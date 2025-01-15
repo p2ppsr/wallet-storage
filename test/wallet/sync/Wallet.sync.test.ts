@@ -29,7 +29,7 @@ describe('Wallet sync tests', () => {
             const knexSQLite = _tu.createLocalSQLite(localSQLiteFile)
             const tmpStore = new StorageKnex({...StorageKnex.defaultOptions(), chain: env.chain, knex: knexSQLite })
             //await tmpStore.dropAllData()
-            await tmpStore.migrate('walletSyncTest0tmp')
+            await tmpStore.migrate('walletSyncTest0tmp', '1'.repeat(64))
             const dstSettings = await tmpStore.makeAvailable()
 
             const srcSettings = await storage.makeAvailable()

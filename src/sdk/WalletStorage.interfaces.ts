@@ -10,9 +10,14 @@ import { sdk, table } from "..";
  */
 export interface WalletStorage {
 
+   /**
+    * @returns false
+    */
+   isStorageProvider() : boolean
+
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
-   migrate(storageName: string): Promise<string>
+   migrate(storageName: string, storageIdentityKey: string): Promise<string>
    destroy(): Promise<void>
 
    setServices(v: sdk.WalletServices) : void
@@ -31,6 +36,7 @@ export interface WalletStorage {
    findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
    listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
    listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
@@ -40,6 +46,7 @@ export interface WalletStorage {
 
    relinquishCertificate(args: sdk.RelinquishCertificateArgs) : Promise<number>
    relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<number>
+
 }
 
 /**
@@ -47,9 +54,15 @@ export interface WalletStorage {
  * is the actual minimal interface implemented by storage and remoted storage providers.
  */
 export interface WalletStorageProvider {
+
+   /**
+    * @returns true if this object's interface can be extended to the full `StorageProvider` interface
+    */
+   isStorageProvider() : boolean
+
    isAvailable() : boolean
    makeAvailable() : Promise<table.Settings>
-   migrate(storageName: string): Promise<string>
+   migrate(storageName: string, storageIdentityKey: string): Promise<string>
    destroy(): Promise<void>
 
    setServices(v: sdk.WalletServices) : void
@@ -67,6 +80,7 @@ export interface WalletStorageProvider {
    findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
+   findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
    listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
    listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
@@ -79,6 +93,7 @@ export interface WalletStorageProvider {
 
    getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
+
 }
 
 export interface AuthId {
@@ -286,4 +301,24 @@ export interface FindMonitorEventsArgs extends sdk.FindSincePagedArgs {
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TrxToken {
+}
+
+export interface UpdateProvenTxReqWithNewProvenTxArgs {
+   provenTxReqId: number
+   txid: string
+   attempts: number
+   status: sdk.ProvenTxReqStatus
+   history: string
+   height: number
+   index: number
+   blockHash: string
+   merkleRoot: string
+   merklePath: number[]
+}
+
+export interface UpdateProvenTxReqWithNewProvenTxResult {
+   status: sdk.ProvenTxReqStatus
+   history: string
+   provenTxId: number
+   log?: string
 }

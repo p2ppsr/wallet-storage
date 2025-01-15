@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * StorageServer.ts
  *
@@ -6,16 +5,13 @@
  * and exposes it via a JSON-RPC POST endpoint using Express.
  */
 
+import * as bsv from '@bsv/sdk'
 import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
-import { ProtoWallet, Wallet } from '@bsv/sdk'
-import { sdk } from '../..'
+import { sdk, Wallet, StorageProvider } from '../..'
 
-// You have your local or imported `WalletStorage` interface:
-import { SignerStorage } from './SignerStorage' // adjust import path
-// Or your known local implementation:
-import { StorageKnex } from '../StorageKnex' // adjust path as needed
+import { StorageKnex } from '../StorageKnex'
 
 export interface WalletStorageServerOptions {
   port: number
@@ -26,12 +22,12 @@ export interface WalletStorageServerOptions {
 export class StorageServer {
   private app = express()
   private port: number
-  private walletStorage: sdk.WalletStorage
+  private storage: StorageProvider
   private wallet: Wallet
   private monetize: boolean
 
-  constructor(walletStorage: sdk.WalletStorage, options: WalletStorageServerOptions) {
-    this.walletStorage = walletStorage
+  constructor(storage: StorageProvider, options: WalletStorageServerOptions) {
+    this.storage = storage
     this.port = options.port
     this.wallet = options.wallet
     this.monetize = options.monetize
@@ -40,15 +36,15 @@ export class StorageServer {
   }
 
   private setupRoutes(): void {
-    this.app.use(express.json())
+    this.app.use(express.json({ limit: '30mb' }))
     const options: AuthMiddlewareOptions = {
-      wallet: this.wallet
+      wallet: this.wallet as bsv.Wallet
     }
     this.app.use(createAuthMiddleware(options))
     if (this.monetize) {
       this.app.use(
         createPaymentMiddleware({
-          wallet: this.wallet,
+          wallet: this.wallet as bsv.Wallet,
           calculateRequestPrice: () => 100
         })
       )
@@ -56,13 +52,7 @@ export class StorageServer {
 
     // A single POST endpoint for JSON-RPC:
     this.app.post('/', async (req: Request, res: Response) => {
-      debugger
       let { jsonrpc, method, params, id } = req.body
-      if (method !== 'getSettings') {
-        if (typeof params[0] !== 'object' || !params[0]) {
-          params = [{}]
-        }
-      }
 
       // Basic JSON-RPC protocol checks:
       if (jsonrpc !== '2.0' || !method || typeof method !== 'string') {
@@ -75,24 +65,28 @@ export class StorageServer {
           // if you wanted to handle certain methods on the server class itself
           // e.g. this['someServerMethod'](params)
           throw new Error('Server method dispatch not used in this approach.')
-        } else if (typeof (this.walletStorage as any)[method] === 'function') {
+        } else if (typeof (this.storage as any)[method] === 'function') {
           // method is on the walletStorage:
           // Find user
-          if (method !== 'getSettings') {
-            const user = await this.walletStorage.findUserByIdentityKey(req.auth.identityKey)
-            if (!user) {
-              const userId = await this.walletStorage.insertUser({
-                identityKey: req.auth.identityKey as string,
-                userId: 0,
-                created_at: new Date(),
-                updated_at: new Date()
-              })
-              params[0].userId = userId
-            } else {
-              params[0].userId = user.userId
-            }
+          switch (method) {
+            case 'getSettings': {
+              /** */
+            } break;
+            case 'findOrInsertUser': {
+              if (params[0] !== req.auth.identityKey)
+                throw new sdk.WERR_UNAUTHORIZED('function may only access authenticated user.');
+            } break;
+            default: {
+              if (typeof params[0] !== 'object' || !params[0]) {
+                params = [{}]
+              }
+              console.log('looking up user with identityKey:', req.auth.identityKey)
+              const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
+              params[0].reqAuthUserId = user.userId
+              if (params[0]['identityKey']) params[0].userId = user.userId;
+            } break;
           }
-          const result = await (this.walletStorage as any)[method](...(params || []))
+          const result = await (this.storage as any)[method](...(params || []))
           return res.json({ jsonrpc: '2.0', result, id })
         } else {
           // Unknown method
@@ -127,30 +121,3 @@ export class StorageServer {
     })
   }
 }
-
-import Knex from 'knex'
-
-async function main() {
-  const knexInstance = Knex({
-    client: 'sqlite3', // or 'mysql', etc.
-    connection: { filename: './test.db' },
-    useNullAsDefault: true
-  })
-
-  const storage = new StorageKnex({
-    knex: knexInstance,
-    chain: 'main',
-    feeModel: { model: 'sat/kb', value: 1 },
-    commissionSatoshis: 0
-  })
-
-  // Must init storage (migrate, or otherwise):
-  await storage.migrate('MyRemoteStorage')
-  await storage.makeAvailable()
-
-  const serverOptions: WalletStorageServerOptions = { port: 3000, wallet: new ProtoWallet('anyone'), monetize: false }
-  const server = new StorageServer(storage, serverOptions)
-  server.start()
-}
-
-//main().catch(console.error)

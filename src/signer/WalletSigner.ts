@@ -11,20 +11,16 @@ export class WalletSigner implements sdk.WalletSigner {
     chain: sdk.Chain
     keyDeriver: sdk.KeyDeriverApi
     storage: WalletStorageManager
-    storageIdentity: sdk.StorageIdentity
     _services?: sdk.WalletServices
     identityKey: string
 
     pendingSignActions: Record<string, PendingSignAction>
 
     constructor(chain: sdk.Chain, keyDeriver: sdk.KeyDeriver, storage: WalletStorageManager) {
-        if (!storage.isAvailable()) throw new sdk.WERR_INVALID_PARAMETER('storage', `available. Make sure "MakeAvailable" was called.`);
-        if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey as the keyDeriver.`);
+        if (storage._authId.identityKey != keyDeriver.identityKey) throw new sdk.WERR_INVALID_PARAMETER('storage', `authenticated as the same identityKey (${storage._authId.identityKey}) as the keyDeriver (${keyDeriver.identityKey}).`);
         this.chain = chain
         this.keyDeriver = keyDeriver
         this.storage = storage
-        const s = storage.getSettings()
-        this.storageIdentity = { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
         this.identityKey = this.keyDeriver.identityKey
 
         this.pendingSignActions = {}
@@ -38,6 +34,11 @@ export class WalletSigner implements sdk.WalletSigner {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
         return this._services
+    }
+
+    getStorageIdentity(): sdk.StorageIdentity {
+        const s = this.storage.getSettings()
+        return { storageIdentityKey: s.storageIdentityKey, storageName: s.storageName }
     }
 
     getClientChangeKeyPair(): sdk.KeyPair {

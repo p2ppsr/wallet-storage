@@ -21,22 +21,24 @@ export class TaskNewHeader extends WalletMonitorTask {
         return { run };
     }
 
-    async runTask(): Promise<void> {
+    async runTask(): Promise<string> {
+        let log = ''
         const oldHeader = this.header
         this.header = await this.getHeader()
         let isNew = true
         if (!oldHeader) {
-            console.log(`first header: ${this.header.height} ${this.header.hash}`)
+            log = `first header: ${this.header.height} ${this.header.hash}`
         } else if (oldHeader.height < this.header.height) {
             const skip = this.header.height - oldHeader.height + 1
             const skipped = skip > 0 ? ` SKIPPED ${skip}` : ''
-            console.log(`new header: ${this.header.height} ${this.header.hash}${skipped}`)
+            log = `new header: ${this.header.height} ${this.header.hash}${skipped}`
         } else if (oldHeader.height === this.header.height && oldHeader.hash != this.header.hash) {
-            console.log(`reorg header: ${this.header.height} ${this.header.hash}`)
+            log = `reorg header: ${this.header.height} ${this.header.hash}`
         } else {
             isNew = false
         }
         if (isNew)
             TaskCheckForProofs.checkNow = true
+        return log
     }
 }

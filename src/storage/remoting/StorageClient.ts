@@ -5,8 +5,9 @@
  * by sending JSON-RPC calls to a configured remote WalletStorageServer.
  */
 
+import * as bsv from '@bsv/sdk'
 import { sdk, table } from "../..";
-import { AuthFetch, Wallet } from '@bsv/sdk';
+import { AuthFetch } from '@bsv/sdk';
 
 // We import the base interface:
 import { WalletStorageManager } from "../WalletStorageManager" // Adjust this import path to where your local interface is declared
@@ -19,10 +20,12 @@ export class StorageClient implements sdk.WalletStorageProvider {
     // Track ephemeral (in-memory) "settings" if you wish to align with isAvailable() checks
     public settings?: table.Settings
 
-    constructor(wallet: Wallet, endpointUrl: string) {
-        this.authClient = new AuthFetch(wallet)
+    constructor(wallet: sdk.Wallet, endpointUrl: string) {
+        this.authClient = new AuthFetch(wallet as bsv.Wallet)
         this.endpointUrl = endpointUrl
     }
+
+    isStorageProvider(): boolean { return false }
 
     //////////////////////////////////////////////////////////////////////////////
     // JSON-RPC helper
@@ -77,10 +80,10 @@ export class StorageClient implements sdk.WalletStorageProvider {
     }
 
     async makeAvailable(): Promise<table.Settings> {
-        // Try getSettings from remote to confirm.
-        const settings = await this.getSettings()
-        this.settings = settings
-        return settings
+        if (!this.settings) {
+            this.settings = await this.rpcCall<table.Settings>("makeAvailable", [])
+        }
+        return this.settings
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -95,7 +98,7 @@ export class StorageClient implements sdk.WalletStorageProvider {
         return this.rpcCall<void>("destroy", [])
     }
 
-    async migrate(storageName: string): Promise<string> {
+    async migrate(storageName: string, storageIdentityKey: string): Promise<string> {
         return this.rpcCall<string>("migrate", [storageName])
     }
 
@@ -110,7 +113,6 @@ export class StorageClient implements sdk.WalletStorageProvider {
         // Because "services" are usually local definitions of Dojo or P2P connections.
         // If you want an advanced scenario, adapt it here.
         //
-        throw new Error("setServices() not implemented in remote client.")
     }
 
     async internalizeAction(
@@ -165,8 +167,9 @@ export class StorageClient implements sdk.WalletStorageProvider {
     _settings?: table.Settings
 
     getSettings(): table.Settings {
-        if (!this._settings)
-            throw new sdk.WERR_INVALID_OPERATION('must call "makeAvailable" before accessing "settings"');
+        if (!this._settings) {
+            throw new sdk.WERR_INVALID_OPERATION('call makeAvailable at least once before getSettings')
+        }
         return this._settings!
     }
 
@@ -212,6 +215,12 @@ export class StorageClient implements sdk.WalletStorageProvider {
         return this.rpcCall<table.Output[]>("findOutputsAuth", [auth, args])
     }
 
+    findProvenTxReqs(
+        args: sdk.FindProvenTxReqsArgs
+    ): Promise<table.ProvenTxReq[]> {
+        return this.rpcCall<table.ProvenTxReq[]>("findProvenTxReqs", [args])
+    }
+
     async relinquishCertificate(
         auth: sdk.AuthId,
         args: sdk.RelinquishCertificateArgs
@@ -237,5 +246,11 @@ export class StorageClient implements sdk.WalletStorageProvider {
         args: sdk.RequestSyncChunkArgs
     ): Promise<sdk.SyncChunk> {
         return this.rpcCall<sdk.SyncChunk>("getSyncChunk", [args])
+    }
+
+    async updateProvenTxReqWithNewProvenTx(
+        args: sdk.UpdateProvenTxReqWithNewProvenTxArgs
+    ): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
+        return this.rpcCall<sdk.UpdateProvenTxReqWithNewProvenTxResult>("updateProvenTxReqWithNewProvenTx", [args])
     }
 }

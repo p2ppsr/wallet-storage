@@ -1,19 +1,18 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services } from ".."
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services, WalletStorageManager } from ".."
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
-import { TaskValidate } from './tasks/TaskValidate'
-import { TaskPurge } from './tasks/TaskPurge'
-import { TaskCheckProofs } from './tasks/TaskCheckProofs'
+import { TaskPurge, TaskPurgeParams } from './tasks/TaskPurge'
 import { TaskSyncWhenIdle } from './tasks/TaskSyncWhenIdle'
 import { TaskFailAbandoned } from './tasks/TaskFailAbandoned'
-import { TaskNotifyOfProofs } from './tasks/TaskNotifyOfProofs'
 import { TaskCheckForProofs } from './tasks/TaskCheckForProofs'
 import { TaskSendWaiting } from './tasks/TaskSendWaiting'
 import { WalletMonitorTask } from './tasks/WalletMonitorTask'
 import { TaskClock } from './tasks/TaskClock'
 import { TaskNewHeader as TaskNewHeader } from './tasks/TaskNewHeader'
 
-export type MonitorStorage = sdk.StorageSyncReaderWriter
+export type MonitorStorage = WalletStorageManager
+//export type MonitorStorage = sdk.WalletStorage
+//export type MonitorStorage = sdk.WalletStorage
 
 export interface MonitorOptions {
 
@@ -95,22 +94,24 @@ export class Monitor {
     _otherTasks: WalletMonitorTask[] = []
     _tasksRunning = false
     
+    defaultPurgeParams: TaskPurgeParams = {
+        purgeSpent: false,
+        purgeCompleted: false,
+        purgeFailed: true,
+        purgeSpentAge: 2 * this.oneWeek,
+        purgeCompletedAge: 2 * this.oneWeek,
+        purgeFailedAge: 5 * this.oneDay
+    }
+
     addAllTasksToOther() : void {
         this._otherTasks.push(new TaskClock(this))
         this._otherTasks.push(new TaskNewHeader(this))
-        this._otherTasks.push(new TaskCheckForProofs(this))
-        this._otherTasks.push(new TaskCheckProofs(this))
-        this._otherTasks.push(new TaskFailAbandoned(this))
-        this._otherTasks.push(new TaskNotifyOfProofs(this))
-        this._otherTasks.push(new TaskPurge(this, {
-            purgeSpent: false,
-            purgeCompleted: false,
-            purgeFailed: true,
-            purgeSpentAge: 2 * this.oneWeek,
-            purgeCompletedAge: 2 * this.oneWeek,
-            purgeFailedAge: 5 * this.oneDay
-        }))
+        this._otherTasks.push(new TaskPurge(this, this.defaultPurgeParams))
         this._otherTasks.push(new TaskSendWaiting(this))
+        this._otherTasks.push(new TaskCheckForProofs(this))
+        
+        this._otherTasks.push(new TaskFailAbandoned(this))
+        
         this._otherTasks.push(new TaskSyncWhenIdle(this))
     }
     /**
@@ -118,12 +119,12 @@ export class Monitor {
      * possibly with sync'ing enabled
      */
     addDefaultTasks() : void {
-        this._tasks.push(new TaskSendWaiting(this))
-        this._tasks.push(new TaskCheckForProofs(this))
-        this._tasks.push(new TaskNotifyOfProofs(this))
-        this._tasks.push(new TaskFailAbandoned(this))
-        this._otherTasks.push(new TaskSyncWhenIdle(this))
-        this._otherTasks.push(new TaskCheckProofs(this))
+        this._tasks.push(new TaskClock(this))
+        this._tasks.push(new TaskNewHeader(this))
+        this._tasks.push(new TaskSendWaiting(this, 8 * this.oneSecond, 7 * this.oneSecond)) // Check every 8 seconds but must be 7 seconds old
+        this._tasks.push(new TaskCheckForProofs(this, 2 * this.oneHour)) // Every two hours if no block found
+        this._tasks.push(new TaskFailAbandoned(this, 8 * this.oneMinute))
+        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * this.oneHour))
     }
     
     /**
@@ -131,24 +132,12 @@ export class Monitor {
      * without sync'ing enabled.
      */
     addMultiUserTasks() : void {
-        const seconds = 1000
-        const minutes = seconds * 60
-        const hours = minutes * 60
-        const days = hours * 24
-        this._tasks.push(new TaskSendWaiting(this, 8 * seconds, 7 * seconds)) // Check every 8 seconds but must be 7 seconds old
-        this._tasks.push(new TaskCheckForProofs(this, 2 * hours)) // Every two hours if no block found
-        this._tasks.push(new TaskNotifyOfProofs(this, 5 * minutes)) // Every 5 minutes, supports marking nosend reqs as invalid
-        this._tasks.push(new TaskFailAbandoned(this, 8 * minutes))
-        this._tasks.push(new TaskPurge(this, {
-            purgeSpent: false,
-            purgeCompleted: false,
-            purgeFailed: true,
-            purgeSpentAge: 2 * this.oneWeek,
-            purgeCompletedAge: 2 * this.oneWeek,
-            purgeFailedAge: 5 * this.oneDay
-        }, 6 * hours))
-        this._otherTasks.push(new TaskValidate(this))
-        this._otherTasks.push(new TaskCheckProofs(this, 1000 * 60 * 60 * 4))
+        this._tasks.push(new TaskClock(this))
+        this._tasks.push(new TaskNewHeader(this))
+        this._tasks.push(new TaskSendWaiting(this, 8 * this.oneSecond, 7 * this.oneSecond)) // Check every 8 seconds but must be 7 seconds old
+        this._tasks.push(new TaskCheckForProofs(this, 2 * this.oneHour)) // Every two hours if no block found
+        this._tasks.push(new TaskFailAbandoned(this, 8 * this.oneMinute))
+        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * this.oneHour))
     }
 
     addTask(task: WalletMonitorTask) : void {
@@ -169,14 +158,16 @@ export class Monitor {
         }
     }
     
-    async runTask(name: string) : Promise<void> {
+    async runTask(name: string) : Promise<string> {
         let task = this._tasks.find(t => t.name === name)
+        let log = ''
         if (!task)
             task = this._otherTasks.find(t => t.name === name)
         if (task) {
             await task.asyncSetup()
-            await task.runTask()
+            log = await task.runTask()
         }
+        return log
     }
 
     async startTasks() : Promise<void> {
@@ -198,38 +189,54 @@ export class Monitor {
 
         for (;;) {
 
-            if (!this._tasksRunning) break
+            if (this.storage.getActive().isStorageProvider()) {
+                if (!this._tasksRunning) break
 
-            // console.log(`${new Date().toISOString()} tasks review triggers`)
+                console.log(`${new Date().toISOString()} tasks review triggers`)
 
-            const tasksToRun: WalletMonitorTask[] = []
-            const now = new Date().getTime()
-            for (const t of this._tasks) {
-                try {
-                    if (t.trigger(now).run) tasksToRun.push(t)
-                } catch(eu: unknown) {
-                    const e = sdk.WalletError.fromUnknown(eu)
-                    console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
+                const tasksToRun: WalletMonitorTask[] = []
+                const now = new Date().getTime()
+                for (const t of this._tasks) {
+                    try {
+                        if (t.trigger(now).run) tasksToRun.push(t)
+                    } catch (eu: unknown) {
+                        const e = sdk.WalletError.fromUnknown(eu)
+                        console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
+                    }
                 }
-            }
 
-            for (const ttr of tasksToRun) {
+                for (const ttr of tasksToRun) {
 
-                try {
-                    //console.log(`${new Date().toISOString()} running  ${ttr.name}`)
-                    await ttr.runTask()
-                } catch(eu: unknown) {
-                    const e = sdk.WalletError.fromUnknown(eu)
-                    console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
-                } finally {
-                    ttr.lastRunMsecsSinceEpoch = new Date().getTime()
+                    try {
+                        console.log(`${new Date().toISOString()} running  ${ttr.name}`)
+                        if (this.storage.getActive().isStorageProvider()) {
+                            const log = await ttr.runTask()
+                            if (log && log.length > 0) {
+                                console.log(`Task${ttr.name} ${log}`)
+                                await this.storage.runAsStorageProvider(async (sp) => {
+                                    await sp.insertMonitorEvent({
+                                        created_at: new Date(),
+                                        updated_at: new Date(),
+                                        id: 0,
+                                        event: ttr.name,
+                                        details: log
+                                    })
+                                })
+                            }
+                        }
+                    } catch (eu: unknown) {
+                        const e = sdk.WalletError.fromUnknown(eu)
+                        console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
+                    } finally {
+                        ttr.lastRunMsecsSinceEpoch = new Date().getTime()
+                    }
+
+                    if (!this._tasksRunning) break
+
                 }
 
                 if (!this._tasksRunning) break
-
             }
-
-            if (!this._tasksRunning) break
 
             // console.log(`${new Date().toISOString()} tasks run, waiting...`)
             await wait(this.options.taskRunWaitMsecs)
@@ -238,129 +245,6 @@ export class Monitor {
     
     stopTasks() : void {
         this._tasksRunning = false
-    }
-
-    /**
-     * For each spendable output in the 'default' basket of the authenticated user,
-     * verify that the output script, satoshis, vout and txid match that of an output
-     * still in the mempool of at least one service provider.
-     * 
-     * @returns object with invalidSpendableOutputs array. A good result is an empty array. 
-     */
-    async confirmSpendableOutputs() : Promise<{ invalidSpendableOutputs: table.Output[] }> {
-        const invalidSpendableOutputs: table.Output[] = []
-        const users = await this.storage.findUsers({ partial: {} })
-        for (const { userId } of users) {
-            const defaultBasket = verifyOne(await this.storage.findOutputBaskets({ partial: { userId, name: 'default' } }))
-            const where: Partial<table.Output> = {
-                userId,
-                basketId: defaultBasket.basketId,
-                spendable: true
-            }
-            const outputs = await this.storage.findOutputs({ partial: where })
-            for (let i = outputs.length - 1; i >= 0; i--) {
-                const o = outputs[i]
-                const oid = verifyId(o.outputId)
-                if (o.spendable) {
-                    let ok = false
-                    if (o.lockingScript && o.lockingScript.length > 0) {
-                        const r = await this.services.getUtxoStatus(asString(o.lockingScript), 'script')
-                        if (r.status === 'success' && r.isUtxo && r.details?.length > 0) {
-                            const tx = await this.storage.findTransactionById(o.transactionId)
-                            if (tx && tx.txid && r.details.some(d => d.txid === tx.txid && d.satoshis === o.satoshis && d.index === o.vout)) {
-                                ok = true
-                            }
-                        }
-                    }
-                    if (!ok)
-                        invalidSpendableOutputs.push(o)
-                }
-            }
-        }
-        return { invalidSpendableOutputs }
-    }
-
-    /**
-     * Using an array of proof providing services, attempt to process each outstanding record
-     * in storage's `proven_tx_reqs` table.
-     *
-     * Must manage switching services when a service goes down,
-     * and when a service imposes rate limits,
-     * and when a proof is not yet available,
-     * and when a request is invalid,
-     * and maintain history of attempts,
-     * and report / handle overloads,
-     * and notifiy relevant parties when successful.
-     *
-     * Updates history, attempts, status
-     */
-    async processProvenTxReqs(): Promise<void> {
-
-        const limit = 100
-        let offset = 0
-        for (; ;) {
-            const reqs = await this.storage.findProvenTxReqs({ partial: {}, status: ['unknown'], paged: { limit, offset } })
-            await this.getProofs(reqs)
-            if (reqs.length < limit) break
-            offset += limit
-        }
-        
-        offset = 0
-        for (; ;) {
-            const reqs = await this.storage.findProvenTxReqs({ partial: { notified: false }, status: sdk.ProvenTxReqTerminalStatus, paged: { limit, offset } })
-            await this.notifyOfProvenTx(reqs)
-            if (reqs.length < limit) break
-            offset += limit
-        }
-    }
-
-    /**
-     * Process an array of 'unsent' status table.ProvenTxReq 
-     * 
-     * Send rawTx to transaction processor(s), requesting proof callbacks when possible.
-     * 
-     * Set status 'invalid' if req is invalid.
-     * 
-     * Set status to 'callback' on successful network submission with callback service.
-     * 
-     * Set status to 'unmined' on successful network submission without callback service.
-     * 
-     * Add mapi responses to database table if received.
-     * 
-     * Increments attempts if sending was attempted.
-     *
-     * @param reqApis 
-     */
-    async processUnsent(reqApis: table.ProvenTxReq[], indent = 0) : Promise<string> {
-        let log = ''
-        for (let i = 0; i < reqApis.length; i++) {
-            const reqApi = reqApis[i]
-            log += ' '.repeat(indent)
-            log += `${i} reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: `
-            if (reqApi.status !== 'unsent') {
-                log += `status now ${reqApi.status}\n`
-                continue
-            }
-            const req = new entity.ProvenTxReq(reqApi)
-            const reqs: entity.ProvenTxReq[] = []
-            if (req.batch) {
-                // Make sure wew process entire batch together for efficient beef generation
-                const batchReqApis = await this.storage.findProvenTxReqs({ partial: { batch: req.batch, status: 'unsent' } })
-                for (const bra of batchReqApis) {
-                    // Remove any matching batchReqApis from reqApis
-                    const index = reqApis.findIndex(ra => ra.provenTxReqId === bra.provenTxReqId)
-                    if (index > -1) reqApis.slice(index, index + 1);
-                    // And add to reqs being processed now:
-                    reqs.push(new entity.ProvenTxReq(bra))
-                }
-            } else {
-                // Just a single non-batched req...
-                reqs.push(req)
-            }
-
-            const r = await this.attemptToPostReqsToNetwork(reqs)
-        }
-        return log
     }
 
     lastNewHeader: BlockHeader | undefined
@@ -443,7 +327,7 @@ export class Monitor {
                 log += `Already linked to provenTxId ${req.provenTxId}.\n`
                 req.notified = false
                 req.status = 'completed'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 proven.push(reqApi)
                 continue
             }
@@ -461,7 +345,7 @@ export class Monitor {
                 log += ` rawTx doesn't hash to txid. status => invalid.\n`
                 req.notified = false
                 req.status = 'invalid'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 invalid.push(reqApi)
                 continue
             }
@@ -471,7 +355,7 @@ export class Monitor {
                 log += ` too many failed attempts ${req.attempts}\n`
                 req.notified = false
                 req.status = 'invalid'
-                await req.updateStorage(this.storage)
+                await req.updateStorageDynamicProperties(this.storage)
                 invalid.push(reqApi)
                 continue
             }
@@ -499,31 +383,27 @@ export class Monitor {
             r = await this.services.getMerklePath(req.txid)
             ptx = await entity.ProvenTx.fromReq(req, r, this.chaintracks, countsAsAttempt && req.status !== 'nosend')
 
-            if (r.merklePath && !ptx) {
-                r = await this.services.getMerklePath(req.txid, true)
-                ptx = await entity.ProvenTx.fromReq(req, r, this.chaintracks, countsAsAttempt && req.status !== 'nosend')
-            }
-
-            // fromReq may have set status to unknown (a service returned no proof) or unconfirmed (a proof failed chaintracks lookup)
-            // if ptx is valid, it means the final service attempted returned a valid proof that was confirmed.
-
             if (ptx) {
-                const p = ptx
-                await this.storage.transaction(async trx => {
-                    const p0 = verifyOneOrNone(await this.storage.findProvenTxs({ partial: { txid: p.txid }, trx }))
-                    if (!ptx) throw new sdk.WERR_INTERNAL()
-                    p.provenTxId = p0 ? p0.provenTxId : await this.storage.insertProvenTx(ptx.toApi(), trx)
-                    req.provenTxId = p.provenTxId
+                // We have a merklePath proof for the request (and a block header)
+                const { provenTxReqId, status, txid, attempts, history } = req.toApi()
+                const { index, height, blockHash, merklePath, merkleRoot } = ptx.toApi()
+                const r = await this.storage.runAsStorageProvider(async (sp) => {
+                    return await sp.updateProvenTxReqWithNewProvenTx({
+                        provenTxReqId, status, txid, attempts, history, index, height, blockHash, merklePath, merkleRoot
+                    })
                 })
-                // We have a provenTx record, queue the notifications.
-                req.status = 'completed'
-                req.notified = false
-            } else if (countsAsAttempt && req.status !== 'nosend') {
-                req.attempts++
+                req.status = r.status
+                req.apiHistory = r.history
+                req.provenTxId = r.provenTxId
+                req.notified = true
+            } else {
+                if (countsAsAttempt && req.status !== 'nosend') {
+                    req.attempts++
+                }
+                await req.updateStorageDynamicProperties(this.storage)
+                await req.refreshFromStorage(this.storage)
             }
 
-            await req.updateStorage(this.storage)
-            await req.refreshFromStorage(this.storage)
 
             log += req.historyPretty(since, indent + 2) + '\n'
 
@@ -533,362 +413,6 @@ export class Monitor {
         
         return { proven, invalid, log }
     }
-
-    /**
-     * Process an array of 'notifying' status table.ProvenTxReq 
-     *
-     * notifying: proven_txs record added, while notifications are being processed.
-     * 
-     * When a proof is received for a transaction, make the following updates:
-     *   1. Set the provenTxId column
-     *   2. Set the proof column to a stringified copy of the proof in standard form until no longer needed.
-     *   3. Set unconfirmedInputChainLength to zero
-     *   4. Set truncatedExternalInputs to '' (why not null?)
-     *   5. Set rawTx to null when clients access through provenTxId instead...
-     * 
-     * Finally set the req status to 'completed' which will clean up the record after a period of time.
-     * 
-     * @param reqs 
-     */
-    async notifyOfProvenTx(reqs: table.ProvenTxReq[], indent = 0)
-    : Promise<{ notified: table.ProvenTxReq[], log: string }>
-    {
-        const notified: table.ProvenTxReq[] = []
-
-        let log = ''
-        for (const reqApi of reqs) {
-            log += ' '.repeat(indent)
-            log += `reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: `
-
-            if (reqApi.notified) {
-                log += `Already notified.\n`
-                continue
-            }
-            
-            const since = new Date()
-            const req = new entity.ProvenTxReq(reqApi)
-            try {
-                // TODO...
-                // log += "\n" + await req.processNotifications(this.storage, undefined, undefined, indent + 2)
-            } catch (eu: unknown) {
-                const e = sdk.WalletError.fromUnknown(eu)
-                log += e.message
-            }
-
-            log += '\n' + req.historyPretty(since, indent + 2) + '\n'
-
-            notified.push(reqApi)
-        }
-
-        return { notified, log }
-    }
-    
-    /**
-     * Review all completed transactions to confirm that the transaction satoshis makes sense based on undestood data protocols:
-     * 
-     * Balance displayed by MetaNet Client is sum of owned spendable outputs IN THE 'default' BASKET.
-     * It is NOT the sum of completed transaction satoshiss for userId.
-     * Transaction satoshis value appears to be critical in capturing external value effect (inputs and outputs) of each transaction.
-     * Transaction isOutgoing seems to be incorrect sometimes???
-     * Output 'change' column appears to be unused, always 0. Instead 'purpose' = 'change' appears to be used. Actual value is either 'change' or null currently.
-     * Output 'providedBy' column is currently only 'storage', 'you', or null.
-     * Output 'tracked' ????
-     * Output 'senderIdentityKey' is currently often an uncompressed key
-     * 
-     * A standard funding account from satoshi shopper adds 'purpose' = 'change' outputs
-     * 
-     * Relevant schema columns and conventions:
-     * - owned outputs: outputs where output.userId = transaction.userId
-     * - commission: commissions where commission.transactionId = transaction.transactionId, there is no outputs record for commissions, max one per transaction(?)
-     * - owned input: owned output where output.transactionId != transaction.transactionId, marked by redeemedOutputs in truncatedExternalInputs when under construction and then by outputs.spentBy column when completed???
-     * - 
-     * Case 1: Normal Spend
-     *   satoshis = -(input - mychange)
-     *   spent = owned outputs with purpose null or != 'change'
-     *   txIn = sum of output.spentBy = transactionId, output.userId = userId outputs
-     *   txOut = sum of new owned outputs (change) + sum
-     *   transaction inputs are all owned outputs, all new owned outputs are marked purpose = 'change'
-     * 
-     * 
-     * 
- 
-select txid, transactionId, satoshis, input, spent, mychange, commission, (input - spent - mychange - commission) as fee, if(-satoshis = input - mychange, 'ok', "???") as F
-from
-(select 
-ifnull((select sum(o.satoshis) from outputs as o where o.spentBy = t.transactionId), 0) as 'input',
-ifnull((select sum(o.satoshis) from outputs as o where o.transactionId = t.transactionId and (purpose != 'change' or purpose is null)), 0) as 'spent',
-ifnull((select sum(o.satoshis) from outputs as o where o.transactionId = t.transactionId and purpose = 'change'), 0) as 'mychange',
-ifnull((select sum(c.satoshis) from commissions as c where c.transactionId = t.transactionId), 0) as 'commission',
-t.transactionId, t.satoshis, t.txid from transactions as t where t.userId = 213 and t.status = 'completed' and isOutgoing = 1 order by transactionId) as vals
-;
-
-        THIS IS A WORK IN PROGRESS, PARTS ARE KNOWN TO BE INACCURATE
-     */
-    async reviewTransactionAmounts() {
-        const storage = this.storage
-        const limit = 100;
-
-        const users = await storage.findUsers({ partial: {} })
-        for (const u of users) {
-
-            const userId = verifyId(u.userId)
-            console.log('userId =', userId)
-
-            let offset = 0;
-            for (; ;) {
-                const allSpendableOutputs = await storage.findOutputs({ partial: { userId, spendable: true } })
-                const balance1 = sum(allSpendableOutputs, v => v.satoshis || 0)
-                console.log(`  ${balance1} balance1, sum of spendable outputs`)
-
-                const txs = await storage.findTransactions({ partial: { status: 'completed', userId } }) // , undefined, { limit, offset });
-                const balance2 = sum(txs, v => v.satoshis || 0)
-                console.log(`  ${balance2} balance2, sum of completed transaction satoshiss`)
-
-                for (const tx of txs) if (tx.rawTx) {
-
-                    const tid = verifyId(tx.transactionId)
-
-                    const commissions = await storage.findCommissions({ partial: { transactionId: tid } })
-                    const commissionsSum = sum(commissions, v => v.satoshis)
-
-                    const inputOutpts = await storage.findOutputs({ partial: { spentBy: tid } })
-                    const inputOutputsSum = sum(inputOutpts, v => v.satoshis || 0)
-
-                    const os = await storage.findOutputs({ partial: { transactionId: tid } })
-                    const owned = filter(os, v => v.userId === tx.userId)
-                    const ownedChange = filter(owned.ts, v => v.change || v.purpose === 'change')
-                    const myChange = sum(ownedChange.ts, v => v.satoshis || 0)
-
-
-
-
-                    const txBsv = asBsvSdkTx(tx.rawTx)
-                    const txIns = txBsv.inputs
-                    const txOuts = txBsv.outputs
-                    //const totalIn = txIns.reduce((a, e) => a + e.)
-                }
-
-                if (txs.length < limit)
-                    break;
-                offset += limit
-            }
-        }
-    }
-
-    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef> {
-        const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
-        if (!beef)
-            throw new sdk.WERR_INVALID_PARAMETER('txid', `${txid} is not known to storage.`)
-        return beef
-    }
-
-    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken) : Promise<bsv.Beef | undefined> {
-
-        const beef = mergeToBeef || new bsv.Beef()
-
-        const r = await this.storage.getProvenOrRawTx(txid, trx)
-        if (r.proven) {
-            if (trustSelf === 'known')
-                beef.mergeTxidOnly(txid)
-            else {
-                beef.mergeRawTx(r.proven.rawTx)
-                const mp = new entity.ProvenTx(r.proven).getMerklePath()
-                beef.mergeBump(mp)
-                return beef
-            }
-        }
-
-        if (r.rawTx && r.inputBEEF) {
-            if (trustSelf === 'known')
-                beef.mergeTxidOnly(txid)
-            else {
-                beef.mergeRawTx(r.rawTx)
-                beef.mergeBeef(r.inputBEEF)
-                const tx = bsv.Transaction.fromBinary(r.rawTx)
-                for (const input of tx.inputs) {
-                    const btx = beef.findTxid(input.sourceTXID!)
-                    if (!btx) {
-                        if (knownTxids && knownTxids.indexOf(input.sourceTXID!) > -1)
-                            beef.mergeTxidOnly(input.sourceTXID!)
-                        else
-                            await this.getValidBeefForKnownTxid(input.sourceTXID!, beef, trustSelf, knownTxids, trx)
-                    }
-                }
-                return beef
-            }
-        }
-
-        return undefined
-    }
-
-    async mergeReqToBeefToShareExternally(req: table.ProvenTxReq, mergeToBeef: bsv.Beef, knownTxids: string[], trx?: sdk.TrxToken) : Promise<void> {
-        const { rawTx, inputBEEF: beef } = req;
-        if (!rawTx || !beef) throw new sdk.WERR_INTERNAL(`req rawTx and beef must be valid.`);
-        mergeToBeef.mergeRawTx(rawTx);
-        mergeToBeef.mergeBeef(beef);
-        const tx = bsv.Transaction.fromBinary(rawTx);
-        for (const input of tx.inputs) {
-            if (!input.sourceTXID) throw new sdk.WERR_INTERNAL(`req all transaction inputs must have valid sourceTXID`);
-            const txid = input.sourceTXID
-            const btx = mergeToBeef.findTxid(txid);
-            if (!btx) {
-                if (knownTxids && knownTxids.indexOf(txid) > -1)
-                    mergeToBeef.mergeTxidOnly(txid);
-
-                else
-                    await this.getValidBeefForKnownTxid(txid, mergeToBeef, undefined, knownTxids, trx);
-            }
-        }
-    }
-
-    /**
-     * Attempt to post one or more `ProvenTxReq` with status 'unsent'
-     * to the bitcoin network.
-     * 
-     * @param reqs 
-     */
-    async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> {
-
-        const r: PostReqsToNetworkResult = {
-            status: 'success',
-            beef: new bsv.Beef(),
-            details: [],
-            log: ''
-        }
-        for (const req of reqs) {
-            r.details.push({
-                txid: req.txid,
-                req,
-                status: "unknown",
-                pbrft: {
-                    txid: req.txid,
-                    status: "error"
-                },
-                data: undefined,
-                error: undefined
-            })
-        }
-        const txids = reqs.map(r => r.txid)
-
-        let invalid: boolean = false
-        for (const rb of reqs) {
-            let badReq: boolean = false
-            if (!rb.rawTx) {
-                badReq = true; rb.addHistoryNote(`invalid req: rawTx must be valid`);
-            }
-            if (!rb.notify.transactionIds || rb.notify.transactionIds.length < 1) {
-                badReq = true; rb.addHistoryNote(`invalid req: must have at least one transaction to notify`);
-            }
-            if (rb.attempts > 10) {
-                badReq = true; rb.addHistoryNote(`invalid req: too many attempts ${rb.attempts}`);
-            }
-            if (badReq) invalid = true
-
-            // Accumulate batch beefs.
-            await this.mergeReqToBeefToShareExternally(rb.api, r.beef, [], trx)
-        }
-
-        if (invalid) {
-            for (const req of reqs) {
-                // batch passes or fails as a whole...prior to post to network attempt.
-                req.status = 'invalid'
-                await req.updateStorageStatusHistoryOnly(this.storage)
-                r.log += `status set to ${req.status}\n`
-            }
-            return r;
-        }
-
-        // Use cwi-external-services to post the aggregate beef
-        // and add the new results to aggregate results.
-        const pbrs = await this.services.postBeef(r.beef, txids)
-        const pbrOk = pbrs.find(p => p.status === 'success')
-        r.pbr = pbrOk ? pbrOk : pbrs.length > 0 ? pbrs[0] : undefined
-        
-        if (!r.pbr) {
-            r.status = 'error'
-        } else {
-            for (const d of r.details) {
-                const pbrft = r.pbr.txidResults.find(t => t.txid === d.txid)
-                if (!pbrft) throw new sdk.WERR_INTERNAL(`postBeef service failed to return result for txid ${d.txid}`);
-                d.pbrft = pbrft
-                if (r.pbr.data)
-                    d.data = JSON.stringify(r.pbr.data)
-                if (r.pbr.error)
-                    d.error = r.pbr.error.code
-                // Need to learn how double spend is reported by these services.
-                d.status = pbrft.status === 'success' ? 'success' : 'unknown'
-                if (d.status !== 'success')
-                    // If any txid result fails, the aggregate result is error.
-                    r.status = 'error';
-                d.req.attempts++
-                const note = {
-                    what: 'postReqsToNetwork result',
-                    name: r.pbr.name,
-                    result: d
-                }
-                d.req.addHistoryNote(note)
-            }
-        }
-
-        for (const d of r.details) {
-            let newReqStatus: sdk.ProvenTxReqStatus | undefined = undefined
-            let newTxStatus: sdk.TransactionStatus | undefined = undefined
-            // For each req, three outcomes are handled:
-            // 1. success: req status from unprocessed(!isDelayed)/sending(isDelayed) to unmined, tx from sending to unproven
-            if (d.status === 'success') {
-                if (['nosend', 'unprocessed', 'sending'].indexOf(d.req.status) > -1)
-                    newReqStatus = 'unmined';
-                newTxStatus = 'unproven' // but only if sending
-            }
-            // 2. doubleSpend: req status to doubleSpend, tx to failed
-            else if (d.status === 'doubleSpend') {
-                newReqStatus = 'doubleSpend'
-                newTxStatus = 'failed'
-            }
-            // 3. unknown: req status from unprocessed to sending or remains sending, tx remains sending
-            else if (d.status === 'unknown') {
-                /* no status updates */
-            } else {
-                throw new sdk.WERR_INTERNAL(`unexpected status ${d.status}`)
-            }
-
-            if (newReqStatus) {
-                // Only advance the status of req.
-                d.req.status = newReqStatus
-            }
-            await d.req.updateStorageStatusHistoryOnly(this.storage)
-            if (newTxStatus) {
-                const ids = d.req.notify.transactionIds
-                if (!ids || ids.length < 1) throw new sdk.WERR_INTERNAL(`req must have at least one transactionId to notify`);
-                for (const id of ids) {
-                    await this.storage.updateTransactionStatus(newTxStatus, id)
-                }
-            }
-        }
-
-        // Fetch the updated history.
-        // log += .req.historyPretty(since, indent + 2)
-        return r
-    }
-}
-
-export type PostReqsToNetworkDetailsStatus = 'success' | 'doubleSpend' | 'unknown'
-
-export interface PostReqsToNetworkDetails {
-    txid: string
-    req: entity.ProvenTxReq
-    status: PostReqsToNetworkDetailsStatus
-    pbrft: sdk.PostTxResultForTxid
-    data?: string
-    error?: string
-}
-
-export interface PostReqsToNetworkResult {
-    status: "success" | "error"
-    beef: bsv.Beef
-    details: PostReqsToNetworkDetails[]
-    pbr?: sdk.PostBeefResult
-    log: string
 }
 
 function sum<T>(a: T[], getNum: (v: T) => number) : number {

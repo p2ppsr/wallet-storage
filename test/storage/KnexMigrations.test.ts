@@ -33,7 +33,7 @@ describe('KnexMigrations tests', () => {
 
     test('0 migragte down', async () => {
         for (const knex of knexs) {
-            const config = { migrationSource: new KnexMigrations('test', '0 migration test', 1000) }
+            const config = { migrationSource: new KnexMigrations('test', '0 migration test', '1'.repeat(64), 1000) }
             const count = Object.keys(config.migrationSource.migrations).length
             for (let i = 0; i < count; i++) {
                 try {
@@ -50,7 +50,7 @@ describe('KnexMigrations tests', () => {
     test('1 migragte to latest', async () => {
         await waitFor0()
         for (const knex of knexs) {
-            const config = { migrationSource: new KnexMigrations('test', '0 migration test', 1000) }
+            const config = { migrationSource: new KnexMigrations('test', '0 migration test', '1'.repeat(64), 1000) }
             const latest = await KnexMigrations.latestMigration()
             await knex.migrate.latest(config)
             const version = await knex.migrate.currentVersion(config)

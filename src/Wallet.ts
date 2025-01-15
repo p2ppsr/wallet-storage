@@ -8,7 +8,6 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
     beef: BeefParty
     trustSelf?: sdk.TrustSelf
-    storageParty: string
     userParty: string
 
     constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) {
@@ -21,9 +20,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         this.services = services
         this.monitor = monitor
 
-        this.storageParty = signer.storageIdentity!.storageIdentityKey
-        this.userParty = signer.getClientChangeKeyPair().publicKey
-        this.beef = new BeefParty([this.storageParty, this.userParty])
+        this.userParty = `user ${signer.getClientChangeKeyPair().publicKey}`
+        this.beef = new BeefParty([this.userParty])
         this.trustSelf = 'known'
 
         if (services) {
@@ -62,6 +60,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         const r = await this.signer.listActions(args)
         return r
     }
+
+    get storageParty() : string { return `storage ${this.signer.getStorageIdentity().storageIdentityKey}` }
 
     async listOutputs(args: sdk.ListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
     : Promise<sdk.ListOutputsResult> {

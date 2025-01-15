@@ -610,9 +610,9 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     await this.knex?.destroy()
   }
 
-  override async migrate(storageName: string): Promise<string> {
+  override async migrate(storageName: string, storageIdentityKey: string): Promise<string> {
     const config = {
-      migrationSource: new KnexMigrations(this.chain, storageName, 1024)
+      migrationSource: new KnexMigrations(this.chain, storageName, storageIdentityKey, 1024)
     }
     await this.knex.migrate.latest(config)
     const version = await this.knex.migrate.currentVersion(config)
@@ -620,7 +620,8 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async dropAllData(): Promise<void> {
-    const config = { migrationSource: new KnexMigrations(this.chain, '', 1024) }
+    const settings = this.getSettings()
+    const config = { migrationSource: new KnexMigrations(this.chain, settings.storageName, settings.storageIdentityKey, 1024) }
     const count = Object.keys(config.migrationSource.migrations).length
     for (let i = 0; i < count; i++) {
       try {

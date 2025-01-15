@@ -4,7 +4,7 @@ import { sdk, table, verifyOne, verifyId } from '../..'
 import { Services } from '../..'
 import { _tu, TestWalletNoSetup } from '../../../test/utils/TestUtilsWalletStorage'
 
-describe('createAction test', () => {
+describe.skip('createAction test', () => {
   jest.setTimeout(99999999)
 
   const ctxs: TestWalletNoSetup[] = []

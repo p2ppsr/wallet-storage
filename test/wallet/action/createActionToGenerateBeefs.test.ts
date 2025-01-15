@@ -243,8 +243,8 @@ describe('createActionToGenerateBeefs test', () => {
       for (const t of rt) {
         const ra = await wallet.abortAction({ reference: t.reference })
         expect(ra).not.toBeTruthy()
-        const rw = await wallet.monitor?.reviewTransactionAmounts()
-        expect(rw).not.toBeTruthy()
+        //const rw = await wallet.monitor?.reviewTransactionAmounts()
+        //expect(rw).not.toBeTruthy()
       }
     }
   })

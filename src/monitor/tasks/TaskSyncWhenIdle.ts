@@ -17,7 +17,8 @@ export class TaskSyncWhenIdle extends WalletMonitorTask {
         return { run };
     }
 
-    async runTask(): Promise<void> {
+    async runTask(): Promise<string> {
         // TODO...
+        return ''
     }
 }

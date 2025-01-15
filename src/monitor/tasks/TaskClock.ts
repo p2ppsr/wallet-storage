@@ -19,9 +19,10 @@ export class TaskClock extends WalletMonitorTask {
         return { run };
     }
 
-    async runTask(): Promise<void> {
-        console.log(`clock: ${new Date(this.nextMinute).toISOString()}`)
+    async runTask(): Promise<string> {
+        const log = `${new Date(this.nextMinute).toISOString()}`
         this.nextMinute = this.getNextMinute()
+        return log
     }
 
     getNextMinute() : number {

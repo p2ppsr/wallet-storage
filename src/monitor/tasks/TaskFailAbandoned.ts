@@ -22,7 +22,8 @@ export class TaskFailAbandoned extends WalletMonitorTask {
         return { run: nowMsecsSinceEpoch > this.lastRunMsecsSinceEpoch + this.triggerMsecs };
     }
 
-    async runTask(): Promise<void> {
+    async runTask(): Promise<string> {
+        let log = ''
         const limit = 100;
         let offset = 0;
         for (; ;) {
@@ -32,13 +33,14 @@ export class TaskFailAbandoned extends WalletMonitorTask {
                 const txsAll = await sp.findTransactions({ partial: {}, status: ['unprocessed', 'unsigned'], paged: { limit, offset } });
                 const txs = txsAll.filter(t => t.updated_at && t.updated_at < abandoned);
                 for (const tx of txs) {
-                    console.log(`FailAbandoned: update tx ${tx.transactionId} status to 'failed'`);
                     await sp.updateTransactionStatus('failed', tx.transactionId);
+                    log += `updated tx ${tx.transactionId} status to 'failed'\n`
                 }
                 return txs.length < limit
             })
             if (done) break;
             offset += limit;
         }
+        return log
     }
 }

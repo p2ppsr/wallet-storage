@@ -44,5 +44,5 @@ export abstract class WalletMonitorTask {
      */
     abstract trigger(nowMsecsSinceEpoch: number): { run: boolean; };
 
-    abstract runTask(): Promise<void>;
+    abstract runTask(): Promise<string>;
 }

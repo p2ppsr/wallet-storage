@@ -18,15 +18,15 @@ export class TaskSendWaiting extends WalletMonitorTask {
         return { run: nowMsecsSinceEpoch > this.lastRunMsecsSinceEpoch + this.triggerMsecs };
     }
 
-    async runTask(): Promise<void> {
+    async runTask(): Promise<string> {
+        let log = '';
         const limit = 100;
         let offset = 0;
         const agedLimit = new Date(Date.now() - this.agedMsecs);
         for (; ;) {
-            let log = '';
             const reqs = await this.storage.findProvenTxReqs({ partial: {}, status: ['unsent'], paged: { limit, offset } });
             if (reqs.length === 0) break;
-            log += `SendWaiting: ${reqs.length} reqs with status 'unsent'\n`;
+            log += `${reqs.length} reqs with status 'unsent'\n`;
             const agedReqs = reqs.filter(req => verifyTruthy(req.updated_at) < agedLimit);
             log += `  Of those reqs, ${agedReqs.length} where last updated before ${agedLimit.toISOString()}.\n`;
             log += await this.processUnsent(agedReqs, 2);
@@ -34,6 +34,7 @@ export class TaskSendWaiting extends WalletMonitorTask {
             if (reqs.length < limit) break;
             offset += limit;
         }
+        return log
     }
 
     /**

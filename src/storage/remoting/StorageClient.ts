@@ -5,8 +5,9 @@
  * by sending JSON-RPC calls to a configured remote WalletStorageServer.
  */
 
+import * as bsv from '@bsv/sdk'
 import { sdk, table } from "../..";
-import { AuthFetch, Wallet } from '@bsv/sdk';
+import { AuthFetch } from '@bsv/sdk';
 
 // We import the base interface:
 import { WalletStorageManager } from "../WalletStorageManager" // Adjust this import path to where your local interface is declared
@@ -19,8 +20,8 @@ export class StorageClient implements sdk.WalletStorageProvider {
     // Track ephemeral (in-memory) "settings" if you wish to align with isAvailable() checks
     public settings?: table.Settings
 
-    constructor(wallet: Wallet, endpointUrl: string) {
-        this.authClient = new AuthFetch(wallet)
+    constructor(wallet: sdk.Wallet, endpointUrl: string) {
+        this.authClient = new AuthFetch(wallet as bsv.Wallet)
         this.endpointUrl = endpointUrl
     }
 
@@ -112,7 +113,6 @@ export class StorageClient implements sdk.WalletStorageProvider {
         // Because "services" are usually local definitions of Dojo or P2P connections.
         // If you want an advanced scenario, adapt it here.
         //
-        throw new Error("setServices() not implemented in remote client.")
     }
 
     async internalizeAction(

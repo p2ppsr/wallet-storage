@@ -40,9 +40,10 @@ export class WalletStorageManager implements sdk.WalletStorage {
      */
     _storageProviderLocked: boolean = false
 
-    constructor(identityKey: string, active: sdk.WalletStorageProvider, backups?: sdk.WalletStorageProvider[]) {
-        this.stores = [active]
-        if (backups) this.stores.concat(backups);
+    constructor(identityKey: string, active?: sdk.WalletStorageProvider, backups?: sdk.WalletStorageProvider[]) {
+        this.stores = []
+        if (active) this.stores.push(active)
+        if (backups) this.stores = this.stores.concat(backups);
         this._authId = { identityKey }
     }
 
@@ -69,14 +70,18 @@ export class WalletStorageManager implements sdk.WalletStorage {
         return this._authId
     }
 
-    getActive(): sdk.WalletStorageProvider { return this.stores[0] }
+    getActive(): sdk.WalletStorageProvider {
+        if (this.stores.length < 1)
+            throw new sdk.WERR_INVALID_OPERATION('An active WalletStorageProvider must be added to this WalletStorageManager')
+        return this.stores[0]
+    }
 
     async getActiveForWriter(): Promise<sdk.WalletStorageProvider> {
         while (this._storageProviderLocked || this._syncLocked || this._isSingleWriter && this._writerCount > 0) {
             await wait(100)
         }
         this._writerCount++
-        return this.stores[0]
+        return this.getActive()
     }
 
     async getActiveForReader(): Promise<sdk.WalletStorageProvider> {
@@ -84,7 +89,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
             await wait(100)
         }
         this._readerCount++
-        return this.stores[0]
+        return this.getActive()
     }
 
     async getActiveForSync(): Promise<sdk.WalletStorageProvider> {
@@ -95,7 +100,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         // Wait for any current storageProvider, readers and writers to complete
         while (this._storageProviderLocked || this._readerCount > 0 || this._writerCount > 0) { await wait(100) }
         // Allow the sync to proceed on the active store.
-        return this.stores[0]
+        return this.getActive()
     }
 
     async getActiveForStorageProvider(): Promise<StorageProvider> {
@@ -106,10 +111,10 @@ export class WalletStorageManager implements sdk.WalletStorage {
         // Wait for any current sync, readers and writers to complete
         while (this._syncLocked || this._readerCount > 0 || this._writerCount > 0) { await wait(100) }
         // We can finally confirm that active storage is still able to support `StorageProvider`
-        if (!this.stores[0].isStorageProvider())
+        if (!this.getActive().isStorageProvider())
             throw new sdk.WERR_INVALID_OPERATION('Active "WalletStorageProvider" does not support "StorageProvider" interface.');
         // Allow the sync to proceed on the active store.
-        return this.stores[0] as unknown as StorageProvider
+        return this.getActive() as unknown as StorageProvider
     }
 
     async runAsWriter<R>(writer: (active: sdk.WalletStorageProvider) => Promise<R>): Promise<R> {
@@ -169,6 +174,12 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
     isAvailable(): boolean {
         return this.getActive().isAvailable()
+    }
+
+    async addWalletStorageProvider(provider: sdk.WalletStorageProvider) : Promise<void> {
+        await provider.makeAvailable()
+        if (this._services) provider.setServices(this._services)
+        this.stores.push(provider)
     }
 
     setServices(v: sdk.WalletServices) {

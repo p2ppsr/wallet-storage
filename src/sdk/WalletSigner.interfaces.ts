@@ -7,10 +7,10 @@ import { sdk } from "..";
 export interface WalletSigner {
   chain: sdk.Chain
   keyDeriver: sdk.KeyDeriverApi
-  storageIdentity: StorageIdentity
 
   setServices(v: sdk.WalletServices) : void
   getServices() : sdk.WalletServices
+  getStorageIdentity(): StorageIdentity
 
   listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
   listOutputs(args: sdk.ListOutputsArgs, knwonTxids: string[]): Promise<sdk.ListOutputsResult>

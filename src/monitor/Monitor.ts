@@ -119,10 +119,12 @@ export class Monitor {
      * possibly with sync'ing enabled
      */
     addDefaultTasks() : void {
-        this._tasks.push(new TaskSendWaiting(this))
-        this._tasks.push(new TaskCheckForProofs(this))
-        this._tasks.push(new TaskFailAbandoned(this))
-        this._otherTasks.push(new TaskSyncWhenIdle(this))
+        this._tasks.push(new TaskClock(this))
+        this._tasks.push(new TaskNewHeader(this))
+        this._tasks.push(new TaskSendWaiting(this, 8 * this.oneSecond, 7 * this.oneSecond)) // Check every 8 seconds but must be 7 seconds old
+        this._tasks.push(new TaskCheckForProofs(this, 2 * this.oneHour)) // Every two hours if no block found
+        this._tasks.push(new TaskFailAbandoned(this, 8 * this.oneMinute))
+        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * this.oneHour))
     }
     
     /**
@@ -130,14 +132,12 @@ export class Monitor {
      * without sync'ing enabled.
      */
     addMultiUserTasks() : void {
-        const seconds = 1000
-        const minutes = seconds * 60
-        const hours = minutes * 60
-        const days = hours * 24
-        this._tasks.push(new TaskSendWaiting(this, 8 * seconds, 7 * seconds)) // Check every 8 seconds but must be 7 seconds old
-        this._tasks.push(new TaskCheckForProofs(this, 2 * hours)) // Every two hours if no block found
-        this._tasks.push(new TaskFailAbandoned(this, 8 * minutes))
-        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * hours))
+        this._tasks.push(new TaskClock(this))
+        this._tasks.push(new TaskNewHeader(this))
+        this._tasks.push(new TaskSendWaiting(this, 8 * this.oneSecond, 7 * this.oneSecond)) // Check every 8 seconds but must be 7 seconds old
+        this._tasks.push(new TaskCheckForProofs(this, 2 * this.oneHour)) // Every two hours if no block found
+        this._tasks.push(new TaskFailAbandoned(this, 8 * this.oneMinute))
+        this._tasks.push(new TaskPurge(this, this.defaultPurgeParams, 6 * this.oneHour))
     }
 
     addTask(task: WalletMonitorTask) : void {
@@ -158,14 +158,16 @@ export class Monitor {
         }
     }
     
-    async runTask(name: string) : Promise<void> {
+    async runTask(name: string) : Promise<string> {
         let task = this._tasks.find(t => t.name === name)
+        let log = ''
         if (!task)
             task = this._otherTasks.find(t => t.name === name)
         if (task) {
             await task.asyncSetup()
-            await task.runTask()
+            log = await task.runTask()
         }
+        return log
     }
 
     async startTasks() : Promise<void> {
@@ -187,38 +189,54 @@ export class Monitor {
 
         for (;;) {
 
-            if (!this._tasksRunning) break
+            if (this.storage.getActive().isStorageProvider()) {
+                if (!this._tasksRunning) break
 
-            // console.log(`${new Date().toISOString()} tasks review triggers`)
+                console.log(`${new Date().toISOString()} tasks review triggers`)
 
-            const tasksToRun: WalletMonitorTask[] = []
-            const now = new Date().getTime()
-            for (const t of this._tasks) {
-                try {
-                    if (t.trigger(now).run) tasksToRun.push(t)
-                } catch(eu: unknown) {
-                    const e = sdk.WalletError.fromUnknown(eu)
-                    console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
+                const tasksToRun: WalletMonitorTask[] = []
+                const now = new Date().getTime()
+                for (const t of this._tasks) {
+                    try {
+                        if (t.trigger(now).run) tasksToRun.push(t)
+                    } catch (eu: unknown) {
+                        const e = sdk.WalletError.fromUnknown(eu)
+                        console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
+                    }
                 }
-            }
 
-            for (const ttr of tasksToRun) {
+                for (const ttr of tasksToRun) {
 
-                try {
-                    //console.log(`${new Date().toISOString()} running  ${ttr.name}`)
-                    await ttr.runTask()
-                } catch(eu: unknown) {
-                    const e = sdk.WalletError.fromUnknown(eu)
-                    console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
-                } finally {
-                    ttr.lastRunMsecsSinceEpoch = new Date().getTime()
+                    try {
+                        console.log(`${new Date().toISOString()} running  ${ttr.name}`)
+                        if (this.storage.getActive().isStorageProvider()) {
+                            const log = await ttr.runTask()
+                            if (log && log.length > 0) {
+                                console.log(`Task${ttr.name} ${log}`)
+                                await this.storage.runAsStorageProvider(async (sp) => {
+                                    await sp.insertMonitorEvent({
+                                        created_at: new Date(),
+                                        updated_at: new Date(),
+                                        id: 0,
+                                        event: ttr.name,
+                                        details: log
+                                    })
+                                })
+                            }
+                        }
+                    } catch (eu: unknown) {
+                        const e = sdk.WalletError.fromUnknown(eu)
+                        console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
+                    } finally {
+                        ttr.lastRunMsecsSinceEpoch = new Date().getTime()
+                    }
+
+                    if (!this._tasksRunning) break
+
                 }
 
                 if (!this._tasksRunning) break
-
             }
-
-            if (!this._tasksRunning) break
 
             // console.log(`${new Date().toISOString()} tasks run, waiting...`)
             await wait(this.options.taskRunWaitMsecs)

@@ -381,6 +381,16 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
+  static async createWalletSQLite(databaseFullPath: string = './test/data/tmp/walletNewTestData.sqlite', databaseName: string = 'walletNewTestData'): Promise<TestWalletNoSetup> {
+    return await this.createSQLiteTestWallet({
+      filePath: databaseFullPath,
+      databaseName,
+      chain: 'test',
+      rootKeyHex: '1'.repeat(64),
+      dropAll: true
+    })
+  }
+
   static legacyRootKeyHex = '153a3df216' + '686f55b253991c' + '7039da1f648' + 'ffc5bfe93d6ac2c25ac' + '2d4070918d'
 
   static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>, tryCopyToPath?: string): Promise<TestWalletNoSetup> {

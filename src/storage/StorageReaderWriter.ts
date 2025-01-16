@@ -95,14 +95,26 @@ export abstract class StorageReaderWriter extends StorageReader {
             try {
                 user = verifyOneOrNone(await this.findUsers({ partial: { identityKey } , trx }))
                 if (user) break;
+                const now = new Date()
                 user = {
-                    created_at: new Date(),
-                    updated_at: new Date(),
+                    created_at: now,
+                    updated_at: now,
                     userId: 0,
                     identityKey
                 }
                 user.userId = await this.insertUser(user, trx)
                 isNew = true
+                // Add default change basket for new user.
+                await this.insertOutputBasket({
+                    created_at: now,
+                    updated_at: now,
+                    basketId: 0,
+                    userId: user.userId,
+                    name: "default",
+                    numberOfDesiredUTXOs: 32,
+                    minimumDesiredUTXOValue: 1000,
+                    isDeleted: false
+                })
                 break;
             } catch (eu: unknown) {
                 if (retry > 0) throw eu;

@@ -29,8 +29,8 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
             inputBEEF,
             rawTx,
             status: 'unknown',
-            history: '',
-            notify: '',
+            history: '{}',
+            notify: '{}',
             attempts: 0,
             notified: false
         })
@@ -44,6 +44,9 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
 
     unpackApiHistory() { this.history = JSON.parse(this.api.history) }
     unpackApiNotify() { this.notify = JSON.parse(this.api.notify) }
+
+    get apiHistory() : string { this.packApiHistory(); return this.api.history }
+    get apiNotify() : string { this.packApiNotify(); return this.api.notify }
 
     set apiHistory(v: string) { this.api.history = v; this.unpackApiHistory() }
     set apiNotify(v: string) { this.api.notify = v; this.unpackApiNotify() }

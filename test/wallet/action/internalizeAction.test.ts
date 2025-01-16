@@ -46,11 +46,14 @@ describe('internalizeAction tests', () => {
             noSend: true
           }
         }
+        // This createAction creates a new P2PKH output of 4 satoshis for Fred using his publish payment address... old school.
         const cr = await wallet.createAction(createArgs)
         expect(cr.tx).toBeTruthy()
 
+        // Fred's new wallet (context)
         const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction1fred', rootKeyHex: '2'.repeat(64), dropAll: true})
 
+        // Internalize args to add fred's new output to his own wallet
         const internalizeArgs: sdk.InternalizeActionArgs = {
           tx: cr.tx!,
           outputs: [
@@ -66,7 +69,12 @@ describe('internalizeAction tests', () => {
           ],
           description: 'got paid!'
         }
+        // And do it...
         const ir = await fred.wallet.internalizeAction(internalizeArgs)
+        expect(ir.accepted).toBe(true)
+
+        // cleanup fred's storage
+        await fred.activeStorage.destroy()
       }
     }
   })

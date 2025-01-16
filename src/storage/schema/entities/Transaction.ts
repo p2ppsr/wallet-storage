@@ -189,7 +189,7 @@ export class Transaction extends EntityBase<table.Transaction> {
     const eo = this.toApi()
     // Properties that are never updated
     if (eo.transactionId !== (syncMap ? syncMap.transaction.idMap[verifyId(ei.transactionId)] : ei.transactionId) || eo.reference !== ei.reference) return false
-
+    console.log('Comparing objects:', { eo, ei })
     if (
       eo.version !== ei.version ||
       eo.lockTime !== ei.lockTime ||

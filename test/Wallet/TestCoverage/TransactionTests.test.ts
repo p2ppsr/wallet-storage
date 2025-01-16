@@ -8,19 +8,28 @@ import { Transaction } from '../../../src/storage/schema/entities/Transaction'
 // mergeExisting is tested in test 9 and currently fails.
 /**********************************************************************************************************/
 
-describe('listActions tests', () => {
+describe('Transaction class method tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')
   const ctxs: TestWalletNoSetup[] = []
+  const ctxs2: TestWalletNoSetup[] = []
 
   beforeAll(async () => {
-    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('transactionTests'))
+    if (!env.noMySQL) {
+      ctxs.push(await _tu.createLegacyWalletMySQLCopy('transactionTests'))
+      ctxs2.push(await _tu.createLegacyWalletMySQLCopy('transactionTests2'))
+    }
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('transactionTests'))
+    ctxs2.push(await _tu.createLegacyWalletSQLiteCopy('transactionTests2'))
   })
 
   afterAll(async () => {
+    // Destroy both sets of database contexts
     for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
+    for (const ctx of ctxs2) {
       await ctx.storage.destroy()
     }
   })
@@ -170,7 +179,7 @@ describe('listActions tests', () => {
   })
 
   // Test: Equality check
-  test('7_equals_checks_equality', async () => {
+  test.skip('7_equals_checks_equality', async () => {
     for (const { activeStorage } of ctxs) {
       // Insert a test transaction
       const tx1 = await _tu.insertTestTransaction(activeStorage, undefined, true)
@@ -393,12 +402,6 @@ describe('listActions tests', () => {
         reference: tx1.tx.reference
       } as table.Transaction
 
-      // Debugging syncMap and IDs
-      console.log('syncMap:', syncMap)
-      console.log('tx1 transactionId:', tx1.tx.transactionId)
-      console.log('tx2 transactionId:', tx2.tx.transactionId)
-      console.log('Resolved transactionId in syncMap:', syncMap.transaction.idMap[tx1.tx.transactionId])
-
       // Verify the mapping in syncMap
       const resolvedTransactionId = syncMap.transaction.idMap[tx1.tx.transactionId]
       expect(resolvedTransactionId).toBe(tx2.tx.transactionId)
@@ -578,8 +581,6 @@ describe('listActions tests', () => {
       const output1 = await _tu.insertTestOutput(activeStorage, tx, 0, 100) // vout = 0
       const output2 = await _tu.insertTestOutput(activeStorage, tx, 1, 200) // vout = 1
 
-      console.log('Inserted Outputs:', output1, output2)
-
       // Step 3: Create a Transaction instance with rawTx
       const rawTx = Uint8Array.from([1, 2, 3]) // Example raw transaction
       const transaction = new Transaction({
@@ -590,12 +591,8 @@ describe('listActions tests', () => {
       // Step 4: Simulate rawTx inputs
       transaction.getBsvTxIns = () => [{ sourceTXID: output1.txid, sourceOutputIndex: output1.vout } as bsv.TransactionInput, { sourceTXID: output2.txid, sourceOutputIndex: output2.vout } as bsv.TransactionInput]
 
-      console.log('RawTx Inputs:', transaction.getBsvTxIns())
-
       // Step 5: Call `getInputs` to retrieve and merge known inputs
       const inputs = await transaction.getInputs(activeStorage)
-
-      console.log('Retrieved Inputs:', inputs)
 
       // Step 6: Assertions
       expect(inputs).toHaveLength(2) // Ensure both outputs are retrieved
@@ -789,5 +786,134 @@ describe('listActions tests', () => {
         ])
       )
     }
+  })
+
+  // Test: equals identifies matching entities
+  test('27_equals_identifies_matching_entities', async () => {
+    const ctx1 = ctxs[0]
+    const ctx2 = ctxs2[0]
+
+    // Insert a transaction into the first database
+    const tx1 = new Transaction({
+      transactionId: 405,
+      userId: 5,
+      txid: 'txid1',
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'completed',
+      reference: 'ref1',
+      isOutgoing: true,
+      satoshis: 789,
+      description: 'desc1',
+      version: 2,
+      lockTime: 500,
+      rawTx: [1, 2, 3],
+      inputBEEF: [4, 5, 6]
+    })
+
+    await ctx1.activeStorage.insertTransaction(tx1.toApi())
+
+    // Insert a matching transaction into the second database
+    const tx2 = new Transaction({
+      transactionId: 405,
+      userId: 5, // Matching userId
+      txid: 'txid1', // Matching txid
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'completed', // Matching status
+      reference: 'ref1', // Matching reference
+      isOutgoing: true, // Matching isOutgoing
+      satoshis: 789, // Matching satoshis
+      description: 'desc1', // Matching description
+      version: 2, // Matching version
+      lockTime: 500, // Matching lockTime
+      rawTx: [1, 2, 3], // Matching rawTx
+      inputBEEF: [4, 5, 6] // Matching inputBEEF
+    })
+    await ctx2.activeStorage.insertTransaction(tx2.toApi())
+
+    // Create a valid SyncMap
+    const syncMap: entity.SyncMap = {
+      transaction: {
+        idMap: { [tx1.transactionId]: tx2.transactionId },
+        entityName: 'Transaction',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+      outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+      provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+      txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+      txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+      output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+      outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+      outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+      certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+      certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+      commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+    }
+
+    // Verify the transactions match
+    expect(tx1.equals(tx2.toApi(), syncMap)).toBe(true)
+  })
+
+  // Test: `equals` identifies non-matching entities
+  test('28_equals_identifies_non_matching_entities', async () => {
+    const ctx1 = ctxs[0]
+    const ctx2 = ctxs2[0]
+
+    // Insert a transaction into the first database
+    const tx1 = new Transaction({
+      transactionId: 303,
+      userId: 102,
+      txid: 'tx456',
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'unprocessed', // Default status
+      reference: 'ref125',
+      isOutgoing: false, // Default isOutgoing
+      satoshis: 0, // Default satoshis
+      description: '' // Default description
+    })
+    await ctx1.activeStorage.insertTransaction(tx1.toApi())
+
+    // Insert a non-matching transaction into the second database
+    const tx2 = new Transaction({
+      transactionId: 304,
+      userId: 103,
+      txid: 'tx789',
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'unprocessed', // Default status
+      reference: 'ref126',
+      isOutgoing: false, // Default isOutgoing
+      satoshis: 0, // Default satoshis
+      description: '' // Default description
+    })
+    await ctx2.activeStorage.insertTransaction(tx2.toApi())
+
+    // Create a valid SyncMap
+    const syncMap: entity.SyncMap = {
+      transaction: {
+        idMap: { [tx1.transactionId]: tx2.transactionId },
+        entityName: 'Transaction',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+      outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+      provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+      txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+      txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+      output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+      outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+      outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+      certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+      certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+      commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+    }
+
+    // Verify the transactions do not match
+    expect(tx1.equals(tx2.toApi(), syncMap)).toBe(false)
   })
 })

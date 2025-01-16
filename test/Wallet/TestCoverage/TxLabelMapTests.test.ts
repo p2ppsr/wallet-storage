@@ -1,7 +1,35 @@
 import { TxLabelMap } from '../../../src/storage/schema/entities/TxLabelMap'
 import { table, sdk } from '../../../src'
+import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
 
 describe('TxLabelMap Class Tests', () => {
+  jest.setTimeout(99999999) // Extend timeout for database operations
+
+  const env = _tu.getEnv('test') // Test environment
+  const ctxs: TestWalletNoSetup[] = [] // Context for primary databases
+  const ctxs2: TestWalletNoSetup[] = [] // Context for secondary databases
+
+  beforeAll(async () => {
+    // Set up MySQL and SQLite databases for testing
+    if (!env.noMySQL) {
+      ctxs.push(await _tu.createLegacyWalletMySQLCopy('txLabelMapTests_db1'))
+      ctxs2.push(await _tu.createLegacyWalletMySQLCopy('txLabelMapTests_db2'))
+    }
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('txLabelMapTests_db1'))
+    ctxs2.push(await _tu.createLegacyWalletSQLiteCopy('txLabelMapTests_db2'))
+  })
+
+  afterAll(async () => {
+    // Clean up primary databases
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
+    // Clean up secondary databases
+    for (const ctx of ctxs2) {
+      await ctx.storage.destroy()
+    }
+  })
+
   // Test: Constructor with default values
   test('1_creates_instance_with_default_values', () => {
     const txLabelMap = new TxLabelMap()

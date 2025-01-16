@@ -1,7 +1,35 @@
 import { User } from '../../../src/storage/schema/entities/User'
-import { table } from '../../../src'
+import { table, entity } from '../../../src'
+import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
 
-describe('User Class Tests', () => {
+describe('User class method tests', () => {
+  jest.setTimeout(99999999) // Extend timeout for database operations
+
+  const env = _tu.getEnv('test') // Test environment
+  const ctxs: TestWalletNoSetup[] = [] // Context for primary databases
+  const ctxs2: TestWalletNoSetup[] = [] // Context for secondary databases
+
+  beforeAll(async () => {
+    // Set up MySQL and SQLite databases for testing
+    if (!env.noMySQL) {
+      ctxs.push(await _tu.createLegacyWalletMySQLCopy('userTests_db1'))
+      ctxs2.push(await _tu.createLegacyWalletMySQLCopy('userTests_db2'))
+    }
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('userTests_db1'))
+    ctxs2.push(await _tu.createLegacyWalletSQLiteCopy('userTests_db2'))
+  })
+
+  afterAll(async () => {
+    // Clean up primary databases
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
+    // Clean up secondary databases
+    for (const ctx of ctxs2) {
+      await ctx.storage.destroy()
+    }
+  })
+
   // Test: Default constructor behavior
   test('1_creates_user_with_default_values', () => {
     const user = new User()
@@ -68,22 +96,106 @@ describe('User Class Tests', () => {
     expect(() => (user.identityKey = undefined as unknown as string)).toThrow(TypeError) // Undefined identityKey
   })
 
-  // Test: Equality check always returns false (current behavior)
-  test('5_equals_always_returns_false', () => {
-    const user = new User()
-    const apiObject: table.User = {
-      userId: 1,
-      created_at: new Date(),
-      updated_at: new Date(),
-      identityKey: 'testKey'
-    }
-    const result = user.equals(apiObject)
+  // Test: equals method matching entities
+  test('5_equals_identifies_matching_entities', async () => {
+    for (const ctx1 of ctxs) {
+      for (const ctx2 of ctxs2) {
+        // Insert the first user into the first database
+        const user1 = new User({
+          userId: 2,
+          identityKey: 'key1',
+          created_at: new Date('2023-01-01'),
+          updated_at: new Date('2023-01-02')
+        })
+        await ctx1.activeStorage.insertUser(user1.toApi())
 
-    expect(result).toBe(false)
+        // Insert a matching user into the second database
+        const user2 = new User({
+          userId: 3, // Different ID
+          identityKey: 'key1', // Same key
+          created_at: new Date('2023-01-01'),
+          updated_at: new Date('2023-01-02')
+        })
+        await ctx2.activeStorage.insertUser(user2.toApi())
+
+        // Create a valid SyncMap mapping IDs from db1 to db2
+        const syncMap: entity.SyncMap = {
+          transaction: {
+            idMap: { [user1.userId]: user2.userId },
+            entityName: 'Transaction',
+            maxUpdated_at: undefined,
+            count: 1
+          },
+          provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+          outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+          provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+          txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+          txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+          output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+          outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+          outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+          certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+          certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+          commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+        }
+
+        // Verify the entities match across databases
+        expect(user1.equals(user2.toApi(), syncMap)).toBe(true) // Should match
+      }
+    }
+  })
+
+  // Test: equals method non-matching entities
+  test('6_equals_identifies_non_matching_entities', async () => {
+    for (const ctx1 of ctxs) {
+      for (const ctx2 of ctxs2) {
+        // Insert the first user into the first database
+        const user1 = new User({
+          userId: 4,
+          identityKey: 'key2',
+          created_at: new Date('2023-01-01'),
+          updated_at: new Date('2023-01-02')
+        })
+        await ctx1.activeStorage.insertUser(user1.toApi())
+
+        // Insert a user with a different key into the second database
+        const user2 = new User({
+          userId: 5, // Different ID
+          identityKey: 'key3', // Different key
+          created_at: new Date('2023-01-01'),
+          updated_at: new Date('2023-01-02')
+        })
+        await ctx2.activeStorage.insertUser(user2.toApi())
+
+        // Create a valid SyncMap mapping IDs from db1 to db2
+        const syncMap: entity.SyncMap = {
+          transaction: {
+            idMap: { [user1.userId]: user2.userId },
+            entityName: 'Transaction',
+            maxUpdated_at: undefined,
+            count: 1
+          },
+          provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+          outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+          provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+          txLabel: { idMap: {}, entityName: 'TxLabel', maxUpdated_at: undefined, count: 0 },
+          txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+          output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+          outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+          outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+          certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+          certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+          commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
+        }
+
+        // Verify the entities do not match across databases
+        expect(user1.equals(user2.toApi(), syncMap)).toBe(false) // Should not match
+      }
+    }
   })
 
   // Test: Handles edge cases in the constructor
-  test('6_handles_edge_cases_in_constructor', () => {
+  test('7_handles_edge_cases_in_constructor', () => {
     const now = new Date()
     const pastDate = new Date(now.getTime() - 1000000)
 
@@ -103,7 +215,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: Handles large input values
-  test('7_handles_large_input_values', () => {
+  test('8_handles_large_input_values', () => {
     const now = new Date()
     const largeUserId = Number.MAX_SAFE_INTEGER
     const longIdentityKey = 'x'.repeat(1000)
@@ -123,7 +235,7 @@ describe('User Class Tests', () => {
   // Test: Handles invalid dates in API object
   // Currently fails because the User constructor does not validate `created_at` and `updated_at`.
   // Validation needs to be added to ensure these fields are valid Date objects, throwing a TypeError if not.
-  test.skip('8_handles_invalid_dates_in_api_object', () => {
+  test.skip('9_handles_invalid_dates_in_api_object', () => {
     const invalidDate = 'not-a-date' as unknown as Date
 
     const apiObject: table.User = {
@@ -137,7 +249,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: Handles empty API object
-  test('9_handles_empty_api_object', () => {
+  test('10_handles_empty_api_object', () => {
     const emptyApiObject: table.User = {} as table.User
     const user = new User(emptyApiObject)
 
@@ -149,7 +261,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: `id` getter and setter
-  test('10_id_getter_and_setter_work_correctly', () => {
+  test('11_id_getter_and_setter_work_correctly', () => {
     const user = new User()
 
     user.id = 123 // Test setter
@@ -157,21 +269,21 @@ describe('User Class Tests', () => {
   })
 
   // Test: `entityName` getter
-  test('11_entityName_returns_User', () => {
+  test('12_entityName_returns_User', () => {
     const user = new User()
 
     expect(user.entityName).toBe('User')
   })
 
   // Test: `entityTable` getter
-  test('12_entityTable_returns_users', () => {
+  test('13_entityTable_returns_users', () => {
     const user = new User()
 
     expect(user.entityTable).toBe('users')
   })
 
   // Test: `mergeExisting` updates user when `ei.updated_at` is newer
-  test('13_mergeExisting_updates_user_when_ei_updated_at_is_newer', async () => {
+  test('14_mergeExisting_updates_user_when_ei_updated_at_is_newer', async () => {
     const user = new User({
       userId: 1,
       created_at: new Date('2023-01-01'),
@@ -206,7 +318,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: `mergeExisting` does not update user when `ei.updated_at` is older
-  test('14_mergeExisting_does_not_update_user_when_ei_updated_at_is_older', async () => {
+  test('15_mergeExisting_does_not_update_user_when_ei_updated_at_is_older', async () => {
     const user = new User({
       userId: 1,
       created_at: new Date('2023-01-01'),
@@ -239,7 +351,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: `mergeExisting` updates user and uses `trx` when provided
-  test('15_mergeExisting_updates_user_with_trx', async () => {
+  test('16_mergeExisting_updates_user_with_trx', async () => {
     const user = new User({
       userId: 1,
       created_at: new Date('2023-01-01'),
@@ -278,7 +390,7 @@ describe('User Class Tests', () => {
   })
 
   // Test: `mergeNew` always throws an error
-  test('16_mergeNew_always_throws_error', async () => {
+  test('17_mergeNew_always_throws_error', async () => {
     const user = new User()
     const storage = {} // Placeholder for `storage`, not used in this case.
     const userId = 123 // Example userId

@@ -679,6 +679,8 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     o.lockingScript = script
   }
 
+  _verifiedReadyForDatabaseAccess: boolean = false
+
   /**
    * Make sure database is ready for access:
    *
@@ -690,11 +692,16 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   async verifyReadyForDatabaseAccess(trx?: sdk.TrxToken): Promise<DBType> {
     if (!this._settings) {
       this._settings = await this.readSettings()
+    }
+
+    if (!this._verifiedReadyForDatabaseAccess) {
 
       // Make sure foreign key constraint checking is turned on in SQLite.
       if (this._settings.dbtype === 'SQLite') {
         await this.toDb(trx).raw('PRAGMA foreign_keys = ON;')
       }
+
+      this._verifiedReadyForDatabaseAccess = true
     }
 
     return this._settings.dbtype

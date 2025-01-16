@@ -182,7 +182,9 @@ export class Monitor {
                 await t.asyncSetup()
             } catch(eu: unknown) {
                 const e = sdk.WalletError.fromUnknown(eu)
-                console.log(`monitor task ${t.name} asyncSetup error ${e.code} ${e.description}`)
+                const details = `monitor task ${t.name} asyncSetup error ${e.code} ${e.description}`
+                console.log(details)
+                await this.logEvent('error0', details)
             }
             if (!this._tasksRunning) break
         }
@@ -192,8 +194,6 @@ export class Monitor {
             if (this.storage.getActive().isStorageProvider()) {
                 if (!this._tasksRunning) break
 
-                console.log(`${new Date().toISOString()} tasks review triggers`)
-
                 const tasksToRun: WalletMonitorTask[] = []
                 const now = new Date().getTime()
                 for (const t of this._tasks) {
@@ -201,32 +201,27 @@ export class Monitor {
                         if (t.trigger(now).run) tasksToRun.push(t)
                     } catch (eu: unknown) {
                         const e = sdk.WalletError.fromUnknown(eu)
-                        console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
+                        const details = `monitor task ${t.name} trigger error ${e.code} ${e.description}`
+                        console.log(details)
+                        await this.logEvent('error0', details)
                     }
                 }
 
                 for (const ttr of tasksToRun) {
 
                     try {
-                        console.log(`${new Date().toISOString()} running  ${ttr.name}`)
                         if (this.storage.getActive().isStorageProvider()) {
                             const log = await ttr.runTask()
                             if (log && log.length > 0) {
                                 console.log(`Task${ttr.name} ${log}`)
-                                await this.storage.runAsStorageProvider(async (sp) => {
-                                    await sp.insertMonitorEvent({
-                                        created_at: new Date(),
-                                        updated_at: new Date(),
-                                        id: 0,
-                                        event: ttr.name,
-                                        details: log
-                                    })
-                                })
+                                await this.logEvent(ttr.name, log)
                             }
                         }
                     } catch (eu: unknown) {
                         const e = sdk.WalletError.fromUnknown(eu)
-                        console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
+                        const details = `monitor task ${ttr.name} runTask error ${e.code} ${e.description}\n${e.stack}`
+                        console.log(details)
+                        await this.logEvent('error1', details)
                     } finally {
                         ttr.lastRunMsecsSinceEpoch = new Date().getTime()
                     }
@@ -241,6 +236,18 @@ export class Monitor {
             // console.log(`${new Date().toISOString()} tasks run, waiting...`)
             await wait(this.options.taskRunWaitMsecs)
         }
+    }
+
+    async logEvent(event: string, details?: string) : Promise<void> {
+        await this.storage.runAsStorageProvider(async (sp) => {
+            await sp.insertMonitorEvent({
+                created_at: new Date(),
+                updated_at: new Date(),
+                id: 0,
+                event,
+                details
+            })
+        })
     }
     
     stopTasks() : void {

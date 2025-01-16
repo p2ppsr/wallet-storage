@@ -36,7 +36,10 @@ describe('walletStorageClient test', () => {
     })
 
     test('2 create storage client wallet', async () => {
-        const ctx = await _tu.createTestWalletWithStorageClient({ rootKeyHex: '1'.repeat(64) })
+        const ctx = await _tu.createTestWalletWithStorageClient({
+            rootKeyHex: '1'.repeat(64),
+            endpointUrl: 'https://staging-dojo.babbage.systems'
+        })
         ctxs.push(ctx)
         const { wallet, storage } = ctx
 

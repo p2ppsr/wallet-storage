@@ -29,8 +29,8 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
             inputBEEF,
             rawTx,
             status: 'unknown',
-            history: '',
-            notify: '',
+            history: '{}',
+            notify: '{}',
             attempts: 0,
             notified: false
         })
@@ -39,21 +39,26 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
     history: ProvenTxReqHistory
     notify: ProvenTxReqNotify
     
-    get apiHistory() { return JSON.stringify(this.history) }
-    set apiHistory(v : string) { this.history = <ProvenTxReqHistory>JSON.parse(this.api.history || '{}') }
-    get apiNotify() { return JSON.stringify(this.notify) }
-    set apiNotify(v : string) { this.notify = <ProvenTxReqNotify>JSON.parse(this.api.notify || '{}') }
+    packApiHistory() { this.api.history = JSON.stringify(this.history) }
+    packApiNotify() { this.api.notify = JSON.stringify(this.notify) }
+
+    unpackApiHistory() { this.history = JSON.parse(this.api.history) }
+    unpackApiNotify() { this.notify = JSON.parse(this.api.notify) }
+
+    get apiHistory() : string { this.packApiHistory(); return this.api.history }
+    get apiNotify() : string { this.packApiNotify(); return this.api.notify }
+
+    set apiHistory(v: string) { this.api.history = v; this.unpackApiHistory() }
+    set apiNotify(v: string) { this.api.notify = v; this.unpackApiNotify() }
 
     updateApi() : void {
-        this.api.history = this.apiHistory
-        this.api.notify = this.apiNotify
+        this.packApiHistory()
+        this.packApiNotify()
     }
 
     unpackApi() : void {
-        this.history = {}
-        this.notify = {}
-        this.apiHistory = this.api.history
-        this.apiNotify = this.api.notify
+        this.unpackApiHistory()
+        this.unpackApiNotify()
         if (this.notify.transactionIds) {
             // Cleanup null values and duplicates.
             const transactionIds: number[] = []

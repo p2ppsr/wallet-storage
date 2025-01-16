@@ -86,6 +86,7 @@ export class StorageServer {
               if (params[0]['identityKey']) params[0].userId = user.userId;
             } break;
           }
+          console.log(`StorageServer: method=${method} params=${JSON.stringify(params).slice(0, 100)}`)
           const result = await (this.storage as any)[method](...(params || []))
           return res.json({ jsonrpc: '2.0', result, id })
         } else {

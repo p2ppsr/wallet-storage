@@ -69,6 +69,10 @@ export class StorageServer {
           // method is on the walletStorage:
           // Find user
           switch (method) {
+            case 'destroy': {
+              console.log(`StorageServer: method=${method} IGNORED`)
+              return res.json({ jsonrpc: '2.0', result: undefined, id })
+            }
             case 'getSettings': {
               /** */
             } break;
@@ -80,6 +84,8 @@ export class StorageServer {
               if (typeof params[0] !== 'object' || !params[0]) {
                 params = [{}]
               }
+              if (params[0]['identityKey'] && params[0]['identityKey'] !== req.auth.identityKey)
+                throw new sdk.WERR_UNAUTHORIZED('identityKey does not match authentiation')
               console.log('looking up user with identityKey:', req.auth.identityKey)
               const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
               params[0].reqAuthUserId = user.userId

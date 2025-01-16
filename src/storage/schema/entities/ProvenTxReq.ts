@@ -39,10 +39,10 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
     history: ProvenTxReqHistory
     notify: ProvenTxReqNotify
     
-    get apiHistory() { return JSON.stringify(this.history) }
-    set apiHistory(v : string) { this.history = <ProvenTxReqHistory>JSON.parse(this.api.history || '{}') }
-    get apiNotify() { return JSON.stringify(this.notify) }
-    set apiNotify(v : string) { this.notify = <ProvenTxReqNotify>JSON.parse(this.api.notify || '{}') }
+    packApiHistory() { this.api.history = JSON.stringify(this.history) }
+    unpackApiHistory() { this.history = JSON.parse(this.api.history) }
+    packApiNotify() { this.api.notify = JSON.stringify(this.notify) }
+    unpackApiNotify() { this.notify = JSON.parse(this.api.notify) }
 
     updateApi() : void {
         this.api.history = this.apiHistory

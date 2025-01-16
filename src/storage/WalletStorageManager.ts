@@ -50,12 +50,9 @@ export class WalletStorageManager implements sdk.WalletStorage {
     isStorageProvider(): boolean { return false }
 
     async getUserId(): Promise<number> {
-        console.log('getUserId()')
         let userId = this._authId.userId
         if (!userId) {
-            console.log(`checking isAvailable ${this.isAvailable()}`)
             if (!this.isAvailable()) await this.makeAvailable()
-            console.log(`findOrInsertUser ${this._authId.identityKey}`)
             const { user, isNew } = await this.getActive().findOrInsertUser(this._authId.identityKey)
             if (!user)
                 throw new sdk.WERR_INVALID_PARAMETER('identityKey', 'exist on storage.');

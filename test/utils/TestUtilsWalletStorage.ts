@@ -203,9 +203,9 @@ export abstract class TestUtilsWalletStorage {
   }): Promise<TestWallet<T>> {
     const wo = await _tu.createWalletOnly({ chain: args.chain, rootKeyHex: args.rootKeyHex })
     const activeStorage = new StorageKnex({ chain: wo.chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
-    if (args.dropAll) await activeStorage.dropAllData()
     await activeStorage.migrate(args.databaseName, wo.identityKey)
     await activeStorage.makeAvailable()
+    if (args.dropAll) await activeStorage.dropAllData()
     const setup = await args.insertSetup(activeStorage, wo.identityKey)
     await wo.storage.addWalletStorageProvider(activeStorage)
     const { user, isNew } = await activeStorage.findOrInsertUser(wo.identityKey)

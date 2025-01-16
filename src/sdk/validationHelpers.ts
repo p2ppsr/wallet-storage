@@ -16,7 +16,7 @@ function defaultEmpty<T>(v?: T[]) { return v === undefined ? [] : v }
 
 function validateOptionalStringLength(s: string | undefined, name: string, min?: number, max?: number): string | undefined {
     if (s === undefined) return undefined
-    return validateOptionalStringLength(s, name, min, max)
+    return validateStringLength(s, name, min, max)
 }
 
 export function validateSatoshis(v: number | undefined, name: string, min?: number): number {

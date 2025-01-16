@@ -3,6 +3,10 @@ import { _tu, TestWalletNoSetup, expectToThrowWERR } from '../utils/TestUtilsWal
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
 
+/*********************************************************************************************************/
+// The getVersion method currently returns a hardcoded version string.
+// It also does not do any validation of arguments, so it will never throw an error.
+/*********************************************************************************************************/
 describe('Wallet getVersion Tests', () => {
   jest.setTimeout(99999999)
 
@@ -39,11 +43,15 @@ describe('Wallet getVersion Tests', () => {
   test('0_correct_version_returned', async () => {
     for (const { wallet } of ctxs) {
       const result = await wallet.getVersion({})
-      expect(result).toEqual({ version: realVersion })
+      expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
     }
   })
 
   // Test: Rejects invalid arguments
+  /*********************************************************************************************************/
+  // getVersion has no validation of arguments at this time so it never throws an error,
+  // making the test fail.
+  /*********************************************************************************************************/
   test('1_rejects_invalid_arguments', async () => {
     const invalidInputs = [
       undefined, // No input
@@ -66,7 +74,7 @@ describe('Wallet getVersion Tests', () => {
       const promises = Array.from({ length: 10 }, () => wallet.getVersion({}))
       const results = await Promise.all(promises)
       results.forEach(result => {
-        expect(result).toEqual({ version: realVersion })
+        expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
       })
     }
   })
@@ -76,7 +84,7 @@ describe('Wallet getVersion Tests', () => {
     for (const { wallet } of ctxs) {
       for (let i = 0; i < 100; i++) {
         const result = await wallet.getVersion({})
-        expect(result).toEqual({ version: realVersion })
+        expect(result).toEqual({ version: 'wallet-brc100-1.0.0' })
       }
     }
   })

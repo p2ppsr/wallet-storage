@@ -620,6 +620,7 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async dropAllData(): Promise<void> {
+    await this.makeAvailable()
     const settings = this.getSettings()
     const config = { migrationSource: new KnexMigrations(this.chain, settings.storageName, settings.storageIdentityKey, 1024) }
     const count = Object.keys(config.migrationSource.migrations).length
@@ -631,6 +632,7 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
         break
       }
     }
+    await this.migrate(settings.storageName, settings.storageIdentityKey)
   }
 
   override async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {

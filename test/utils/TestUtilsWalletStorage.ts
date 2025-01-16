@@ -158,12 +158,7 @@ export abstract class TestUtilsWalletStorage {
     return unlock
   }
 
-  static async createWalletOnly(args: {
-    chain?: sdk.Chain,
-    rootKeyHex?: string,
-    active?: sdk.WalletStorageProvider,
-    backups?: sdk.WalletStorageProvider[]
-  }): Promise<TestWalletOnly> {
+  static async createWalletOnly(args: { chain?: sdk.Chain; rootKeyHex?: string; active?: sdk.WalletStorageProvider; backups?: sdk.WalletStorageProvider[] }): Promise<TestWalletOnly> {
     args.chain ||= 'test'
     args.rootKeyHex ||= '1'.repeat(64)
     const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
@@ -171,8 +166,7 @@ export abstract class TestUtilsWalletStorage {
     const keyDeriver = new sdk.KeyDeriver(rootKey)
     const chain = args.chain
     const storage = new WalletStorageManager(identityKey, args.active, args.backups)
-    if (storage.stores.length > 0)
-      await storage.makeAvailable();
+    if (storage.stores.length > 0) await storage.makeAvailable()
     const signer = new WalletSigner(chain, keyDeriver, storage)
     const services = new Services(args.chain)
     const monopts = Monitor.createDefaultWalletMonitorOptions(chain, storage, services)
@@ -187,14 +181,12 @@ export abstract class TestUtilsWalletStorage {
       signer,
       services,
       monitor,
-      wallet,
+      wallet
     }
     return r
   }
 
-  static async createTestWalletWithStorageClient(args: {
-    rootKeyHex?: string,
-  }): Promise<TestWalletOnly> {
+  static async createTestWalletWithStorageClient(args: { rootKeyHex?: string }): Promise<TestWalletOnly> {
     const wo = await _tu.createWalletOnly({ chain: 'test', rootKeyHex: args.rootKeyHex })
     const client = new StorageClient(wo.wallet, 'https://staging-dojo.babbage.systems')
     await wo.storage.addWalletStorageProvider(client)
@@ -202,18 +194,18 @@ export abstract class TestUtilsWalletStorage {
   }
 
   static async createKnexTestWalletWithSetup<T>(args: {
-    knex: Knex<any, any[]>,
-    databaseName: string,
-    chain?: sdk.Chain,
-    rootKeyHex?: string,
-    dropAll?: boolean,
+    knex: Knex<any, any[]>
+    databaseName: string
+    chain?: sdk.Chain
+    rootKeyHex?: string
+    dropAll?: boolean
     insertSetup: (storage: StorageKnex, identityKey: string) => Promise<T>
   }): Promise<TestWallet<T>> {
     const wo = await _tu.createWalletOnly({ chain: args.chain, rootKeyHex: args.rootKeyHex })
     const activeStorage = new StorageKnex({ chain: wo.chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
-    if (args.dropAll) await activeStorage.dropAllData()
     await activeStorage.migrate(args.databaseName, wo.identityKey)
     await activeStorage.makeAvailable()
+    if (args.dropAll) await activeStorage.dropAllData()
     const setup = await args.insertSetup(activeStorage, wo.identityKey)
     await wo.storage.addWalletStorageProvider(activeStorage)
     const { user, isNew } = await activeStorage.findOrInsertUser(wo.identityKey)
@@ -327,8 +319,8 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
-  static async createSQLiteTestWallet(args: { filePath?: string, databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWalletNoSetup> {
-    const localSQLiteFile = args.filePath || await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
+  static async createSQLiteTestWallet(args: { filePath?: string; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWalletNoSetup> {
+    const localSQLiteFile = args.filePath || (await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true))
     return await this.createKnexTestWallet({
       ...args,
       knex: _tu.createLocalSQLite(localSQLiteFile)
@@ -389,7 +381,17 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
-  static legacyRootKeyHex = "153a3df216" + "686f55b253991c" + "7039da1f648" + "ffc5bfe93d6ac2c25ac" + "2d4070918d"
+  static async createWalletSQLite(databaseFullPath: string = './test/data/tmp/walletNewTestData.sqlite', databaseName: string = 'walletNewTestData'): Promise<TestWalletNoSetup> {
+    return await this.createSQLiteTestWallet({
+      filePath: databaseFullPath,
+      databaseName,
+      chain: 'test',
+      rootKeyHex: '1'.repeat(64),
+      dropAll: true
+    })
+  }
+
+  static legacyRootKeyHex = '153a3df216' + '686f55b253991c' + '7039da1f648' + 'ffc5bfe93d6ac2c25ac' + '2d4070918d'
 
   static async createLegacyWalletCopy(databaseName: string, walletKnex: Knex<any, any[]>, tryCopyToPath?: string): Promise<TestWalletNoSetup> {
     const readerFile = await _tu.existingDataFile(`walletLegacyTestData.sqlite`)
@@ -401,7 +403,7 @@ export abstract class TestUtilsWalletStorage {
     }
     const chain: sdk.Chain = 'test'
     const rootKeyHex = _tu.legacyRootKeyHex
-    const identityKey = "03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe"
+    const identityKey = '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
     const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
     const keyDeriver = new sdk.KeyDeriver(rootKey)
     const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })

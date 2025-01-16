@@ -432,6 +432,22 @@ export abstract class TestUtilsWalletStorage {
     return r
   }
 
+  static async createTestWalletFromSQLiteFile(databaseName: string, sqliteFilePath: string): Promise<TestWalletNoSetup> {
+    // Create a Knex instance pointing to the SQLite file
+    const knex = _tu.createLocalSQLite(sqliteFilePath)
+
+    // Call `createKnexTestWallet` to set up the wallet using the SQLite database
+    const wallet = await _tu.createKnexTestWallet({
+      knex,
+      databaseName,
+      chain: 'test', // Assume 'test' chain
+      rootKeyHex: undefined, // Use default root key if not provided
+      dropAll: false // Do not drop existing data
+    })
+
+    return wallet
+  }
+
   static async insertTestProvenTx(storage: StorageProvider, txid?: string) {
     const now = new Date()
     const ptx: table.ProvenTx = {

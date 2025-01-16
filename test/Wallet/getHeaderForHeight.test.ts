@@ -33,6 +33,11 @@ describe('Wallet getHeaderForHeight Tests', () => {
   })
 
   // Test: Handles invalid arguments
+  /*********************************************************************************************************/
+  // The method does not validate arguments, therefore the error is from the underlying
+  // implementation and not a specific error thrown by the method. This test fails because it does
+  // not receive the expected error.
+  /*********************************************************************************************************/
   test('1_handles_invalid_arguments', async () => {
     const invalidArgs = [null, undefined, {}, { height: 'invalid' }, { height: -1 }, { height: 1.5 }]
     for (const { wallet } of ctxs) {
@@ -92,6 +97,11 @@ describe('Wallet getHeaderForHeight Tests', () => {
   })
 
   // Test: Handles empty arguments
+  /*********************************************************************************************************/
+  // The method does not validate arguments, therefore the error is from the underlying
+  // implementation and not a specific error thrown by the method. This test fails because it does
+  // not receive the expected error.
+  /*********************************************************************************************************/
   test('6_handles_empty_arguments', async () => {
     for (const { wallet } of ctxs) {
       await expectToThrowWERR(sdk.WERR_INVALID_PARAMETER, () => wallet.getHeaderForHeight({} as any))

@@ -34,7 +34,7 @@ export class SyncState extends EntityBase<table.SyncState> {
         }
     }
 
-    static async fromStorage(storage: sdk.WalletStorageProvider, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
+    static async fromStorage(storage: sdk.WalletStorageSync, userIdentityKey: string, remoteSettings: table.Settings) : Promise<entity.SyncState> {
         const { user } = verifyTruthy(await storage.findOrInsertUser(userIdentityKey))
         let { syncState: api } = verifyTruthy(await storage.findOrInsertSyncStateAuth({ userId: user.userId, identityKey: userIdentityKey }, remoteSettings.storageIdentityKey, remoteSettings.storageName))
         const ss = new SyncState(api)

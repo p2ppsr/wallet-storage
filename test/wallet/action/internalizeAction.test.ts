@@ -6,20 +6,17 @@ describe('internalizeAction tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')
-  const ctxs: TestWalletNoSetup[] = []
 
   beforeAll(async () => {
-    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('internalizeActionTests'))
-    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('internalizeActionTests'))
   })
 
   afterAll(async () => {
-    for (const ctx of ctxs) {
-      await ctx.storage.destroy()
-    }
   })
 
   test('1 internalize custom output in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction1Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction1Tests'))
     for (const { wallet, activeStorage: storage } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -85,9 +82,15 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
   })
 
   test('2 internalize 2 custom outputs in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction2Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction2Tests'))
     for (const { wallet, activeStorage: storage } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -179,9 +182,15 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
   })
 
   test('3 internalize wallet payment in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction3Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction3Tests'))
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction3fred', rootKeyHex: '2'.repeat(64), dropAll: true })
       const outputSatoshis = 5
@@ -245,9 +254,15 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
   })
 
   test('4 internalize 2 wallet payments in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction4Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction4Tests'))
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction4fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
@@ -331,9 +346,15 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
+    }
   })
 
   test.skip('5 WIP internalize 2 wallet payments and 2 basket insertions in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction5Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction5Tests'))
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction5fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
@@ -452,6 +473,9 @@ describe('internalizeAction tests', () => {
 
         await fred.activeStorage.destroy()
       }
+    }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
     }
   })
 })

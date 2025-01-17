@@ -411,7 +411,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
                     break;
             }
             //console.log(log)
-            console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
+            //console.log(`sync complete: ${inserts} inserts, ${updates} updates`)
             return { inserts, updates }
         }, activeSync)
     }

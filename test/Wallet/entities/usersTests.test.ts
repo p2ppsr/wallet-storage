@@ -1,6 +1,6 @@
 import { User } from '../../../src/storage/schema/entities/User'
 import { table, entity } from '../../../src'
-import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
+import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../utils/TestUtilsStephen'
 
 describe('User class method tests', () => {
   jest.setTimeout(99999999) // Extend timeout for database operations
@@ -81,7 +81,9 @@ describe('User class method tests', () => {
   })
 
   // Test: Handles invalid inputs for setters
+  /*****************************************************************************************************/
   // The setters don't currently validate input types, so this test is expected to fail.
+  /*****************************************************************************************************/
   test.skip('4_handles_invalid_or_null_inputs_for_setters', () => {
     const user = new User()
 
@@ -233,8 +235,10 @@ describe('User class method tests', () => {
   })
 
   // Test: Handles invalid dates in API object
+  /*****************************************************************************************************/
   // Currently fails because the User constructor does not validate `created_at` and `updated_at`.
   // Validation needs to be added to ensure these fields are valid Date objects, throwing a TypeError if not.
+  /*****************************************************************************************************/
   test.skip('9_handles_invalid_dates_in_api_object', () => {
     const invalidDate = 'not-a-date' as unknown as Date
 
@@ -347,7 +351,7 @@ describe('User class method tests', () => {
     )
 
     expect(result).toBe(false)
-    expect(user.activeStorage).toBe('oldStorage') // `activeStorage` should remain the same
+    expect(user.activeStorage).toBe('oldStorage')
   })
 
   // Test: `mergeExisting` updates user and uses `trx` when provided
@@ -386,7 +390,7 @@ describe('User class method tests', () => {
     )
 
     expect(result).toBe(true)
-    expect(user.activeStorage).toBe('newStorage') // Updated `activeStorage`
+    expect(user.activeStorage).toBe('newStorage')
   })
 
   // Test: `mergeNew` always throws an error

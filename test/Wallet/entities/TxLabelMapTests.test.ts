@@ -1,6 +1,8 @@
 import { TxLabelMap } from '../../../src/storage/schema/entities/TxLabelMap'
 import { table, sdk, entity } from '../../../src'
-import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
+import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../utils/TestUtilsStephen'
+import { Transaction } from '../../../src/storage/schema/entities/Transaction'
+import { TxLabel } from '../../../src/storage/schema/entities/TxLabel'
 
 describe('TxLabelMap Class Tests', () => {
   jest.setTimeout(99999999) // Extend timeout for database operations
@@ -218,15 +220,78 @@ describe('TxLabelMap Class Tests', () => {
     expect(txLabelMap.entityTable).toBe('tx_labels_map') // Ensure entityTable returns the correct table name
   })
 
-  // Test: equals method identifies matching entities
   test('12_equals_identifies_matching_entities', async () => {
     const ctx1 = ctxs[0]
     const ctx2 = ctxs2[0]
 
+    // Insert necessary foreign key references into the first database
+    const tx1 = new Transaction({
+      transactionId: 405,
+      userId: 1,
+      txid: 'txid1',
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'completed',
+      reference: 'ref1',
+      isOutgoing: true,
+      satoshis: 789,
+      description: 'desc1',
+      version: 2,
+      lockTime: 500,
+      rawTx: [1, 2, 3],
+      inputBEEF: [4, 5, 6]
+    })
+
+    await ctx1.activeStorage.insertTransaction(tx1.toApi())
+
+    // Insert necessary foreign key references into the second database
+    const tx2 = new Transaction({
+      transactionId: 406,
+      userId: 1,
+      txid: 'txid1',
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02'),
+      status: 'completed',
+      reference: 'ref1',
+      isOutgoing: true,
+      satoshis: 789,
+      description: 'desc1',
+      version: 2,
+      lockTime: 500,
+      rawTx: [1, 2, 3],
+      inputBEEF: [4, 5, 6]
+    })
+
+    await ctx2.activeStorage.insertTransaction(tx2.toApi())
+
+    // Insert a TxLabel into the first database
+    const txLabel1 = new TxLabel({
+      txLabelId: 306,
+      userId: 1,
+      label: 'Label B',
+      isDeleted: true, // Different isDeleted value
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
+    })
+
+    await ctx1.activeStorage.insertTxLabel(txLabel1.toApi())
+
+    // Insert a matching TxLabel into the second database
+    const txLabel2 = new TxLabel({
+      txLabelId: 307,
+      userId: 1,
+      label: 'Label B',
+      isDeleted: true, // Different isDeleted value
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
+    })
+
+    await ctx2.activeStorage.insertTxLabel(txLabel2.toApi())
+
     // Insert a TxLabelMap into the first database
     const txLabelMap1 = new TxLabelMap({
-      transactionId: 101,
-      txLabelId: 201,
+      transactionId: 405,
+      txLabelId: 306,
       isDeleted: false,
       created_at: new Date('2023-01-01'),
       updated_at: new Date('2023-01-02')
@@ -236,8 +301,8 @@ describe('TxLabelMap Class Tests', () => {
 
     // Insert a matching TxLabelMap into the second database
     const txLabelMap2 = new TxLabelMap({
-      transactionId: 102, // Different transaction ID mapped in syncMap
-      txLabelId: 202, // Different label ID mapped in syncMap
+      transactionId: 406, // Different transaction ID mapped in syncMap
+      txLabelId: 307, // Different label ID mapped in syncMap
       isDeleted: false,
       created_at: new Date('2023-01-01'),
       updated_at: new Date('2023-01-02')
@@ -248,13 +313,13 @@ describe('TxLabelMap Class Tests', () => {
     // Create a valid SyncMap
     const syncMap: entity.SyncMap = {
       transaction: {
-        idMap: { 102: 101 },
+        idMap: { 406: 405 },
         entityName: 'Transaction',
         maxUpdated_at: undefined,
         count: 1
       },
       txLabel: {
-        idMap: { 202: 201 },
+        idMap: { 307: 306 },
         entityName: 'TxLabel',
         maxUpdated_at: undefined,
         count: 1
@@ -283,7 +348,7 @@ describe('TxLabelMap Class Tests', () => {
     // Insert a TxLabelMap into the first database
     const txLabelMap1 = new TxLabelMap({
       transactionId: 103,
-      txLabelId: 203,
+      txLabelId: 1,
       isDeleted: false,
       created_at: new Date('2023-01-01'),
       updated_at: new Date('2023-01-02')
@@ -294,7 +359,7 @@ describe('TxLabelMap Class Tests', () => {
     // Insert a non-matching TxLabelMap into the second database
     const txLabelMap2 = new TxLabelMap({
       transactionId: 104, // Different transaction ID not mapped in syncMap
-      txLabelId: 204, // Different label ID not mapped in syncMap
+      txLabelId: 1, // Different label ID not mapped in syncMap
       isDeleted: true, // Different isDeleted value
       created_at: new Date('2023-01-01'),
       updated_at: new Date('2023-01-02')

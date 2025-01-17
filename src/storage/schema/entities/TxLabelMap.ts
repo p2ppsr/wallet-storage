@@ -64,6 +64,7 @@ export class TxLabelMap extends EntityBase<table.TxLabelMap> {
 
   override equals(ei: table.TxLabelMap, syncMap?: entity.SyncMap | undefined): boolean {
     const eo = this.toApi()
+    console.log('Comparing objects:', { eo, ei })
 
     if (eo.transactionId !== (syncMap ? syncMap.transaction.idMap[verifyId(ei.transactionId)] : ei.transactionId) || eo.txLabelId !== (syncMap ? syncMap.txLabel.idMap[verifyId(ei.txLabelId)] : ei.txLabelId) || eo.isDeleted !== ei.isDeleted) return false
 

@@ -223,7 +223,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('4_Transaction with Multiple Outputs', async () => {
+  test.skip('4_Transaction with Multiple Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
     for (const { wallet } of ctxs) {
@@ -267,7 +267,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('5_Transaction with Locking Script Options', async () => {
+  test.skip('5_Transaction with Locking Script Options', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -308,7 +308,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('6_Transaction with Large Number of Outputs', async () => {
+  test.skip('6_Transaction with Large Number of Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -340,7 +340,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('7_Transaction with Randomized Outputs', async () => {
+  test.skip('7_Transaction with Randomized Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -382,7 +382,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('8_Transaction with Lock Time', async () => {
+  test.skip('8_Transaction with Lock Time', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 

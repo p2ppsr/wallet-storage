@@ -231,7 +231,7 @@ class InternalizeActionContext {
     return { ab, tx, txid }
   }
 
-  async findOrInsertTargetTransaction(satoshis: number, status: sdk.TransactionStatus) {
+  async findOrInsertTargetTransaction(satoshis: number, status: sdk.TransactionStatus) : Promise<table.Transaction> {
     const now = new Date()
     const newTx: table.Transaction = {
       created_at: now,
@@ -269,7 +269,7 @@ class InternalizeActionContext {
     for (const payment of this.walletPayments) {
       if (payment.eo && !payment.ignore)
         await this.mergeWalletPaymentForOutput(transactionId, payment)
-      else
+      else if (!payment.ignore)
         await this.storeNewWalletPaymentForOutput(transactionId, payment)
     }
 
@@ -335,7 +335,7 @@ class InternalizeActionContext {
       txid: this.txid,
       senderIdentityKey: payment.senderIdentityKey,
       type: 'P2PKH',
-      providedBy: 'dojo',
+      providedBy: 'storage',
       purpose: 'change',
       derivationPrefix: payment.derivationPrefix!,
       derivationSuffix: payment.derivationSuffix,
@@ -357,7 +357,7 @@ class InternalizeActionContext {
       type: 'P2PKH',
       customInstructions: undefined,
       change: true,
-      providedBy: 'dojo',
+      providedBy: 'storage',
       purpose: 'change',
       senderIdentityKey: payment.senderIdentityKey,
       derivationPrefix: payment.derivationPrefix,
@@ -374,8 +374,8 @@ class InternalizeActionContext {
       type: 'custom',
       customInstructions: basket.customInstructions,
       change: false,
-      providedBy: undefined,
-      purpose: undefined,
+      providedBy: 'you',
+      purpose: '',
       senderIdentityKey: undefined,
       derivationPrefix: undefined,
       derivationSuffix: undefined
@@ -406,7 +406,7 @@ class InternalizeActionContext {
       outputDescription: '',
       spendingDescription: undefined,
 
-      providedBy: '',
+      providedBy: 'you',
       purpose: '',
 
       senderIdentityKey: undefined,

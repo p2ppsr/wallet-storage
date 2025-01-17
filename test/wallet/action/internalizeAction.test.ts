@@ -2,9 +2,6 @@ import * as bsv from '@bsv/sdk'
 import { sdk } from '../../../src'
 import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
-/**
- * NOT PASSING YET
- */
 describe('internalizeAction tests', () => {
   jest.setTimeout(99999999)
 
@@ -118,7 +115,7 @@ describe('internalizeAction tests', () => {
         expect(cr.tx).toBeTruthy()
 
         // Fred's new wallet (context)
-        const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction1fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+        const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
         // Internalize args to add fred's new output to his own wallet
         const internalizeArgs: sdk.InternalizeActionArgs = {
@@ -186,7 +183,7 @@ describe('internalizeAction tests', () => {
 
   test('3 internalize wallet payment in receiving wallet with checks', async () => {
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction3fred', rootKeyHex: '2'.repeat(64), dropAll: true })
       const outputSatoshis = 5
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
       const derivationSuffix = Buffer.from('utxo-0').toString('base64')
@@ -252,7 +249,7 @@ describe('internalizeAction tests', () => {
 
   test('4 internalize 2 wallet payments in receiving wallet with checks', async () => {
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction4fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
       const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
       const outputSatoshis1 = 6
@@ -338,7 +335,7 @@ describe('internalizeAction tests', () => {
 
   test.skip('5 WIP internalize 2 wallet payments and 2 basket insertions in receiving wallet with checks', async () => {
     for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction5fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
       const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
       const outputSatoshis1 = 6

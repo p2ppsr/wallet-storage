@@ -17,7 +17,7 @@ describe('internalizeAction tests', () => {
     const ctxs: TestWalletNoSetup[] = []
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction1Tests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction1Tests'))
-    for (const { wallet, activeStorage: storage } of ctxs) {
+    for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
       const fredsAddress = kp.address
@@ -62,9 +62,8 @@ describe('internalizeAction tests', () => {
         const ir = await fred.wallet.internalizeAction(internalizeArgs)
         expect(ir.accepted).toBe(true)
 
-        // Additional validation: Check if the output was added to the payments basket
         const ro = await fred.activeStorage.findOutputs({ partial: { outputId: 1 } })
-        expect(ro[0].basketId).toBe(2)
+        expect(ro[0].basketId).toBe(2) // Basket can't be default basket so basketId must be 2
         expect(ro[0].satoshis).toBe(outputSatoshis)
 
         // Validate custom instructions and tags
@@ -91,7 +90,7 @@ describe('internalizeAction tests', () => {
     const ctxs: TestWalletNoSetup[] = []
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction2Tests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction2Tests'))
-    for (const { wallet, activeStorage: storage } of ctxs) {
+    for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
       const fredsAddress = kp.address
@@ -113,7 +112,7 @@ describe('internalizeAction tests', () => {
             noSend: true
           }
         }
-        // This createAction creates a new P2PKH output of 4 satoshis for Fred using his publish payment address... old school.
+        // This createAction creates a new P2PKH output of 4 and 5 satoshis for Fred using his publish payment address... old school.
         const cr = await wallet.createAction(createArgs)
         expect(cr.tx).toBeTruthy()
 
@@ -150,7 +149,6 @@ describe('internalizeAction tests', () => {
         expect(ir.accepted).toBe(true)
 
         {
-          // Additional validation: Check if the output was added to the payments basket
           const ro = await fred.activeStorage.findOutputs({ partial: { outputId: 1 } })
           expect(ro[0].basketId).toBe(2)
           expect(ro[0].satoshis).toBe(outputSatoshis1)
@@ -175,8 +173,9 @@ describe('internalizeAction tests', () => {
           const rt2 = await fred.activeStorage.findOutputTags({ partial: { outputTagId: rtm[1].outputTagId } })
           expect(rt2[0].tag).toBe('test 2')
         }
+
         /*** Tone TBD Needs checking ***/
-        //await fred.wallet.internalizeAction(internalizeArgs)
+        await fred.wallet.internalizeAction(internalizeArgs)
 
         // Cleanup Fred's storage
         await fred.activeStorage.destroy()
@@ -191,7 +190,7 @@ describe('internalizeAction tests', () => {
     const ctxs: TestWalletNoSetup[] = []
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction3Tests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction3Tests'))
-    for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
+    for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction3fred', rootKeyHex: '2'.repeat(64), dropAll: true })
       const outputSatoshis = 5
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
@@ -240,13 +239,14 @@ describe('internalizeAction tests', () => {
         const ir = await fred.wallet.internalizeAction(internalizeArgs)
         expect(ir.accepted).toBe(true)
 
-        const defaultBasket = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
-        const defaultBasketId = defaultBasket[0].basketId
+        const rfbs = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
+        expect(rfbs.length).toBe(1)
 
-        const basketOutputs = await fred.activeStorage.findOutputs({ partial: { basketId: defaultBasketId } })
-        expect(basketOutputs.length).toBeGreaterThan(0)
-        expect(basketOutputs[0].satoshis).toBe(outputSatoshis)
-        expect(basketOutputs[0].type).toBe('P2PKH')
+        const rfos = await fred.activeStorage.findOutputs({ partial: { basketId: rfbs[0].basketId } })
+        expect(rfos.length).toBe(1)
+        expect(rfos[0].satoshis).toBe(outputSatoshis)
+        expect(rfos[0].type).toBe('P2PKH')
+        expect(rfos[0].purpose).toBe('change')
 
         /*** Tone TBD Needs checking ***/
         await fred.wallet.internalizeAction(internalizeArgs)
@@ -263,7 +263,7 @@ describe('internalizeAction tests', () => {
     const ctxs: TestWalletNoSetup[] = []
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction4Tests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction4Tests'))
-    for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
+    for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction4fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
       const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
@@ -285,12 +285,12 @@ describe('internalizeAction tests', () => {
             {
               satoshis: outputSatoshis1,
               lockingScript: new bsv.P2PKH().lock(derivedAddress1).toHex(),
-              outputDescription: 'pay fred first BRC-29 payment'
+              outputDescription: 'pay fred 1st BRC-29 payment'
             },
             {
               satoshis: outputSatoshis2,
               lockingScript: new bsv.P2PKH().lock(derivedAddress2).toHex(),
-              outputDescription: 'pay fred second BRC-29 payment'
+              outputDescription: 'pay fred 2nd BRC-29 payment'
             }
           ],
           options: {
@@ -332,16 +332,21 @@ describe('internalizeAction tests', () => {
         const ir = await fred.wallet.internalizeAction(internalizeArgs)
         expect(ir.accepted).toBe(true)
 
-        // const defaultBasket = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
-        // const defaultBasketId = defaultBasket[0].basketId
+        const rfbs = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
+        expect(rfbs.length).toBe(1)
 
-        // const basketOutputs = await fred.activeStorage.findOutputs({ partial: { basketId: defaultBasketId } })
-        // expect(basketOutputs.length).toBeGreaterThan(0)
-        // expect(basketOutputs[0].satoshis).toBe(outputSatoshis1)
-        // expect(basketOutputs[0].type).toBe('P2PKH')
+        const rfos = await fred.activeStorage.findOutputs({ partial: { basketId: rfbs[0].basketId } })
+        expect(rfos.length).toBe(2)
+        expect(rfos[0].satoshis).toBe(outputSatoshis1)
+        expect(rfos[0].type).toBe('P2PKH')
+        expect(rfos[0].purpose).toBe('change')
+
+        expect(rfos[1].satoshis).toBe(outputSatoshis2)
+        expect(rfos[1].type).toBe('P2PKH')
+        expect(rfos[1].purpose).toBe('change')
 
         /*** Tone TBD Needs checking ***/
-        //await fred.wallet.internalizeAction(internalizeArgs)
+        await fred.wallet.internalizeAction(internalizeArgs)
 
         await fred.activeStorage.destroy()
       }
@@ -355,17 +360,17 @@ describe('internalizeAction tests', () => {
     const ctxs: TestWalletNoSetup[] = []
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction5Tests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction5Tests'))
-    for (const { wallet, activeStorage: storage, identityKey: senderIdentityKey } of ctxs) {
+    for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
       const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction5fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
       const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
-      const outputSatoshis1 = 6
+      const outputSatoshis1 = 8
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
       const derivationSuffix1 = Buffer.from('utxo-1').toString('base64')
       const derivedPublicKey1 = wallet.keyDeriver!.derivePublicKey(brc29ProtocolID, `${derivationPrefix} ${derivationSuffix1}`, fred.identityKey)
       const derivedAddress1 = derivedPublicKey1.toAddress()
 
-      const outputSatoshis2 = 7
+      const outputSatoshis2 = 9
       const derivationSuffix2 = Buffer.from('utxo-2').toString('base64')
       const derivedPublicKey2 = wallet.keyDeriver!.derivePublicKey(brc29ProtocolID, `${derivationPrefix} ${derivationSuffix2}`, fred.identityKey)
       const derivedAddress2 = derivedPublicKey2.toAddress()
@@ -374,23 +379,13 @@ describe('internalizeAction tests', () => {
       const kp = _tu.getKeyPair(root.repeat(8))
       const fredsAddress = kp.address
 
-      const outputSatoshis3 = 8
-      const outputSatoshis4 = 9
+      const outputSatoshis3 = 10
+      const outputSatoshis4 = 11
 
       {
         const createArgs: sdk.CreateActionArgs = {
           description: `BRC-29 payments from other wallet`,
           outputs: [
-            {
-              satoshis: outputSatoshis3,
-              lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(),
-              outputDescription: 'pay fred 3rd payment'
-            },
-            {
-              satoshis: outputSatoshis4,
-              lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(),
-              outputDescription: 'pay fred 4th payment'
-            },
             {
               satoshis: outputSatoshis1,
               lockingScript: new bsv.P2PKH().lock(derivedAddress1).toHex(),
@@ -400,6 +395,16 @@ describe('internalizeAction tests', () => {
               satoshis: outputSatoshis2,
               lockingScript: new bsv.P2PKH().lock(derivedAddress2).toHex(),
               outputDescription: 'pay fred 2nd BRC-29 payment'
+            },
+            {
+              satoshis: outputSatoshis3,
+              lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(),
+              outputDescription: 'pay fred 3rd payment'
+            },
+            {
+              satoshis: outputSatoshis4,
+              lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(),
+              outputDescription: 'pay fred 4th payment'
             }
           ],
           options: {
@@ -460,16 +465,47 @@ describe('internalizeAction tests', () => {
         const ir = await fred.wallet.internalizeAction(internalizeArgs)
         expect(ir.accepted).toBe(true)
 
-        // const defaultBasket = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
-        // const defaultBasketId = defaultBasket[0].basketId
+        const rfbs = await fred.activeStorage.findOutputBaskets({ partial: { name: 'default' } })
+        expect(rfbs.length).toBe(1)
 
-        // const basketOutputs = await fred.activeStorage.findOutputs({ partial: { basketId: defaultBasketId } })
-        // expect(basketOutputs.length).toBeGreaterThan(0)
-        // expect(basketOutputs[0].satoshis).toBe(outputSatoshis1)
-        // expect(basketOutputs[0].type).toBe('P2PKH')
+        const rfos = await fred.activeStorage.findOutputs({ partial: { basketId: rfbs[0].basketId } })
+        expect(rfos.length).toBe(2)
+        expect(rfos[0].satoshis).toBe(outputSatoshis1)
+        expect(rfos[0].type).toBe('P2PKH')
+        expect(rfos[0].purpose).toBe('change')
+
+        expect(rfos[1].satoshis).toBe(outputSatoshis2)
+        expect(rfos[1].type).toBe('P2PKH')
+        expect(rfos[1].purpose).toBe('change')
+
+        {
+          const ro = await fred.activeStorage.findOutputs({ partial: { outputId: 3 } })
+          expect(ro[0].basketId).toBe(2)
+          expect(ro[0].satoshis).toBe(outputSatoshis3)
+
+          // Validate custom instructions and tags
+          expect(ro[0].customInstructions).toBe(`3rd payment ${JSON.stringify({ root, repeat: 8 })}`)
+          const rtm = await fred.activeStorage.findOutputTagMaps({ partial: { outputId: 3 } })
+          const rt1 = await fred.activeStorage.findOutputTags({ partial: { outputTagId: rtm[0].outputTagId } })
+          expect(rt1[0].tag).toBe('basket payments')
+          const rt2 = await fred.activeStorage.findOutputTags({ partial: { outputTagId: rtm[1].outputTagId } })
+          expect(rt2[0].tag).toBe('1st basket payment')
+        }
+        {
+          const ro = await fred.activeStorage.findOutputs({ partial: { outputId: 4 } })
+          expect(ro[0].basketId).toBe(2)
+          expect(ro[0].satoshis).toBe(outputSatoshis4)
+
+          expect(ro[0].customInstructions).toBe(`4th payment ${JSON.stringify({ root, repeat: 8 })}`)
+          const rtm = await fred.activeStorage.findOutputTagMaps({ partial: { outputId: 4 } })
+          const rt1 = await fred.activeStorage.findOutputTags({ partial: { outputTagId: rtm[0].outputTagId } })
+          expect(rt1[0].tag).toBe('basket payments')
+          const rt2 = await fred.activeStorage.findOutputTags({ partial: { outputTagId: rtm[1].outputTagId } })
+          expect(rt2[0].tag).toBe('2nd basket payment')
+        }
 
         /*** Tone TBD Needs checking ***/
-        //await fred.wallet.internalizeAction(internalizeArgs)
+        await fred.wallet.internalizeAction(internalizeArgs)
 
         await fred.activeStorage.destroy()
       }

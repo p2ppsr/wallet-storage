@@ -1,5 +1,5 @@
 import { TxLabelMap } from '../../../src/storage/schema/entities/TxLabelMap'
-import { table, sdk } from '../../../src'
+import { table, sdk, entity } from '../../../src'
 import { TestUtilsWalletStorage as _tu, TestWalletNoSetup, expectToThrowWERR } from '../../../test/utils/TestUtilsStephen'
 
 describe('TxLabelMap Class Tests', () => {
@@ -218,123 +218,117 @@ describe('TxLabelMap Class Tests', () => {
     expect(txLabelMap.entityTable).toBe('tx_labels_map') // Ensure entityTable returns the correct table name
   })
 
-  // Test: Equality check for matching objects
-  test('12_equals_returns_true_for_matching_objects', () => {
-    const syncMap: any = {
-      transaction: { idMap: { 123: 123 } },
-      txLabel: { idMap: { 456: 456 } }
-    }
+  // Test: equals method identifies matching entities
+  test('12_equals_identifies_matching_entities', async () => {
+    const ctx1 = ctxs[0]
+    const ctx2 = ctxs2[0]
 
-    const txLabelMap = new TxLabelMap({
-      transactionId: 123,
-      txLabelId: 456,
+    // Insert a TxLabelMap into the first database
+    const txLabelMap1 = new TxLabelMap({
+      transactionId: 101,
+      txLabelId: 201,
       isDeleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
     })
 
-    const other = {
-      transactionId: 123,
-      txLabelId: 456,
-      isDeleted: false
+    await ctx1.activeStorage.insertTxLabelMap(txLabelMap1.toApi())
+
+    // Insert a matching TxLabelMap into the second database
+    const txLabelMap2 = new TxLabelMap({
+      transactionId: 102, // Different transaction ID mapped in syncMap
+      txLabelId: 202, // Different label ID mapped in syncMap
+      isDeleted: false,
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
+    })
+
+    await ctx2.activeStorage.insertTxLabelMap(txLabelMap2.toApi())
+
+    // Create a valid SyncMap
+    const syncMap: entity.SyncMap = {
+      transaction: {
+        idMap: { 102: 101 },
+        entityName: 'Transaction',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      txLabel: {
+        idMap: { 202: 201 },
+        entityName: 'TxLabel',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+      outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+      provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+      txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+      output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+      outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+      outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+      certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+      certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+      commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
     }
 
-    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
-    expect(result).toBe(true)
+    // Verify the entities match
+    expect(txLabelMap1.equals(txLabelMap2.toApi(), syncMap)).toBe(true)
   })
 
-  // Test: Equality check for non-matching objects
-  test('13_equals_returns_false_for_non_matching_objects', () => {
-    const syncMap: any = {
-      transaction: { idMap: { 123: 999 } },
-      txLabel: { idMap: { 456: 888 } }
-    }
+  // Test: equals method identifies non-matching entities
+  test('13_equals_identifies_non_matching_entities', async () => {
+    const ctx1 = ctxs[0]
+    const ctx2 = ctxs2[0]
 
-    const txLabelMap = new TxLabelMap({
-      transactionId: 123,
-      txLabelId: 456,
+    // Insert a TxLabelMap into the first database
+    const txLabelMap1 = new TxLabelMap({
+      transactionId: 103,
+      txLabelId: 203,
       isDeleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
     })
 
-    const other = {
-      transactionId: 999,
-      txLabelId: 456,
-      isDeleted: false
-    }
+    await ctx1.activeStorage.insertTxLabelMap(txLabelMap1.toApi())
 
-    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
-    expect(result).toBe(false)
-  })
-
-  // Test: Equality check when syncMap has mismatched transactionId
-  test('14_equals_returns_false_when_transactionId_mismatch_with_syncMap', () => {
-    const syncMap: any = {
-      transaction: { idMap: { 123: 999 } },
-      txLabel: { idMap: { 456: 456 } }
-    }
-
-    const txLabelMap = new TxLabelMap({
-      transactionId: 123,
-      txLabelId: 456,
-      isDeleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
+    // Insert a non-matching TxLabelMap into the second database
+    const txLabelMap2 = new TxLabelMap({
+      transactionId: 104, // Different transaction ID not mapped in syncMap
+      txLabelId: 204, // Different label ID not mapped in syncMap
+      isDeleted: true, // Different isDeleted value
+      created_at: new Date('2023-01-01'),
+      updated_at: new Date('2023-01-02')
     })
 
-    const other = {
-      transactionId: 888, // Different from mapped ID in syncMap
-      txLabelId: 456,
-      isDeleted: false
+    await ctx2.activeStorage.insertTxLabelMap(txLabelMap2.toApi())
+
+    // Create a valid SyncMap
+    const syncMap: entity.SyncMap = {
+      transaction: {
+        idMap: { [txLabelMap1.transactionId]: txLabelMap2.transactionId },
+        entityName: 'Transaction',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      txLabel: {
+        idMap: { [txLabelMap1.txLabelId]: txLabelMap2.txLabelId },
+        entityName: 'TxLabel',
+        maxUpdated_at: undefined,
+        count: 1
+      },
+      provenTx: { idMap: {}, entityName: 'ProvenTx', maxUpdated_at: undefined, count: 0 },
+      outputBasket: { idMap: {}, entityName: 'OutputBasket', maxUpdated_at: undefined, count: 0 },
+      provenTxReq: { idMap: {}, entityName: 'ProvenTxReq', maxUpdated_at: undefined, count: 0 },
+      txLabelMap: { idMap: {}, entityName: 'TxLabelMap', maxUpdated_at: undefined, count: 0 },
+      output: { idMap: {}, entityName: 'Output', maxUpdated_at: undefined, count: 0 },
+      outputTag: { idMap: {}, entityName: 'OutputTag', maxUpdated_at: undefined, count: 0 },
+      outputTagMap: { idMap: {}, entityName: 'OutputTagMap', maxUpdated_at: undefined, count: 0 },
+      certificate: { idMap: {}, entityName: 'Certificate', maxUpdated_at: undefined, count: 0 },
+      certificateField: { idMap: {}, entityName: 'CertificateField', maxUpdated_at: undefined, count: 0 },
+      commission: { idMap: {}, entityName: 'Commission', maxUpdated_at: undefined, count: 0 }
     }
 
-    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
-    expect(result).toBe(false) // Mismatch should result in false
-  })
-
-  // Test: Equality check when syncMap has mismatched txLabelId
-  test('15_equals_returns_false_when_txLabelId_mismatch_with_syncMap', () => {
-    const syncMap: any = {
-      transaction: { idMap: { 123: 123 } },
-      txLabel: { idMap: { 456: 999 } }
-    }
-
-    const txLabelMap = new TxLabelMap({
-      transactionId: 123,
-      txLabelId: 456,
-      isDeleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
-    })
-
-    const other = {
-      transactionId: 123,
-      txLabelId: 888, // Different from mapped ID in syncMap
-      isDeleted: false
-    }
-
-    const result = txLabelMap.equals(other as table.TxLabelMap, syncMap)
-    expect(result).toBe(false) // Mismatch should result in false
-  })
-
-  // Test: Equality check when syncMap is not provided
-  test('16_equals_returns_true_when_syncMap_not_provided_and_ids_match', () => {
-    const txLabelMap = new TxLabelMap({
-      transactionId: 123,
-      txLabelId: 456,
-      isDeleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
-    })
-
-    const other = {
-      transactionId: 123, // Direct comparison since syncMap is not provided
-      txLabelId: 456,
-      isDeleted: false
-    }
-
-    const result = txLabelMap.equals(other as table.TxLabelMap)
-    expect(result).toBe(true) // IDs match without syncMap
+    // Verify the entities do not match
+    expect(txLabelMap1.equals(txLabelMap2.toApi(), syncMap)).toBe(false)
   })
 })

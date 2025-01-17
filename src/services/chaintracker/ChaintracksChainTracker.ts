@@ -1,4 +1,4 @@
-import { sdk } from '../..'
+import { sdk, wait } from '../..'
 import { ChainTracker } from "@bsv/sdk";
 import { BlockHeaderHex, ChaintracksClientApi } from "./chaintracks";
 import { ChaintracksServiceClient } from "./chaintracks/ChaintracksServiceClient";
@@ -34,28 +34,35 @@ export class ChaintracksChainTracker implements ChainTracker {
 
         const retries = this.options.maxRetries || 3
 
+        let error: sdk.WalletError | undefined = undefined
+
         for (let tryCount = 1; tryCount <= retries; tryCount++) {
 
             try {
                 header = await this.chaintracks.findHeaderHexForHeight(height)
 
-                if (!header)
+                if (!header) {
                     return false
+                }
 
                 break
             } catch (eu: unknown) {
-                if (tryCount > retries)
-                    throw eu
+                error = sdk.WalletError.fromUnknown(eu)
+                if (tryCount > retries) {
+                    throw error
+                }
+                await wait(1000)
             }
         }
 
         if (!header)
-            throw new Error("Maximum retry count reached.")
+            throw new sdk.WERR_INTERNAL('no header should have returned false or thrown an error.')
 
         this.cache[height] = header.merkleRoot
 
-        if (header.merkleRoot !== root)
+        if (header.merkleRoot !== root) {
             return false
+        }
 
         return true
     }

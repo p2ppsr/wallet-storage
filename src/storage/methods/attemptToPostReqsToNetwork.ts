@@ -2,6 +2,7 @@ import * as bsv from '@bsv/sdk'
 import { StorageProvider } from "../StorageProvider"
 import { entity, sdk } from '../..'
 import { PostBeefResultForTxidApi } from './processAction'
+import { unlink } from 'fs'
 
 /**
  * Attempt to post one or more `ProvenTxReq` with status 'unsent'
@@ -44,10 +45,20 @@ export async function attemptToPostReqsToNetwork(storage: StorageProvider, reqs:
         if (rb.attempts > 10) {
             badReq = true; rb.addHistoryNote(`invalid req: too many attempts ${rb.attempts}`);
         }
-        if (badReq) invalid = true
 
         // Accumulate batch beefs.
-        await storage.mergeReqToBeefToShareExternally(rb.api, r.beef, [], trx)
+        if (!badReq) {
+            try {
+                await storage.mergeReqToBeefToShareExternally(rb.api, r.beef, [], trx)
+            } catch (eu: unknown) {
+                const e = sdk.WalletError.fromUnknown(eu)
+                if (e.code === 'WERR_INVALID_PARAMETER' && (e as sdk.WERR_INVALID_PARAMETER).parameter === 'txid') {
+                    badReq = true; rb.addHistoryNote(`invalid req: depends on txid which is unknown`);
+                }
+            }
+        }
+
+        if (badReq) invalid = true
     }
 
     if (invalid) {

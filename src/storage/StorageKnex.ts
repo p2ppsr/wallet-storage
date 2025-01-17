@@ -620,9 +620,8 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async dropAllData(): Promise<void> {
-    await this.makeAvailable()
-    const settings = this.getSettings()
-    const config = { migrationSource: new KnexMigrations(this.chain, settings.storageName, settings.storageIdentityKey, 1024) }
+    // Only using migrations to migrate down, don't need valid properties for settings table.
+    const config = { migrationSource: new KnexMigrations('test', '', '', 1024) }
     const count = Object.keys(config.migrationSource.migrations).length
     for (let i = 0; i < count; i++) {
       try {
@@ -632,7 +631,6 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
         break
       }
     }
-    await this.migrate(settings.storageName, settings.storageIdentityKey)
   }
 
   override async transaction<T>(scope: (trx: sdk.TrxToken) => Promise<T>, trx?: sdk.TrxToken): Promise<T> {
@@ -679,6 +677,8 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     o.lockingScript = script
   }
 
+  _verifiedReadyForDatabaseAccess: boolean = false
+
   /**
    * Make sure database is ready for access:
    *
@@ -690,11 +690,16 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   async verifyReadyForDatabaseAccess(trx?: sdk.TrxToken): Promise<DBType> {
     if (!this._settings) {
       this._settings = await this.readSettings()
+    }
+
+    if (!this._verifiedReadyForDatabaseAccess) {
 
       // Make sure foreign key constraint checking is turned on in SQLite.
       if (this._settings.dbtype === 'SQLite') {
         await this.toDb(trx).raw('PRAGMA foreign_keys = ON;')
       }
+
+      this._verifiedReadyForDatabaseAccess = true
     }
 
     return this._settings.dbtype

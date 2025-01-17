@@ -30,7 +30,6 @@ export class TaskSendWaiting extends WalletMonitorTask {
             const agedReqs = reqs.filter(req => verifyTruthy(req.updated_at) < agedLimit);
             log += `  Of those reqs, ${agedReqs.length} where last updated before ${agedLimit.toISOString()}.\n`;
             log += await this.processUnsent(agedReqs, 2);
-            console.log(log);
             if (reqs.length < limit) break;
             offset += limit;
         }
@@ -59,7 +58,7 @@ export class TaskSendWaiting extends WalletMonitorTask {
         for (let i = 0; i < reqApis.length; i++) {
             const reqApi = reqApis[i]
             log += ' '.repeat(indent)
-            log += `${i} reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: \n`
+            log += `${i} reqId=${reqApi.provenTxReqId} attempts=${reqApi.attempts} txid=${reqApi.txid}: \n`
             if (reqApi.status !== 'unsent') {
                 log += `  status now ${reqApi.status}\n`
                 continue

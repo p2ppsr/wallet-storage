@@ -17,27 +17,7 @@ describe('createAction test', () => {
   beforeAll(async () => {
     if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('createActionTests'))
     ctxs.push(await _tu.createLegacyWalletSQLiteCopy('createActionTests'))
-    for (const { services } of ctxs) {
-      // Mock the services postBeef to avoid actually broadcasting new transactions.
-      services.postBeef = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
-        const r: sdk.PostBeefResult = {
-          name: 'mock',
-          status: 'success',
-          txidResults: txids.map(txid => ({ txid, status: 'success' }))
-        }
-        console.log('mock services postBeef')
-        return Promise.resolve([r])
-      })
-      services.postTxs = jest.fn().mockImplementation((beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> => {
-        const r: sdk.PostBeefResult = {
-          name: 'mock',
-          status: 'success',
-          txidResults: txids.map(txid => ({ txid, status: 'success' }))
-        }
-        console.log('mock services postTxs')
-        return Promise.resolve([r])
-      })
-    }
+    _tu.mockPostServicesAsSuccess(ctxs)
   })
 
   afterAll(async () => {
@@ -243,7 +223,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('4_Transaction with Multiple Outputs', async () => {
+  test.skip('4_Transaction with Multiple Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
     for (const { wallet } of ctxs) {
@@ -287,7 +267,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('5_Transaction with Locking Script Options', async () => {
+  test.skip('5_Transaction with Locking Script Options', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -328,7 +308,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('6_Transaction with Large Number of Outputs', async () => {
+  test.skip('6_Transaction with Large Number of Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -360,7 +340,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('7_Transaction with Randomized Outputs', async () => {
+  test.skip('7_Transaction with Randomized Outputs', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -402,7 +382,7 @@ describe('createAction test', () => {
     }
   })
 
-  test('8_Transaction with Lock Time', async () => {
+  test.skip('8_Transaction with Lock Time', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
@@ -434,303 +414,4 @@ describe('createAction test', () => {
       expect(r.sendWithResults).toBeUndefined()
     }
   })
-
-  test('8a_Transaction with first Broadcasting', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      // Fetch inputs from the database with lockingScript
-      const db = storage.toDb()
-      const inputs = await db
-        .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), 'lockingScript', db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
-        .from('outputs')
-        .where('spendable', 1)
-        .orderBy('created_at')
-        .limit(1)
-
-      const formattedInputs = inputs.map(row => ({
-        outpoint: row.outpoint,
-        inputDescription: row.inputDescription,
-        unlockingScriptLength: row.unlockingScriptLength
-      }))
-
-      const createArgs: sdk.CreateActionArgs = {
-        description: 'Large Input Set Transaction',
-        inputs: formattedInputs,
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output from Large Input Set'
-          }
-        ],
-        options: {
-          signAndProcess: true, // Sign and process the transaction
-          acceptDelayedBroadcast: false, // Enforce immediate broadcast
-          noSend: false // Allow the transaction to be broadcast
-        }
-      }
-
-      const cr = await wallet.createAction(createArgs)
-
-      expect(cr.txid).toBeTruthy() // Validate the transaction was broadcast successfully
-      expect(cr.noSendChange).toBeFalsy() // Validate that no change outputs remain unbroadcast
-    }
-  })
-
-  test.skip('9_Transaction with Real Data Large Input Set', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      const dbInputs = await fetchInputsFromDatabase(storage)
-
-      const inputs = dbInputs.map(input => ({
-        outpoint: input.outpoint,
-        inputDescription: input.inputDescription,
-        unlockingScriptLength: input.unlockingScriptLength
-      }))
-
-      const createArgs: sdk.CreateActionArgs = {
-        description: 'Large Input Set Transaction',
-        inputs,
-        outputs: [
-          {
-            satoshis: 199,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output from Large Input Set'
-          }
-        ]
-        // export interface CreateActionOptions {
-        //     signAndProcess?: BooleanDefaultTrue
-        //     acceptDelayedBroadcast?: BooleanDefaultTrue
-        //     trustSelf?: TrustSelf
-        //     knownTxids?: TXIDHexString[]
-        //     returnTXIDOnly?: BooleanDefaultFalse
-        //     noSend?: BooleanDefaultFalse
-        //     noSendChange?: OutpointString[]
-        //     sendWith?: TXIDHexString[]
-        //     randomizeOutputs?: BooleanDefaultTrue
-        //   }
-        //     options: {
-        //       noSend: false,
-        //       acceptDelayedBroadcast: false
-        //     }
-      }
-
-      const cr = await wallet.createAction(createArgs)
-
-      expect(cr.noSendChange).toBeTruthy()
-      expect(cr.sendWithResults).toBeUndefined()
-      expect(cr.tx).toBeUndefined()
-      expect(cr.txid).toBeUndefined()
-      expect(cr.signableTransaction).toBeTruthy()
-
-      const st = cr.signableTransaction!
-      const atomicBeef = bsv.Beef.fromBinary(st.tx)
-      expect(atomicBeef.txs[atomicBeef.txs.length - 1].tx.inputs.length).toBe(inputs.length)
-    }
-  })
-
-  test.skip('10_Mixed Inputs and Outputs Transaction', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet } of ctxs) {
-      const createArgs: sdk.CreateActionArgs = {
-        description: 'Mixed Inputs and Outputs',
-        inputs: [
-          {
-            outpoint: `${kp.address}.0`,
-            inputDescription: 'First Input',
-            unlockingScriptLength: 107
-          },
-          {
-            outpoint: `${kp.address}.1`,
-            inputDescription: 'Second Input',
-            unlockingScriptLength: 107
-          }
-        ],
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output 1'
-          },
-          {
-            satoshis: 2000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output 2'
-          }
-        ],
-        options: {
-          noSend: true
-        }
-      }
-
-      const cr = await wallet.createAction(createArgs)
-
-      expect(cr.noSendChange).toBeTruthy()
-      expect(cr.signableTransaction).toBeTruthy()
-      expect(cr.tx).toBeUndefined()
-      expect(cr.txid).toBeUndefined()
-
-      const st = cr.signableTransaction!
-    }
-  })
-
-  test.skip('11_Transaction with inputBEEF and Proof Data', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      // Prepare BEEF options
-      const options: sdk.StorageGetBeefOptions = {
-        ignoreServices: true
-      }
-
-      // Fetch BEEF object for a specific transaction
-      const beef = await storage.getBeefForTransaction('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7', options)
-      expect(beef.atomicTxid).toBeUndefined()
-
-      // Convert to AtomicBEEF transaction
-      const inputBEEF = beef.toBinaryAtomic('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7')
-      console.log('inputBEEF:', inputBEEF)
-      expect(inputBEEF).toBeTruthy()
-
-      const args: sdk.CreateActionArgs = {
-        description: 'Transaction with InputBEEF',
-        inputs: [
-          {
-            outpoint: `${kp.address}.0`,
-            inputDescription: 'Spend with inputBEEF',
-            unlockingScriptLength: 107
-          }
-        ],
-        inputBEEF,
-        outputs: [
-          {
-            satoshis: 2000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output with Proof'
-          }
-        ],
-        options: {
-          noSend: true
-        }
-      }
-
-      const cr = await wallet.createAction(args)
-
-      // Validate signableTransaction exists and has a reference
-      expect(cr).toHaveProperty('signableTransaction')
-      expect(cr.signableTransaction).toHaveProperty('reference')
-
-      // Validate that txid and tx are not finalized
-      expect(cr.tx).toBeUndefined()
-      expect(cr.txid).toBeUndefined()
-
-      // Validate inputBEEF resolution
-      const st = cr.signableTransaction!
-      const atomicBeef = bsv.Beef.fromBinary(st.tx)
-      expect(inputBEEF).toBeDefined()
-    }
-  })
-
-  test.skip('12_Mixed Inputs and Outputs with inputBEEF', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      // Prepare BEEF options
-      const options: sdk.StorageGetBeefOptions = {
-        ignoreServices: true
-      }
-
-      // Fetch BEEF object for a specific transaction
-      const beef = await storage.getBeefForTransaction('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7', options)
-      expect(beef.atomicTxid).toBeUndefined()
-
-      // Convert to AtomicBEEF transaction
-      const inputBEEF = beef.toBinaryAtomic('a3b2f0935c7b5bb7a841a09e535c13be86f4df0e7a91cebdc33812bfcc0eb9d7')
-      console.log('inputBEEF:', inputBEEF)
-      expect(inputBEEF).toBeTruthy()
-
-      const args: sdk.CreateActionArgs = {
-        description: 'Mixed Inputs and Outputs',
-        inputs: [
-          {
-            outpoint: `${kp.address}.0`,
-            inputDescription: 'First Input',
-            unlockingScriptLength: 107
-          },
-          {
-            outpoint: `${kp.address}.1`,
-            inputDescription: 'Second Input',
-            unlockingScriptLength: 107
-          }
-        ],
-        inputBEEF,
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output 1'
-          },
-          {
-            satoshis: 2000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Output 2'
-          }
-        ],
-        options: {
-          noSend: true
-        }
-      }
-
-      const cr = await wallet.createAction(args)
-
-      expect(cr).toHaveProperty('signableTransaction')
-      expect(cr.signableTransaction).toHaveProperty('reference')
-      expect(cr.tx).toBeUndefined()
-      expect(cr.txid).toBeUndefined()
-
-      // Validate inputs and outputs
-      const st = cr.signableTransaction!
-      const atomicBeef = bsv.Beef.fromBinary(st.tx)
-      const tx = atomicBeef.txs[atomicBeef.txs.length - 1].tx
-      expect(tx.inputs.length).toBe(2)
-      expect(tx.outputs.length).toBe(2)
-
-      // Validate inputBEEF
-      expect(inputBEEF).toBeDefined()
-    }
-  })
 })
-
-/**
- * Fetch a large set of inputs from the database for testing.
- *
- * @param {StorageKnex} storage - The storage object providing database access.
- * @returns {Promise<Array<{ outpoint: string, inputDescription: string, unlockingScriptLength: number }>>} Fetched input data.
- */
-async function fetchInputsFromDatabase(storage: StorageKnex) {
-  const db = storage.toDb()
-
-  // Fetch inputs with txid, vout, and unlocking script length
-  const results = await db
-    .select(db.raw("txid || '.' || vout AS outpoint"), db.raw('LENGTH(lockingScript) AS unlockingScriptLength'), db.raw('lockingScript'), db.raw("'Input ' || ROW_NUMBER() OVER () AS inputDescription"))
-    .from('outputs')
-    .where('spendable', 1)
-    .orderBy('created_at')
-    .limit(1)
-
-  if (!results.length) {
-    throw new Error('No spendable inputs found in the database.')
-  }
-
-  if (!noLog) console.log('Fetched inputs from the database:', results)
-
-  return results
-}

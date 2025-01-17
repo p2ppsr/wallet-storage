@@ -403,7 +403,6 @@ export interface ValidInternalizeActionArgs extends ValidWalletSignerArgs {
   description: sdk.DescriptionString5to50Bytes
   labels: sdk.LabelStringUnder300Bytes[]
   seekPermission: sdk.BooleanDefaultTrue
-  commonDerivationPrefix?: string
 }
 
 export function validateOriginator(s?: string) : string | undefined {
@@ -423,13 +422,6 @@ export function validateInternalizeActionArgs(args: sdk.InternalizeActionArgs) :
       description: validateStringLength(args.description, 'description', 5, 50),
       labels: (args.labels || []).map(t => validateLabel(t)),
       seekPermission: defaultTrue(args.seekPermission),
-      commonDerivationPrefix: undefined,
-    }
-    for (const o of vargs.outputs) if (o.protocol === 'wallet payment') {
-      if (vargs.commonDerivationPrefix && o.paymentRemittance!.derivationPrefix !== vargs.commonDerivationPrefix)
-        throw new sdk.WERR_INVALID_PARAMETER('derivationPrefix', 'identical between outputs of the same transaction')
-      else if (!vargs.commonDerivationPrefix)
-        vargs.commonDerivationPrefix = o.paymentRemittance!.derivationPrefix
     }
 
     return vargs

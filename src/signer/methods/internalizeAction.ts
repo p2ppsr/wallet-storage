@@ -63,10 +63,8 @@ export async function internalizeAction(
     const p = o.paymentRemittance
     const output = tx.outputs[o.outputIndex]
     if (!p) throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `valid for protocol ${o.protocol}`);
-    if (dargs.commonDerivationPrefix && dargs.commonDerivationPrefix !== p.derivationPrefix)
-      throw new sdk.WERR_INVALID_PARAMETER('paymentRemitance', `the same derivationPrefix ${dargs.commonDerivationPrefix} vs ${p.derivationPrefix}`);
 
-    const keyID = `${dargs.commonDerivationPrefix} ${p.derivationSuffix}`
+    const keyID = `${p.derivationPrefix} ${p.derivationSuffix}`
 
     const privKey = signer.keyDeriver!.derivePrivateKey(brc29ProtocolID, keyID, p.senderIdentityKey)
     const expectedLockScript = new bsv.P2PKH().lock(privKey.toAddress())

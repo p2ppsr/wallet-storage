@@ -13,7 +13,7 @@ export interface Output extends sdk.EntityTimeStamp {
    outputDescription: sdk.DescriptionString5to50Bytes
    vout: number
    satoshis: number
-   providedBy: string
+   providedBy: sdk.StorageProvidedBy
    purpose: string
    type: string
    txid?: string

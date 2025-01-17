@@ -113,7 +113,7 @@ function makeDefaultOutput(userId: number, transactionId: number, satoshis: numb
     derivationSuffix: undefined,
     outputDescription: '',
     lockingScript: undefined,
-    providedBy: '',
+    providedBy: 'you',
     purpose: '',
     senderIdentityKey: undefined,
     spendable: true,
@@ -239,8 +239,8 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
 
       const o = makeDefaultOutput(userId, ctx.transactionId, xo.satoshis, xo.vout)
       o.lockingScript = lockingScript
-      o.providedBy = 'dojo'
-      o.purpose = 'dojo-commission'
+      o.providedBy = 'storage'
+      o.purpose = 'storage-commission'
       o.type = 'custom'
       o.spendable = false
 
@@ -311,7 +311,7 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
   for (const { o, tags } of newOutputs) {
     o.outputId = await dojo.insertOutput(o)
 
-    if (o.change && o.purpose === 'change' && o.providedBy === 'dojo')
+    if (o.change && o.purpose === 'change' && o.providedBy === 'storage')
       changeVouts.push(o.vout!)
 
     // Add tags to the output

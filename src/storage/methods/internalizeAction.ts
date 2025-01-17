@@ -337,7 +337,7 @@ class InternalizeActionContext {
       type: 'P2PKH',
       providedBy: 'dojo',
       purpose: 'change',
-      derivationPrefix: this.vargs.commonDerivationPrefix!,
+      derivationPrefix: payment.derivationPrefix!,
       derivationSuffix: payment.derivationSuffix,
 
       change: true,
@@ -360,7 +360,7 @@ class InternalizeActionContext {
       providedBy: 'dojo',
       purpose: 'change',
       senderIdentityKey: payment.senderIdentityKey,
-      derivationPrefix: this.vargs.commonDerivationPrefix,
+      derivationPrefix: payment.derivationPrefix,
       derivationSuffix: payment.derivationSuffix,
     }
     await this.storage.updateOutput(outputId, update)

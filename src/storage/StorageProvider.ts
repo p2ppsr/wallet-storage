@@ -495,7 +495,16 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     }
 
     async updateProvenTxReqDynamics(id: number, update: Partial<table.ProvenTxReqDynamics>, trx?: sdk.TrxToken): Promise<number> {
-        const partial: Partial<table.ProvenTxReq> = {...update}
+        const partial: Partial<table.ProvenTxReq> = {}
+        if (update['updated_at']) partial['updated_at'] = update['updated_at']
+        if (update['provenTxId']) partial['provenTxId'] = update['provenTxId']
+        if (update['status']) partial['status'] = update['status']
+        if (update['attempts']) partial['attempts'] = update['attempts']
+        if (update['notified']) partial['notified'] = update['notified']
+        if (update['batch']) partial['batch'] = update['batch']
+        if (update['history']) partial['history'] = update['history']
+        if (update['notify']) partial['notify'] = update['notify']
+
         return await this.updateProvenTxReq(id, partial, trx)
     }
 

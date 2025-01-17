@@ -170,77 +170,89 @@ export class Monitor {
         return log
     }
 
+    async runOnce(runAsyncSetup: boolean = true): Promise<void> {
+
+        if (runAsyncSetup) {
+            for (const t of this._tasks) {
+                try {
+                    await t.asyncSetup()
+                } catch (eu: unknown) {
+                    const e = sdk.WalletError.fromUnknown(eu)
+                    const details = `monitor task ${t.name} asyncSetup error ${e.code} ${e.description}`
+                    console.log(details)
+                    await this.logEvent('error0', details)
+                }
+                if (!this._tasksRunning) break
+            }
+        }
+
+        if (this.storage.getActive().isStorageProvider()) {
+
+            const tasksToRun: WalletMonitorTask[] = []
+            const now = new Date().getTime()
+            for (const t of this._tasks) {
+                try {
+                    if (t.trigger(now).run) tasksToRun.push(t)
+                } catch (eu: unknown) {
+                    const e = sdk.WalletError.fromUnknown(eu)
+                    const details = `monitor task ${t.name} trigger error ${e.code} ${e.description}`
+                    console.log(details)
+                    await this.logEvent('error0', details)
+                }
+            }
+
+            for (const ttr of tasksToRun) {
+                if (!this._tasksRunning) break;
+
+                try {
+                    if (this.storage.getActive().isStorageProvider()) {
+                        const log = await ttr.runTask()
+                        if (log && log.length > 0) {
+                            console.log(`Task${ttr.name} ${log}`)
+                            await this.logEvent(ttr.name, log)
+                        }
+                    }
+                } catch (eu: unknown) {
+                    const e = sdk.WalletError.fromUnknown(eu)
+                    const details = `monitor task ${ttr.name} runTask error ${e.code} ${e.description}\n${e.stack}`
+                    console.log(details)
+                    await this.logEvent('error1', details)
+                } finally {
+                    ttr.lastRunMsecsSinceEpoch = new Date().getTime()
+                }
+            }
+
+        }
+    }
+
     async startTasks() : Promise<void> {
         
         if (this._tasksRunning)
             throw new sdk.WERR_BAD_REQUEST('monitor tasks are already runnining.')
         
+        let runAsyncSetup = true
+
         this._tasksRunning = true
+        for (; this._tasksRunning;) {
 
-        for (const t of this._tasks) {
-            try {
-                await t.asyncSetup()
-            } catch(eu: unknown) {
-                const e = sdk.WalletError.fromUnknown(eu)
-                console.log(`monitor task ${t.name} asyncSetup error ${e.code} ${e.description}`)
-            }
-            if (!this._tasksRunning) break
-        }
-
-        for (;;) {
-
-            if (this.storage.getActive().isStorageProvider()) {
-                if (!this._tasksRunning) break
-
-                console.log(`${new Date().toISOString()} tasks review triggers`)
-
-                const tasksToRun: WalletMonitorTask[] = []
-                const now = new Date().getTime()
-                for (const t of this._tasks) {
-                    try {
-                        if (t.trigger(now).run) tasksToRun.push(t)
-                    } catch (eu: unknown) {
-                        const e = sdk.WalletError.fromUnknown(eu)
-                        console.log(`monitor task ${t.name} trigger error ${e.code} ${e.description}`)
-                    }
-                }
-
-                for (const ttr of tasksToRun) {
-
-                    try {
-                        console.log(`${new Date().toISOString()} running  ${ttr.name}`)
-                        if (this.storage.getActive().isStorageProvider()) {
-                            const log = await ttr.runTask()
-                            if (log && log.length > 0) {
-                                console.log(`Task${ttr.name} ${log}`)
-                                await this.storage.runAsStorageProvider(async (sp) => {
-                                    await sp.insertMonitorEvent({
-                                        created_at: new Date(),
-                                        updated_at: new Date(),
-                                        id: 0,
-                                        event: ttr.name,
-                                        details: log
-                                    })
-                                })
-                            }
-                        }
-                    } catch (eu: unknown) {
-                        const e = sdk.WalletError.fromUnknown(eu)
-                        console.log(`monitor task ${ttr.name} runTask error ${e.code} ${e.description}`)
-                    } finally {
-                        ttr.lastRunMsecsSinceEpoch = new Date().getTime()
-                    }
-
-                    if (!this._tasksRunning) break
-
-                }
-
-                if (!this._tasksRunning) break
-            }
+            await this.runOnce(runAsyncSetup)
+            runAsyncSetup = false
 
             // console.log(`${new Date().toISOString()} tasks run, waiting...`)
             await wait(this.options.taskRunWaitMsecs)
         }
+    }
+
+    async logEvent(event: string, details?: string) : Promise<void> {
+        await this.storage.runAsStorageProvider(async (sp) => {
+            await sp.insertMonitorEvent({
+                created_at: new Date(),
+                updated_at: new Date(),
+                id: 0,
+                event,
+                details
+            })
+        })
     }
     
     stopTasks() : void {
@@ -281,138 +293,6 @@ export class Monitor {
         /* */
     }
 
-    /**
-     * Process an array of table.ProvenTxReq (typically with status 'unmined' or 'unknown')
-     * 
-     * If req is invalid, set status 'invalid'
-     * 
-     * Verify the requests are valid, lookup proofs or updated transaction status using the array of getProofServices,
-     * 
-     * When proofs are found, create new ProvenTxApi records and transition the requests' status to 'unconfirmed' or 'notifying',
-     * depending on chaintracks succeeding on proof verification. 
-     *
-     * Increments attempts if proofs where requested.
-     *
-     * @param reqs 
-     * @returns reqs partitioned by status
-     */
-    async getProofs(reqs: table.ProvenTxReq[], indent = 0, countsAsAttempt = false, ignoreStatus = false)
-    : Promise<{
-        proven: table.ProvenTxReq[],
-        invalid: table.ProvenTxReq[],
-        log: string
-    }> {
-        const proven: table.ProvenTxReq[] = []
-        const invalid: table.ProvenTxReq[] = []
-
-        let log = ''
-        for (const reqApi of reqs) {
-            log += ' '.repeat(indent)
-            log += `reqId ${reqApi.provenTxReqId} txid ${reqApi.txid}: `
-            
-            if (!ignoreStatus &&
-                reqApi.status !== 'callback' &&
-                reqApi.status !== 'unmined' &&
-                reqApi.status !== 'unknown' &&
-                reqApi.status !== 'unconfirmed' &&
-                reqApi.status !== 'nosend' &&
-                reqApi.status !== 'sending') {
-                log += `status of '${reqApi.status}' is not ready to be proven.\n`
-                continue
-            }
-
-            const req = new entity.ProvenTxReq(reqApi)
-
-            if (Number.isInteger(req.provenTxId)) {
-                log += `Already linked to provenTxId ${req.provenTxId}.\n`
-                req.notified = false
-                req.status = 'completed'
-                await req.updateStorageDynamicProperties(this.storage)
-                proven.push(reqApi)
-                continue
-            }
-            
-            log += '\n'
-
-            let reqIsValid = false
-            if (req.rawTx) {
-                const txid = asString(doubleSha256BE(req.rawTx))
-                if (txid === req.txid)
-                    reqIsValid = true
-            }
-
-            if (!reqIsValid) {
-                log += ` rawTx doesn't hash to txid. status => invalid.\n`
-                req.notified = false
-                req.status = 'invalid'
-                await req.updateStorageDynamicProperties(this.storage)
-                invalid.push(reqApi)
-                continue
-            }
-
-            const limit = this.chain === 'main' ? this.options.unprovenAttemptsLimitMain : this.options.unprovenAttemptsLimitTest
-            if (!ignoreStatus && req.attempts > limit) {
-                log += ` too many failed attempts ${req.attempts}\n`
-                req.notified = false
-                req.status = 'invalid'
-                await req.updateStorageDynamicProperties(this.storage)
-                invalid.push(reqApi)
-                continue
-            }
-
-            const since = new Date()
-
-            let r: sdk.GetMerklePathResult
-            let ptx: entity.ProvenTx | undefined
-
-            // External services will try multiple providers until one returns a proof,
-            // or they all fail.
-            // There may also be an array of proofs to consider when a transaction
-            // is recently mined and appears in orphan blocks in addition to active chain blocks.
-            // Since orphan blocks can end up on chain again, multiple proofs has value.
-            //
-            // On failure, there may be a mapi response, or an error.
-            //
-            // The proofs returned are considered sequentially, validating and chaintracks confirming.
-            //
-            // If a good proof is found, proceed to using it.
-            //
-            // When all received proofs fail, force a bump to the next service provider and try
-            // one more time.
-            //
-            r = await this.services.getMerklePath(req.txid)
-            ptx = await entity.ProvenTx.fromReq(req, r, this.chaintracks, countsAsAttempt && req.status !== 'nosend')
-
-            if (ptx) {
-                // We have a merklePath proof for the request (and a block header)
-                const { provenTxReqId, status, txid, attempts, history } = req.toApi()
-                const { index, height, blockHash, merklePath, merkleRoot } = ptx.toApi()
-                const r = await this.storage.runAsStorageProvider(async (sp) => {
-                    return await sp.updateProvenTxReqWithNewProvenTx({
-                        provenTxReqId, status, txid, attempts, history, index, height, blockHash, merklePath, merkleRoot
-                    })
-                })
-                req.status = r.status
-                req.apiHistory = r.history
-                req.provenTxId = r.provenTxId
-                req.notified = true
-            } else {
-                if (countsAsAttempt && req.status !== 'nosend') {
-                    req.attempts++
-                }
-                await req.updateStorageDynamicProperties(this.storage)
-                await req.refreshFromStorage(this.storage)
-            }
-
-
-            log += req.historyPretty(since, indent + 2) + '\n'
-
-            if (req.status === 'completed') proven.push(req.api)
-            if (req.status === 'invalid') invalid.push(req.api)
-        }
-        
-        return { proven, invalid, log }
-    }
 }
 
 function sum<T>(a: T[], getNum: (v: T) => number) : number {

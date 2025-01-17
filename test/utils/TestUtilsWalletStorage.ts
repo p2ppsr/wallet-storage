@@ -186,9 +186,13 @@ export abstract class TestUtilsWalletStorage {
     return r
   }
 
-  static async createTestWalletWithStorageClient(args: { rootKeyHex?: string }): Promise<TestWalletOnly> {
+  static async createTestWalletWithStorageClient(args: {
+    rootKeyHex?: string,
+    endpointUrl?: string
+  }): Promise<TestWalletOnly> {
     const wo = await _tu.createWalletOnly({ chain: 'test', rootKeyHex: args.rootKeyHex })
-    const client = new StorageClient(wo.wallet, 'https://staging-dojo.babbage.systems')
+    args.endpointUrl ||= 'https://staging-dojo.babbage.systems'
+    const client = new StorageClient(wo.wallet, args.endpointUrl)
     await wo.storage.addWalletStorageProvider(client)
     return wo
   }

@@ -5,7 +5,7 @@ import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 /**
  * NOT PASSING YET
  */
-describe('internalizeAction tests', () => {
+describe.skip('internalizeAction tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')

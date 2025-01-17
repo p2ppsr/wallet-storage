@@ -2,9 +2,6 @@ import * as bsv from '@bsv/sdk'
 import { sdk } from '../../../src'
 import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
-/**
- * NOT PASSING YET
- */
 describe('internalizeAction tests', () => {
   jest.setTimeout(99999999)
 
@@ -117,7 +114,7 @@ describe('internalizeAction tests', () => {
         expect(cr.tx).toBeTruthy()
 
         // Fred's new wallet (context)
-        const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction1fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+        const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
         // Internalize args to add fred's new output to his own wallet
         const internalizeArgs: sdk.InternalizeActionArgs = {

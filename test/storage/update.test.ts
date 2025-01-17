@@ -1852,7 +1852,7 @@ describe('update tests', () => {
             derivationPrefix: 'updated_prefix==',
             derivationSuffix: 'updated_suffix==',
             lockingScript: [0x01, 0x02, 0x03, 0x04],
-            providedBy: 'test_provider',
+            providedBy: 'you',
             purpose: 'updated_purpose',
             satoshis: 3000,
             scriptLength: 150,

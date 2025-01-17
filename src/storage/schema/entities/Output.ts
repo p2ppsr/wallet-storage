@@ -18,7 +18,7 @@ export class Output extends EntityBase<table.Output> {
             outputDescription: '',
             vout: 0,
             type: '',
-            providedBy: '',
+            providedBy: 'you',
             purpose: '',
 
             txid: undefined,
@@ -69,7 +69,7 @@ export class Output extends EntityBase<table.Output> {
     get type() { return this.api.type }
     set type(v: string) { this.api.type = v }
     get providedBy() { return this.api.providedBy }
-    set providedBy(v: string) { this.api.providedBy = v }
+    set providedBy(v: sdk.StorageProvidedBy) { this.api.providedBy = v }
     get purpose() { return this.api.purpose }
     set purpose(v: string) { this.api.purpose = v }
     get spendingDescription() { return this.api.spendingDescription }

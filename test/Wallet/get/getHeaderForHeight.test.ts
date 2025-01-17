@@ -1,4 +1,4 @@
-import { setupTestWallet } from '../utils/TestUtilsMethodTests';
+import { setupTestWallet } from '../../utils/TestUtilsMethodTests';
 
 describe.skip('Wallet getHeaderForHeight Tests', () => {
     // none of these tests pass.... not clear what failures indicate.

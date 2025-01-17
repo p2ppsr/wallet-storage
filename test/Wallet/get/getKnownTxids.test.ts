@@ -1,4 +1,4 @@
-import { setupTestWallet } from '../utils/TestUtilsMethodTests';
+import { setupTestWallet } from '../../utils/TestUtilsMethodTests';
 
 describe('Wallet Utility Tests (Unit)', () => {
     let wallet: any;

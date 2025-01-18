@@ -4389,17 +4389,17 @@ export interface WalletSigner {
     setServices(v: sdk.WalletServices): void;
     getServices(): sdk.WalletServices;
     getStorageIdentity(): StorageIdentity;
-    listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>;
-    listOutputs(args: sdk.ListOutputsArgs, knwonTxids: string[]): Promise<sdk.ListOutputsResult>;
+    listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>;
+    listOutputs(args: bsv.ListOutputsArgs, knwonTxids: string[]): Promise<bsv.ListOutputsResult>;
     createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult>;
     signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult>;
     abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>;
     internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult>;
-    relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<sdk.RelinquishOutputResult>;
+    relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<bsv.RelinquishOutputResult>;
     acquireDirectCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult>;
-    listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult>;
+    listCertificates(args: bsv.ListCertificatesArgs): Promise<bsv.ListCertificatesResult>;
     proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult>;
-    relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult>;
+    relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<bsv.RelinquishCertificateResult>;
     discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult>;
     discoverByAttributes(args: sdk.DiscoverByAttributesArgs): Promise<sdk.DiscoverCertificatesResult>;
     getChain(): Promise<sdk.Chain>;
@@ -4443,12 +4443,12 @@ export interface WalletStorage {
     findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]>;
     findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]>;
     findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>;
-    listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>;
-    listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>;
-    listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>;
+    listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>;
+    listCertificates(args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult>;
+    listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>;
     insertCertificate(certificate: table.CertificateX): Promise<number>;
-    relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<number>;
-    relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<number>;
+    relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<number>;
+    relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<number>;
 }
 ```
 
@@ -4517,9 +4517,9 @@ export interface WalletStorageReader {
     findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]>;
     findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs): Promise<table.Output[]>;
     findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>;
-    listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>;
-    listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>;
-    listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>;
+    listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>;
+    listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult>;
+    listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>;
 }
 ```
 
@@ -4562,8 +4562,8 @@ export interface WalletStorageWriter extends WalletStorageReader {
     processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>;
     internalizeAction(auth: sdk.AuthId, args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult>;
     insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>;
-    relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs): Promise<number>;
-    relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs): Promise<number>;
+    relinquishCertificate(auth: sdk.AuthId, args: bsv.RelinquishCertificateArgs): Promise<number>;
+    relinquishOutput(auth: sdk.AuthId, args: bsv.RelinquishOutputArgs): Promise<number>;
 }
 ```
 
@@ -4817,7 +4817,7 @@ export class CertOps extends Certificate {
         keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string>;
         counterparty: sdk.PubKeyHex;
     }> 
-    async createKeyringForVerifier(verifierIdentityKey: sdk.PubKeyHex, fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[], originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>> 
+    async createKeyringForVerifier(verifierIdentityKey: sdk.PubKeyHex, fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[], originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>> 
     async encryptAndSignNewCertificate(): Promise<void> 
 }
 ```
@@ -4836,7 +4836,7 @@ for the verifier's identity key. The resulting certificate structure includes on
 revealed and a verifier-specific keyring for field decryption.
 
 ```ts
-async createKeyringForVerifier(verifierIdentityKey: sdk.PubKeyHex, fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[], originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>> 
+async createKeyringForVerifier(verifierIdentityKey: sdk.PubKeyHex, fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[], originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>> 
 ```
 See also: [Base64String](#type-base64string), [CertificateFieldNameUnder50Bytes](#type-certificatefieldnameunder50bytes), [OriginatorDomainNameStringUnder250Bytes](#type-originatordomainnamestringunder250bytes), [PubKeyHex](#type-pubkeyhex)
 
@@ -5505,8 +5505,8 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     abstract getRawTxOfKnownValidTransaction(txid?: string, offset?: number, length?: number, trx?: sdk.TrxToken): Promise<number[] | undefined>;
     abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>;
     abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>;
-    abstract listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>;
-    abstract listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>;
+    abstract listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>;
+    abstract listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>;
     abstract countChangeInputs(userId: number, basketId: number, excludeSending: boolean): Promise<number>;
     abstract findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs): Promise<table.Certificate[]>;
     abstract findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]>;
@@ -5525,14 +5525,14 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     async createAction(auth: sdk.AuthId, args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult> 
     async processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults> 
     async attemptToPostReqsToNetwork(reqs: entity.ProvenTxReq[], trx?: sdk.TrxToken): Promise<PostReqsToNetworkResult> 
-    async listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> 
+    async listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult> 
     async verifyKnownValidTransaction(txid: string, trx?: sdk.TrxToken): Promise<boolean> 
     async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef> 
     async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef | undefined> 
     async getBeefForTransaction(txid: string, options: sdk.StorageGetBeefOptions): Promise<bsv.Beef> 
     async findMonitorEventById(id: number, trx?: sdk.TrxToken): Promise<table.MonitorEvent | undefined> 
-    async relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs): Promise<number> 
-    async relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs): Promise<number> 
+    async relinquishCertificate(auth: sdk.AuthId, args: bsv.RelinquishCertificateArgs): Promise<number> 
+    async relinquishOutput(auth: sdk.AuthId, args: bsv.RelinquishOutputArgs): Promise<number> 
     async processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> 
     async updateProvenTxReqWithNewProvenTx(args: sdk.UpdateProvenTxReqWithNewProvenTxArgs): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> 
     async confirmSpendableOutputs(): Promise<{
@@ -6298,26 +6298,26 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) 
     getServices(): sdk.WalletServices 
     getKnownTxids(newKnownTxids?: string[]): string[] 
-    async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListActionsResult> 
+    async listActions(args: bsv.ListActionsArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.ListActionsResult> 
     get storageParty(): string 
-    async listOutputs(args: sdk.ListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListOutputsResult> 
-    async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> 
-    async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult> 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishCertificateResult> 
-    async proveCertificate(args: sdk.ProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ProveCertificateResult> 
-    async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> 
-    async discoverByAttributes(args: sdk.DiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> 
-    async createAction(args: sdk.CreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult> 
-    async signAction(args: sdk.SignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> 
-    async abortAction(args: sdk.AbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult> 
-    async internalizeAction(args: sdk.InternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> 
-    async relinquishOutput(args: sdk.RelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.RelinquishOutputResult> 
-    async isAuthenticated(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AuthenticatedResult> 
-    async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AuthenticatedResult> 
-    async getHeight(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetHeightResult> 
-    async getHeaderForHeight(args: sdk.GetHeaderArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetHeaderResult> 
-    async getNetwork(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetNetworkResult> 
-    async getVersion(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetVersionResult> 
+    async listOutputs(args: bsv.ListOutputsArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.ListOutputsResult> 
+    async listCertificates(args: bsv.ListCertificatesArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.ListCertificatesResult> 
+    async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AcquireCertificateResult> 
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.RelinquishCertificateResult> 
+    async proveCertificate(args: sdk.ProveCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ProveCertificateResult> 
+    async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> 
+    async discoverByAttributes(args: sdk.DiscoverByAttributesArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.DiscoverCertificatesResult> 
+    async createAction(args: sdk.CreateActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.CreateActionResult> 
+    async signAction(args: sdk.SignActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.SignActionResult> 
+    async abortAction(args: sdk.AbortActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AbortActionResult> 
+    async internalizeAction(args: sdk.InternalizeActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.InternalizeActionResult> 
+    async relinquishOutput(args: bsv.RelinquishOutputArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.RelinquishOutputResult> 
+    async isAuthenticated(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AuthenticatedResult> 
+    async waitForAuthentication(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.AuthenticatedResult> 
+    async getHeight(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetHeightResult> 
+    async getHeaderForHeight(args: sdk.GetHeaderArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetHeaderResult> 
+    async getNetwork(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetNetworkResult> 
+    async getVersion(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.GetVersionResult> 
 }
 ```
 
@@ -6551,15 +6551,15 @@ export class WalletSigner implements sdk.WalletSigner {
     getStorageIdentity(): sdk.StorageIdentity 
     getClientChangeKeyPair(): sdk.KeyPair 
     async getChain(): Promise<sdk.Chain> 
-    async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> 
-    async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> 
-    async listCertificates(args: sdk.ListCertificatesArgs): Promise<sdk.ListCertificatesResult> 
+    async listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> 
+    async listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> 
+    async listCertificates(args: bsv.ListCertificatesArgs): Promise<bsv.ListCertificatesResult> 
     async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> 
     async createAction(args: sdk.CreateActionArgs): Promise<sdk.CreateActionResult> 
     async signAction(args: sdk.SignActionArgs): Promise<sdk.SignActionResult> 
     async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> 
-    async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<sdk.RelinquishOutputResult> 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<sdk.RelinquishCertificateResult> 
+    async relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<bsv.RelinquishOutputResult> 
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<bsv.RelinquishCertificateResult> 
     async acquireDirectCertificate(args: sdk.AcquireCertificateArgs): Promise<sdk.AcquireCertificateResult> 
     async proveCertificate(args: sdk.ProveCertificateArgs): Promise<sdk.ProveCertificateResult> 
     async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs): Promise<sdk.DiscoverCertificatesResult> 
@@ -6628,13 +6628,13 @@ export class WalletStorageManager implements sdk.WalletStorage {
     async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> 
     async createAction(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult> 
     async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<number> 
-    async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<number> 
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<number> 
+    async relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<number> 
     async processAction(args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults> 
     async insertCertificate(certificate: table.Certificate): Promise<number> 
-    async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> 
-    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> 
-    async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> 
+    async listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> 
+    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult> 
+    async listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> 
     async findCertificates(args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> 
     async findOutputBaskets(args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> 
     async findOutputs(args: sdk.FindOutputsArgs): Promise<table.Output[]> 
@@ -7016,7 +7016,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: createAction
 
 ```ts
-export async function createAction(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateActionResult> 
+export async function createAction(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.StorageCreateActionResult> 
 ```
 
 See also: [AuthId](#interface-authid), [OriginatorDomainNameStringUnder250Bytes](#type-originatordomainnamestringunder250bytes), [StorageCreateActionResult](#interface-storagecreateactionresult), [StorageProvider](#class-storageprovider), [ValidCreateActionArgs](#interface-validcreateactionargs)
@@ -7356,7 +7356,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: listCertificates
 
 ```ts
-export async function listCertificates(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes): Promise<sdk.ListCertificatesResult> 
+export async function listCertificates(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidListCertificatesArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes): Promise<bsv.ListCertificatesResult> 
 ```
 
 See also: [AuthId](#interface-authid), [ListCertificatesResult](#interface-listcertificatesresult), [OriginatorDomainNameStringUnder250Bytes](#type-originatordomainnamestringunder250bytes), [StorageProvider](#class-storageprovider), [ValidListCertificatesArgs](#interface-validlistcertificatesargs)
@@ -8072,7 +8072,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: validateListActionsArgs
 
 ```ts
-export function validateListActionsArgs(args: sdk.ListActionsArgs): ValidListActionsArgs 
+export function validateListActionsArgs(args: bsv.ListActionsArgs): ValidListActionsArgs 
 ```
 
 See also: [ListActionsArgs](#interface-listactionsargs), [ValidListActionsArgs](#interface-validlistactionsargs)
@@ -8114,7 +8114,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: validateListCertificatesArgs
 
 ```ts
-export function validateListCertificatesArgs(args: sdk.ListCertificatesArgs): ValidListCertificatesArgs 
+export function validateListCertificatesArgs(args: bsv.ListCertificatesArgs): ValidListCertificatesArgs 
 ```
 
 See also: [ListCertificatesArgs](#interface-listcertificatesargs), [ValidListCertificatesArgs](#interface-validlistcertificatesargs)
@@ -8125,7 +8125,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: validateListOutputsArgs
 
 ```ts
-export function validateListOutputsArgs(args: sdk.ListOutputsArgs): ValidListOutputsArgs 
+export function validateListOutputsArgs(args: bsv.ListOutputsArgs): ValidListOutputsArgs 
 ```
 
 See also: [ListOutputsArgs](#interface-listoutputsargs), [ValidListOutputsArgs](#interface-validlistoutputsargs)
@@ -8223,7 +8223,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: validateRelinquishCertificateArgs
 
 ```ts
-export function validateRelinquishCertificateArgs(args: sdk.RelinquishCertificateArgs): ValidRelinquishCertificateArgs 
+export function validateRelinquishCertificateArgs(args: bsv.RelinquishCertificateArgs): ValidRelinquishCertificateArgs 
 ```
 
 See also: [RelinquishCertificateArgs](#interface-relinquishcertificateargs), [ValidRelinquishCertificateArgs](#interface-validrelinquishcertificateargs)
@@ -8234,7 +8234,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: validateRelinquishOutputArgs
 
 ```ts
-export function validateRelinquishOutputArgs(args: sdk.RelinquishOutputArgs): ValidRelinquishOutputArgs 
+export function validateRelinquishOutputArgs(args: bsv.RelinquishOutputArgs): ValidRelinquishOutputArgs 
 ```
 
 See also: [RelinquishOutputArgs](#interface-relinquishoutputargs), [ValidRelinquishOutputArgs](#interface-validrelinquishoutputargs)

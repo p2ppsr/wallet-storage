@@ -28,24 +28,24 @@ export interface WalletStorage {
 
    findOrInsertUser(identityKey: string) : Promise<{ user: table.User, isNew: boolean}>
 
-   abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
+   abortAction(args: bsv.AbortActionArgs): Promise<bsv.AbortActionResult>
    createAction(args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult>
    processAction(args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>
-   internalizeAction(args: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
+   internalizeAction(args: bsv.InternalizeActionArgs) : Promise<bsv.InternalizeActionResult>
 
    findCertificates(args: sdk.FindCertificatesArgs ): Promise<table.Certificate[]>
    findOutputBaskets(args: sdk.FindOutputBasketsArgs ): Promise<table.OutputBasket[]>
    findOutputs(args: sdk.FindOutputsArgs ): Promise<table.Output[]>
    findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
-   listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
-   listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
-   listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+   listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>
+   listCertificates(args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult>
+   listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>
 
    insertCertificate(certificate: table.CertificateX): Promise<number>
 
-   relinquishCertificate(args: sdk.RelinquishCertificateArgs) : Promise<number>
-   relinquishOutput(args: sdk.RelinquishOutputArgs) : Promise<number>
+   relinquishCertificate(args: bsv.RelinquishCertificateArgs) : Promise<number>
+   relinquishOutput(args: bsv.RelinquishOutputArgs) : Promise<number>
 
 }
 
@@ -75,15 +75,15 @@ export interface WalletStorageWriter extends WalletStorageReader {
 
    findOrInsertUser(identityKey: string) : Promise<{ user: table.User, isNew: boolean}>
 
-   abortAction(auth: sdk.AuthId, args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult>
+   abortAction(auth: sdk.AuthId, args: bsv.AbortActionArgs): Promise<bsv.AbortActionResult>
    createAction(auth: sdk.AuthId, args: sdk.ValidCreateActionArgs): Promise<sdk.StorageCreateActionResult>
    processAction(auth: sdk.AuthId, args: sdk.StorageProcessActionArgs): Promise<sdk.StorageProcessActionResults>
-   internalizeAction(auth: sdk.AuthId, args: sdk.InternalizeActionArgs) : Promise<sdk.InternalizeActionResult>
+   internalizeAction(auth: sdk.AuthId, args: bsv.InternalizeActionArgs) : Promise<bsv.InternalizeActionResult>
 
    insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number>
 
-   relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs) : Promise<number>
-   relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs) : Promise<number>
+   relinquishCertificate(auth: sdk.AuthId, args: bsv.RelinquishCertificateArgs) : Promise<number>
+   relinquishOutput(auth: sdk.AuthId, args: bsv.RelinquishOutputArgs) : Promise<number>
 }
 
 export interface WalletStorageReader {
@@ -97,9 +97,9 @@ export interface WalletStorageReader {
    findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs ): Promise<table.Output[]>
    findProvenTxReqs(args: sdk.FindProvenTxReqsArgs): Promise<table.ProvenTxReq[]>
 
-   listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
-   listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult>
-   listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+   listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>
+   listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult>
+   listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>
 }
 
 export interface AuthId {
@@ -186,7 +186,7 @@ export interface StorageProcessActionArgs {
 }
 
 export interface StorageProcessActionResults {
-   sendWithResults?: sdk.SendWithResult[]
+   sendWithResults?: bsv.SendWithResult[]
    log?: string
 }
 

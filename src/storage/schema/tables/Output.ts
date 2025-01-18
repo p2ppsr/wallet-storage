@@ -1,3 +1,4 @@
+import * as bsv from '@bsv/sdk'
 import { OutputBasket, OutputTag } from "."
 import { sdk } from "../../.."
 
@@ -10,16 +11,16 @@ export interface Output extends sdk.EntityTimeStamp {
    basketId?: number
    spendable: boolean
    change: boolean
-   outputDescription: sdk.DescriptionString5to50Bytes
+   outputDescription: bsv.DescriptionString5to50Bytes
    vout: number
    satoshis: number
    providedBy: sdk.StorageProvidedBy
    purpose: string
    type: string
    txid?: string
-   senderIdentityKey?: sdk.PubKeyHex
-   derivationPrefix?: sdk.Base64String
-   derivationSuffix?: sdk.Base64String
+   senderIdentityKey?: bsv.PubKeyHex
+   derivationPrefix?: bsv.Base64String
+   derivationSuffix?: bsv.Base64String
    customInstructions?: string
    spentBy?: number
    sequenceNumber?: number

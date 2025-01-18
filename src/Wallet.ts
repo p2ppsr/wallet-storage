@@ -1,16 +1,17 @@
+import * as bsv from '@bsv/sdk'
 import { Beef, BeefParty, Utils, PrivateKey } from "@bsv/sdk";
 import { sdk, stampLog, toWalletNetwork, Monitor } from '.'
 
-export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
+export class Wallet extends bsv.ProtoWallet implements bsv.Wallet {
     signer: sdk.WalletSigner
     services?: sdk.WalletServices
     monitor?: Monitor
 
     beef: BeefParty
-    trustSelf?: sdk.TrustSelf
+    trustSelf?: bsv.TrustSelf
     userParty: string
 
-    constructor(signer: sdk.WalletSigner, keyDeriver?: sdk.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) {
+    constructor(signer: sdk.WalletSigner, keyDeriver?: bsv.KeyDeriverApi, services?: sdk.WalletServices, monitor?: Monitor) {
         if (!keyDeriver)
             throw new sdk.WERR_INVALID_PARAMETER('keyDeriver', 'valid')
         super(keyDeriver)
@@ -53,8 +54,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     // List Methods
     //////////////////
 
-    async listActions(args: sdk.ListActionsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.ListActionsResult> {
+    async listActions(args: bsv.ListActionsArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.ListActionsResult> {
         sdk.validateOriginator(originator)
         sdk.validateListActionsArgs(args)
         const r = await this.signer.listActions(args)
@@ -63,8 +64,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
 
     get storageParty() : string { return `storage ${this.signer.getStorageIdentity().storageIdentityKey}` }
 
-    async listOutputs(args: sdk.ListOutputsArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.ListOutputsResult> {
+    async listOutputs(args: bsv.ListOutputsArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.ListOutputsResult> {
         sdk.validateOriginator(originator)
         sdk.validateListOutputsArgs(args)
         const knownTxids = this.getKnownTxids()
@@ -75,8 +76,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async listCertificates(args: sdk.ListCertificatesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.ListCertificatesResult> {
+    async listCertificates(args: bsv.ListCertificatesArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.ListCertificatesResult> {
         sdk.validateOriginator(originator)
         sdk.validateListCertificatesArgs(args)
         const r = await this.signer.listCertificates(args)
@@ -87,8 +88,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     // Certificates
     //////////////////
 
-    async acquireCertificate(args: sdk.AcquireCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.AcquireCertificateResult> {
+    async acquireCertificate(args: bsv.AcquireCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.AcquireCertificateResult> {
         sdk.validateOriginator(originator)
         if (args.acquisitionProtocol === 'direct') {
             const vargs = sdk.validateAcquireDirectCertificateArgs(args)
@@ -117,24 +118,24 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         throw new sdk.WERR_INVALID_PARAMETER('acquisitionProtocol', `valid. ${args.acquisitionProtocol} is unrecognized.`)
     }
 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.RelinquishCertificateResult> {
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.RelinquishCertificateResult> {
         sdk.validateOriginator(originator)
         sdk.validateRelinquishCertificateArgs(args)
         const r = await this.signer.relinquishCertificate(args)
         return r
     }
 
-    async proveCertificate(args: sdk.ProveCertificateArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.ProveCertificateResult> {
+    async proveCertificate(args: bsv.ProveCertificateArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.ProveCertificateResult> {
         originator = sdk.validateOriginator(originator)
         sdk.validateProveCertificateArgs(args)
         const r = await this.signer.proveCertificate(args)
         return r
     }
     
-    async discoverByIdentityKey(args: sdk.DiscoverByIdentityKeyArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.DiscoverCertificatesResult> {
+    async discoverByIdentityKey(args: bsv.DiscoverByIdentityKeyArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.DiscoverCertificatesResult> {
         sdk.validateOriginator(originator)
         sdk.validateDiscoverByIdentityKeyArgs(args)
 
@@ -144,8 +145,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async discoverByAttributes(args: sdk.DiscoverByAttributesArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.DiscoverCertificatesResult> {
+    async discoverByAttributes(args: bsv.DiscoverByAttributesArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.DiscoverCertificatesResult> {
         sdk.validateOriginator(originator)
         sdk.validateDiscoverByAttributesArgs(args)
 
@@ -161,8 +162,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     // Actions
     //////////////////
 
-    async createAction(args: sdk.CreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.CreateActionResult> {
+    async createAction(args: bsv.CreateActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.CreateActionResult> {
         sdk.validateOriginator(originator)
         sdk.validateCreateActionArgs(args)
 
@@ -189,8 +190,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async signAction(args: sdk.SignActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.SignActionResult> {
+    async signAction(args: bsv.SignActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.SignActionResult> {
         sdk.validateOriginator(originator)
         sdk.validateSignActionArgs(args)
 
@@ -199,8 +200,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async abortAction(args: sdk.AbortActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.AbortActionResult> {
+    async abortAction(args: bsv.AbortActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.AbortActionResult> {
         sdk.validateOriginator(originator)
         const vargs = sdk.validateAbortActionArgs(args)
 
@@ -209,8 +210,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async internalizeAction(args: sdk.InternalizeActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.InternalizeActionResult> {
+    async internalizeAction(args: bsv.InternalizeActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.InternalizeActionResult> {
         sdk.validateOriginator(originator)
         sdk.validateInternalizeActionArgs(args)
 
@@ -219,8 +220,8 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
         return r
     }
 
-    async relinquishOutput(args: sdk.RelinquishOutputArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.RelinquishOutputResult> {
+    async relinquishOutput(args: bsv.RelinquishOutputArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.RelinquishOutputResult> {
         sdk.validateOriginator(originator)
         sdk.validateRelinquishOutputArgs(args)
 
@@ -230,44 +231,44 @@ export class Wallet extends sdk.WalletCrypto implements sdk.Wallet {
     }
 
 
-    async isAuthenticated(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.AuthenticatedResult> {
+    override async isAuthenticated(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.AuthenticatedResult> {
         sdk.validateOriginator(originator)
-        const r: { authenticated: boolean; } = {
+        const r: { authenticated: true; } = {
             authenticated: true
         }
         return r
     }
 
-    async waitForAuthentication(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.AuthenticatedResult> {
+    override async waitForAuthentication(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.AuthenticatedResult> {
         sdk.validateOriginator(originator)
         return { authenticated: true }
     }
 
-    async getHeight(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.GetHeightResult> {
+    async getHeight(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.GetHeightResult> {
         sdk.validateOriginator(originator)
         const height = await this.getServices().getHeight()
         return { height }
     }
 
-    async getHeaderForHeight(args: sdk.GetHeaderArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.GetHeaderResult> {
+    async getHeaderForHeight(args: bsv.GetHeaderArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.GetHeaderResult> {
         sdk.validateOriginator(originator)
         const serializedHeader = await this.getServices().getHeaderForHeight(args.height)
         return { header: Utils.toHex(serializedHeader) }
     }
 
-    async getNetwork(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.GetNetworkResult> {
+    override async getNetwork(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.GetNetworkResult> {
         sdk.validateOriginator(originator)
         const chain = await this.signer.getChain()
         return { network: toWalletNetwork(chain) }
     }
 
-    async getVersion(args: {}, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
-    : Promise<sdk.GetVersionResult> {
+    override async getVersion(args: {}, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
+    : Promise<bsv.GetVersionResult> {
         sdk.validateOriginator(originator)
         return { version: 'wallet-brc100-1.0.0' }
     }

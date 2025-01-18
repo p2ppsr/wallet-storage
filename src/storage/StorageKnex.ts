@@ -1,3 +1,4 @@
+import * as bsv from '@bsv/sdk'
 import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '..'
 import { KnexMigrations, table } from '.'
 
@@ -145,12 +146,12 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     return this.validateEntities(rs, undefined, ['isDeleted'])
   }
 
-  override async listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+  override async listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> {
     if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
     const vargs = sdk.validateListActionsArgs(args)
     return await listActions(this, auth, vargs)
   }
-  override async listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+  override async listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> {
     if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
     const vargs = sdk.validateListOutputsArgs(args)
     return await listOutputs(this, auth, vargs)
@@ -189,12 +190,14 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
 
   override async insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number> {
     const e = await this.validateEntityForInsert(certificate, trx, undefined, ['isDeleted'])
+    const fields = e.fields
+    if (e.fields) delete e.fields
     if (e.certificateId === 0) delete e.certificateId
     const [id] = await this.toDb(trx)<table.Certificate>('certificates').insert(e)
     certificate.certificateId = id
 
-    if (certificate.fields) {
-      for (const field of certificate.fields) {
+    if (fields) {
+      for (const field of fields) {
         field.certificateId = id
         field.userId = certificate.userId
         await this.insertCertificateField(field, trx)

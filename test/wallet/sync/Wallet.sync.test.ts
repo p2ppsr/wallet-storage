@@ -29,61 +29,6 @@ describe('Wallet sync tests', () => {
   const kp = _tu.getKeyPair(root.repeat(8))
   const fredsAddress = kp.address
 
-  test('2x. Concurrent write (internalizeAction) problem with 7th outputs beef being', async () => {
-    for (const { wallet, storage } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64), dropAll: true })
-      const bob = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64), dropAll: true })
-      const backup = bob.activeStorage
-      storage.addWalletStorageProvider(backup)
-      const promises: Promise<number>[] = []
-      const result: { i: number; r: any }[] = []
-      const crs1: CreateActionResult[] = []
-      const crs2: CreateActionResult[] = []
-      const maxI = 7
-
-      // Create 1st set of outputs for writer internaliseAction
-      for (let i = 0; i < maxI; i++) {
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          outputs: [{ satoshis: 1, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred' }],
-          options: {
-            returnTXIDOnly: false,
-            randomizeOutputs: false,
-            signAndProcess: true,
-            noSend: true
-          }
-        }
-        const cr = await wallet.createAction(createArgs)
-        expect(cr.tx).toBeTruthy()
-        crs1.push(cr)
-      }
-      // Create 2nd set of outputs for writer internaliseAction
-      for (let i = 0; i < maxI; i++) {
-        const createArgs: sdk.CreateActionArgs = {
-          description: `${kp.address} of ${root}`,
-          outputs: [{ satoshis: 1, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred' }],
-          options: {
-            returnTXIDOnly: false,
-            randomizeOutputs: false,
-            signAndProcess: true,
-            noSend: true
-          }
-        }
-        const cr = await wallet.createAction(createArgs)
-        expect(cr.tx).toBeTruthy()
-        crs2.push(cr)
-      }
-      let j = 0
-      for (let i = 0; i < maxI; i++) promises.push(makeWriter2(fred, crs1[j++], i, result))
-      // //promises.push(makeSync(storage, maxI, result))
-      // j = 0
-      // // Increment i start by 1 to allow for sync call
-      // for (let i = maxI + 1; i < maxI * 2; i++) promises.push(makeWriter2(fred, crs2[j++], i, result))
-      await Promise.all(promises)
-      expect(result).toBeTruthy()
-    }
-  })
-
   test('0 syncToWriter initial-no changes-1 change', async () => {
     for (const { identityKey, activeStorage: storage } of ctxs) {
       const localSQLiteFile = await _tu.newTmpFile('walleltSyncTest0tmp.sqlite', true, false, false)
@@ -251,12 +196,17 @@ describe('Wallet sync tests', () => {
       for (let i = 0; i < 5; i++) promises.push(makeReader(wallet, i, result))
       promises.push(makeSync(storage, 5, result))
       for (let i = 6; i < 10; i++) promises.push(makeReader(wallet, i, result))
+      promises.push(makeSync(storage, 10, result))
+      for (let i = 11; i < 15; i++) promises.push(makeReader(wallet, i, result))
       await Promise.all(promises)
       expect(result).toBeTruthy()
     }
   })
   async function makeReader(wallet: Wallet, i: number, result: { i: number; r: any }[]): Promise<number> {
+    if (i === 3) await wait(100)
     if (i === 2) await wait(10000)
+    if (i === 6) await wait(5000)
+    if (i === 11) await wait(100)
     const r = await wallet.listOutputs({ basket: 'default', limit: 1, offset: i })
     result.push({ r, i })
     return i

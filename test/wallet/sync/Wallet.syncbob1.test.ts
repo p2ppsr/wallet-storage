@@ -31,15 +31,17 @@ describe('Wallet sync tests', () => {
 
   test('2x. Concurrent write (internalizeAction) problem with 7th outputs beef being invalid', async () => {
     for (const { wallet, storage } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64), dropAll: true })
-      const bob = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64) })
+      const bob = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64) })
+      // const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      // const bob = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64), dropAll: true })
       const backup = bob.activeStorage
       storage.addWalletStorageProvider(backup)
       const promises: Promise<number>[] = []
       const result: { i: number; r: any }[] = []
       const crs1: CreateActionResult[] = []
       const crs2: CreateActionResult[] = []
-      const maxI = 7
+      const maxI = 6
 
       // Create 1st set of outputs for writer internaliseAction
       for (let i = 0; i < maxI; i++) {

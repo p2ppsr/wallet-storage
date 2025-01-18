@@ -1,3 +1,4 @@
+import * as bsv from '@bsv/sdk'
 import { listCertificates } from '../../../src/storage/methods/listCertificates'
 import { StorageProvider } from '../../../src/storage/StorageProvider'
 import { sdk, table } from '../../../src/index'
@@ -11,7 +12,7 @@ describe('listCertificates', () => {
 
   // This is a valid, minimal set of arguments for listCertificates
   let vargs: sdk.ValidListCertificatesArgs
-  let originator: sdk.OriginatorDomainNameStringUnder250Bytes | undefined
+  let originator: bsv.OriginatorDomainNameStringUnder250Bytes | undefined
 
   // Helper so we can easily mock the transaction call
   const mockTransaction = async <T>(

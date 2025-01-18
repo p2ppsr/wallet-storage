@@ -1,5 +1,5 @@
-import { sdk } from "@babbage/sdk-ts"
-import { PrivateKey, PublicKey, Utils } from "@bsv/sdk"
+import * as bsv from "@bsv/sdk"
+import { sdk } from '../..'
 
 describe('CertOps tests', () => {
     jest.setTimeout(99999999)
@@ -8,18 +8,18 @@ describe('CertOps tests', () => {
     test('0 encrypt decrypt sign verify', async () => {
         const { cert, certifier, subject } = makeSampleCert()
 
-        const crypto = new sdk.WalletCrypto(certifier)
+        const crypto = new bsv.ProtoWallet(certifier)
         const co = new sdk.CertOps(crypto, cert)
         
         expect(co.signature).toBe('')
         await expect(co.verify()).rejects.toThrow('Signature DER must start with 0x30')
-        await co.sign(new sdk.WalletCrypto(new sdk.KeyDeriver(certifier)))
+        await co.sign(new bsv.ProtoWallet(new bsv.KeyDeriver(certifier)))
         expect(await co.verify()).toBe(true)
 
         {
             await co.encryptFields(subject.toPublicKey().toString())
             await expect(co.verify()).rejects.toThrow('Signature is not valid')
-            await co.sign(new sdk.WalletCrypto(new sdk.KeyDeriver(certifier)))
+            await co.sign(new bsv.ProtoWallet(new bsv.KeyDeriver(certifier)))
             expect(await co.verify()).toBe(true)
         }
 
@@ -31,7 +31,7 @@ describe('CertOps tests', () => {
 
         {
             await co.encryptFields()
-            const crypto2 = new sdk.WalletCrypto(new sdk.KeyDeriver(PrivateKey.fromHex('2'.repeat(64))))
+            const crypto2 = new bsv.ProtoWallet(new bsv.KeyDeriver(bsv.PrivateKey.fromHex('2'.repeat(64))))
             const co2 = new sdk.CertOps(crypto2, co.toWalletCertificate())
             // even with the keyring, without the right crypto root key decryption will fail.
             co2._keyring = co._keyring
@@ -42,7 +42,7 @@ describe('CertOps tests', () => {
     test('1 createKeyringForVerifier', async () => {
         const { cert, certifier, subject } = makeSampleCert()
 
-        const crypto = new sdk.WalletCrypto(subject)
+        const crypto = new bsv.ProtoWallet(subject)
         const co = new sdk.CertOps(crypto, cert)
     })
 
@@ -56,7 +56,7 @@ describe('CertOps tests', () => {
         // such that the values it contains can be attributed to the certifier through its public key.
         // Encryption is done with random symmetric keys and the keys are then encrypted by the certifier
         // such that each key can also be decrypted by the subject:
-        const certifierWallet = new sdk.WalletCrypto(certifier)
+        const certifierWallet = new bsv.ProtoWallet(certifier)
         const co = new sdk.CertOps(certifierWallet, cert)
 
         await co.encryptAndSignNewCertificate()
@@ -65,7 +65,7 @@ describe('CertOps tests', () => {
         const exportForSubject = co.exportForSubject()
 
         // The subject imports their copy of the new certificate:
-        const subjectWallet = new sdk.WalletCrypto(subject)
+        const subjectWallet = new bsv.ProtoWallet(subject)
         const cs = await sdk.CertOps.fromCertifier(subjectWallet, exportForSubject)
 
         // The subject's imported certificate should verify
@@ -83,12 +83,12 @@ describe('CertOps tests', () => {
         // Prepare to send certificate to third party veifier of the 'name' and 'email' fields.
         // The verifier must be able to confirm the signature on the original certificate's encrypted values.
         // And then use a keyRing that their public key will work to reveal decrypted values for 'name' and 'email' only.
-        const verifier = PrivateKey.fromRandom()
+        const verifier = bsv.PrivateKey.fromRandom()
         // subject makes a keyring for the verifier
         const exportForVerifier = await cs.exportForCounterparty(verifier.toPublicKey().toString(), ['name', 'email'])
 
         // The verifier uses their own wallet to import the certificate, verify it, and decrypt their designated fields.
-        const verifierWallet = new sdk.WalletCrypto(verifier)
+        const verifierWallet = new bsv.ProtoWallet(verifier)
         const cv = await sdk.CertOps.fromCounterparty(verifierWallet, exportForVerifier)
 
         // verifier must check that the certifier's public key generates a matching signature over all the encrypted
@@ -105,14 +105,14 @@ describe('CertOps tests', () => {
 
 })
         
-function makeSampleCert(): { cert: sdk.WalletCertificate, subject: PrivateKey, certifier: PrivateKey }
+function makeSampleCert(): { cert: bsv.WalletCertificate, subject: bsv.PrivateKey, certifier: bsv.PrivateKey }
 {
-    const subject = PrivateKey.fromRandom()
-    const certifier = PrivateKey.fromRandom()
-    const verifier = PrivateKey.fromRandom()
-    const cert: sdk.WalletCertificate = {
-        type: Utils.toBase64(new Array(32).fill(1)),
-        serialNumber: Utils.toBase64(new Array(32).fill(2)),
+    const subject = bsv.PrivateKey.fromRandom()
+    const certifier = bsv.PrivateKey.fromRandom()
+    const verifier = bsv.PrivateKey.fromRandom()
+    const cert: bsv.WalletCertificate = {
+        type: bsv.Utils.toBase64(new Array(32).fill(1)),
+        serialNumber: bsv.Utils.toBase64(new Array(32).fill(2)),
         revocationOutpoint: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.1',
         subject: subject.toPublicKey().toString(),
         certifier: certifier.toPublicKey().toString(),

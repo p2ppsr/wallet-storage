@@ -281,7 +281,7 @@ describe.skip('internalizeAction tests', () => {
   //     // const outputSatoshis = 42
   //     // let noSendChange: string[] | undefined
 
-  //     // const createArgs: sdk.CreateActionArgs = {
+  //     // const createArgs: bsv.CreateActionArgs = {
   //     //   description: `${kp.address} of ${root}`,
   //     //   outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(kp.address).toHex(), outputDescription: 'pay fred' }],
   //     //   options: {

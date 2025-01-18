@@ -7,14 +7,14 @@ export async function listActions(
     auth: sdk.AuthId,
     vargs: sdk.ValidListActionsArgs
 )
-: Promise<sdk.ListActionsResult>
+: Promise<bsv.ListActionsResult>
 {
     const limit = vargs.limit
     const offset = vargs.offset
 
     const k = storage.toDb(undefined)
 
-    const r: sdk.ListActionsResult = {
+    const r: bsv.ListActionsResult = {
         totalActions: 0,
         actions: []
     }
@@ -93,10 +93,10 @@ export async function listActions(
     }
 
     for (const tx of txs) {
-        const wtx: sdk.WalletAction = {
+        const wtx: bsv.WalletAction = {
             txid: tx.txid || '',
             satoshis: tx.satoshis || 0,
-            status: <sdk.ActionStatus>tx.status!,
+            status: <bsv.ActionStatus>tx.status!,
             isOutgoing: !!tx.isOutgoing,
             description: tx.description || '',
             version: tx.version || 0,
@@ -120,7 +120,7 @@ export async function listActions(
                 action.outputs = []
                 for (const o of outputs) {
                     await storage.extendOutput(o, true, true)
-                    const wo: sdk.WalletActionOutput = {
+                    const wo: bsv.WalletActionOutput = {
                         satoshis: o.satoshis || 0,
                         spendable: !!o.spendable,
                         tags: o.tags?.map(t => t.tag) || [],
@@ -148,7 +148,7 @@ export async function listActions(
                             v.sourceTXID === o.txid
                             && v.sourceOutputIndex === o.vout
                         )
-                        const wo: sdk.WalletActionInput = {
+                        const wo: bsv.WalletActionInput = {
                             sourceOutpoint: `${o.txid}.${o.vout}`,
                             sourceSatoshis: o.satoshis || 0,
                             inputDescription: o.outputDescription || '',

@@ -6,9 +6,9 @@ export async function listCertificates(
   storage: StorageProvider,
   auth: sdk.AuthId,
   vargs: sdk.ValidListCertificatesArgs,
-  originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
+  originator?: bsv.OriginatorDomainNameStringUnder250Bytes,
 )
-  : Promise<sdk.ListCertificatesResult> {
+  : Promise<bsv.ListCertificatesResult> {
   const paged: sdk.Paged = { limit: vargs.limit, offset: vargs.offset }
 
   const partial: Partial<table.Certificate> = { userId: auth.userId, isDeleted: false }
@@ -23,7 +23,6 @@ export async function listCertificates(
     if (vp.signature) partial['signature'] = vp.signature;
   }
 
-
   const r = await storage.transaction(async trx => {
     const findCertsArgs: sdk.FindCertificatesArgs = { partial, certifiers: vargs.certifiers, types: vargs.types, paged, trx }
     const certs = await storage.findCertificates(findCertsArgs)
@@ -35,7 +34,7 @@ export async function listCertificates(
         masterKeyring: Object.fromEntries(fields.map(f => ([f.fieldName, f.masterKey])))
       }
     }))
-    const r: sdk.ListCertificatesResult = {
+    const r: bsv.ListCertificatesResult = {
       totalCertificates: 0,
       certificates: certsWithFields.map(cwf => ({
         type: cwf.type,

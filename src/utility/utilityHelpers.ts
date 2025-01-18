@@ -1,8 +1,9 @@
+import * as bsv from '@bsv/sdk'
 import { Beef, Hash, PrivateKey, PublicKey, Random, Script, Transaction, Utils } from "@bsv/sdk";
 import { sdk } from "..";
 import { Chain } from "../sdk/types";
 
-export function toWalletNetwork(chain: Chain): sdk.WalletNetwork {
+export function toWalletNetwork(chain: Chain): bsv.WalletNetwork {
     return chain === 'main' ? 'mainnet' : 'testnet';
 }
 
@@ -18,7 +19,7 @@ export function makeAtomicBeef(tx: Transaction, beef: number[] | Beef) : number[
  * If tx is already a Transaction, just return it.
  * @publicbody
  */
-export function asBsvSdkTx(tx: sdk.HexString | number[] | Transaction): Transaction {
+export function asBsvSdkTx(tx: bsv.HexString | number[] | Transaction): Transaction {
   if (Array.isArray(tx)) {
     tx = Transaction.fromBinary(tx)
   } else if (typeof tx === 'string') {
@@ -32,7 +33,7 @@ export function asBsvSdkTx(tx: sdk.HexString | number[] | Transaction): Transact
  * If script is already a Script, just return it.
  * @publicbody
  */
-export function asBsvSdkScript(script: sdk.HexString | number[] | Script): Script {
+export function asBsvSdkScript(script: bsv.HexString | number[] | Script): Script {
   if (Array.isArray(script)) {
     script = Script.fromBinary(script)
   } else if (typeof script === 'string') {

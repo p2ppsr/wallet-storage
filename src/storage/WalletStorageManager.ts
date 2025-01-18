@@ -228,7 +228,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
+    async abortAction(args: bsv.AbortActionArgs): Promise<bsv.AbortActionResult> {
         const vargs = sdk.validateAbortActionArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -245,7 +245,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+    async internalizeAction(args: bsv.InternalizeActionArgs): Promise<bsv.InternalizeActionResult> {
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
 
@@ -254,7 +254,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<number> {
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<number> {
         const vargs = sdk.validateRelinquishCertificateArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -263,7 +263,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<number> {
+    async relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<number> {
         const vargs = sdk.validateRelinquishOutputArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -290,7 +290,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+    async listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> {
         const vargs = sdk.validateListActionsArgs(args)
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {
@@ -299,7 +299,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult> {
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {
 
@@ -307,7 +307,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+    async listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> {
         const vargs = sdk.validateListOutputsArgs(args)
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {

@@ -1,26 +1,27 @@
+import * as bsv from '@bsv/sdk'
 import { sdk } from '..'
 import { SymmetricKey, Utils } from "@bsv/sdk";
 import { Certificate } from './Certificate';
 import { WERR_INVALID_OPERATION } from './WERR_errors';
 
 export class CertOps extends Certificate {
-    _keyring?: Record<sdk.CertificateFieldNameUnder50Bytes, string>
-    _encryptedFields?: Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>
-    _decryptedFields?: Record<sdk.CertificateFieldNameUnder50Bytes, string>
+    _keyring?: Record<bsv.CertificateFieldNameUnder50Bytes, string>
+    _encryptedFields?: Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String>
+    _decryptedFields?: Record<bsv.CertificateFieldNameUnder50Bytes, string>
 
     constructor(
-        public wallet: sdk.WalletCrypto,
-        wc: sdk.WalletCertificate,
+        public wallet: bsv.ProtoWallet,
+        wc: bsv.WalletCertificate,
     ) {
         super(wc.type, wc.serialNumber, wc.subject, wc.certifier, wc.revocationOutpoint, wc.fields, wc.signature)
     }
 
     static async fromCounterparty(
-        wallet: sdk.WalletCrypto,
+        wallet: bsv.ProtoWallet,
         e: {
-            certificate: sdk.WalletCertificate,
-            keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string>,
-            counterparty: sdk.PubKeyHex
+            certificate: bsv.WalletCertificate,
+            keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string>,
+            counterparty: bsv.PubKeyHex
         }
     )
     : Promise<CertOps>
@@ -35,8 +36,8 @@ export class CertOps extends Certificate {
     }
 
     static async fromCertifier(
-        wallet: sdk.WalletCrypto,
-        e: { certificate: sdk.WalletCertificate, keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string> }
+        wallet: bsv.ProtoWallet,
+        e: { certificate: bsv.WalletCertificate, keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string> }
     )
     : Promise<CertOps>
     {
@@ -44,9 +45,9 @@ export class CertOps extends Certificate {
     }
 
     static async fromEncrypted(
-        wallet: sdk.WalletCrypto,
-        wc: sdk.WalletCertificate,
-        keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string>
+        wallet: bsv.ProtoWallet,
+        wc: bsv.WalletCertificate,
+        keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string>
     )
     : Promise<CertOps>
     {
@@ -59,8 +60,8 @@ export class CertOps extends Certificate {
     }
 
     static async fromDecrypted(
-        wallet: sdk.WalletCrypto,
-        wc: sdk.WalletCertificate
+        wallet: bsv.ProtoWallet,
+        wc: bsv.WalletCertificate
     ) : Promise<CertOps>
     {
         const c = new CertOps(wallet, wc);
@@ -69,20 +70,20 @@ export class CertOps extends Certificate {
         return c
     }
 
-    static copyFields<T>(fields: Record<sdk.CertificateFieldNameUnder50Bytes, T>) : Record<sdk.CertificateFieldNameUnder50Bytes, T> {
-        const copy: Record<sdk.CertificateFieldNameUnder50Bytes, T> = {}
+    static copyFields<T>(fields: Record<bsv.CertificateFieldNameUnder50Bytes, T>) : Record<bsv.CertificateFieldNameUnder50Bytes, T> {
+        const copy: Record<bsv.CertificateFieldNameUnder50Bytes, T> = {}
         for (const [n, v] of Object.entries(fields))
             copy[n] = v
         return copy
     }
 
     static getProtocolForCertificateFieldEncryption(serialNumber: string, fieldName: string)
-    : { protocolID: sdk.WalletProtocol, keyID: string }
+    : { protocolID: bsv.WalletProtocol, keyID: string }
     {
         return { protocolID: [2, 'certificate field encryption'], keyID: `${serialNumber} ${fieldName}` }
     }
 
-    exportForSubject() : { certificate: sdk.WalletCertificate, keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string> }
+    exportForSubject() : { certificate: bsv.WalletCertificate, keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string> }
     {
         if (!this._keyring || !this._encryptedFields || !this.signature || this.signature.length === 0)
             throw new WERR_INVALID_OPERATION(`Certificate must be encrypted and signed prior to export.`)
@@ -91,20 +92,20 @@ export class CertOps extends Certificate {
         return { certificate, keyring }
     }
 
-    toWalletCertificate() : sdk.WalletCertificate {
-        const wc: sdk.WalletCertificate = {
+    toWalletCertificate() : bsv.WalletCertificate {
+        const wc: bsv.WalletCertificate = {
             signature: '',
             ...this
         }
         return wc
     }
 
-    async encryptFields(counterparty: 'self' | sdk.PubKeyHex = 'self')
-    : Promise<{ fields: Record<sdk.CertificateFieldNameUnder50Bytes, string>, keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string>}>
+    async encryptFields(counterparty: 'self' | bsv.PubKeyHex = 'self')
+    : Promise<{ fields: Record<bsv.CertificateFieldNameUnder50Bytes, string>, keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string>}>
     {
-        const fields: Record<sdk.CertificateFieldNameUnder50Bytes, string> = this._decryptedFields || this.fields
-        const encryptedFields: Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String> = {}
-        const keyring: Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String> = {}
+        const fields: Record<bsv.CertificateFieldNameUnder50Bytes, string> = this._decryptedFields || this.fields
+        const encryptedFields: Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String> = {}
+        const keyring: Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String> = {}
 
         for (const fieldName of Object.keys(fields)) {
             const fieldSymmetricKey = SymmetricKey.fromRandom()
@@ -124,10 +125,10 @@ export class CertOps extends Certificate {
         return { fields: encryptedFields, keyring}
     }
 
-    async decryptFields(counterparty?: sdk.PubKeyHex, keyring?: Record<sdk.CertificateFieldNameUnder50Bytes, string>): Promise<Record<sdk.CertificateFieldNameUnder50Bytes, string>> {
+    async decryptFields(counterparty?: bsv.PubKeyHex, keyring?: Record<bsv.CertificateFieldNameUnder50Bytes, string>): Promise<Record<bsv.CertificateFieldNameUnder50Bytes, string>> {
         keyring ||= this._keyring
-        const fields: Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String> = this._encryptedFields || this.fields
-        const decryptedFields: Record<sdk.CertificateFieldNameUnder50Bytes, string> = {}
+        const fields: Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String> = this._encryptedFields || this.fields
+        const decryptedFields: Record<bsv.CertificateFieldNameUnder50Bytes, string> = {}
         if (!keyring)
             throw new sdk.WERR_INVALID_PARAMETER('keyring', 'valid')
 
@@ -154,13 +155,13 @@ export class CertOps extends Certificate {
 
     async exportForCounterparty(
         /** The incoming counterparty is who they are to us. */
-        counterparty: sdk.PubKeyHex,
-        fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[],
+        counterparty: bsv.PubKeyHex,
+        fieldsToReveal: bsv.CertificateFieldNameUnder50Bytes[],
     )
     : Promise<{
-        certificate: sdk.WalletCertificate,
-        keyring: Record<sdk.CertificateFieldNameUnder50Bytes, string>,
-        counterparty: sdk.PubKeyHex
+        certificate: bsv.WalletCertificate,
+        keyring: Record<bsv.CertificateFieldNameUnder50Bytes, string>,
+        counterparty: bsv.PubKeyHex
     }>
     {
         if (!this._keyring || !this._encryptedFields || !this.signature || this.signature.length === 0)
@@ -177,20 +178,20 @@ export class CertOps extends Certificate {
     * for the verifier's identity key. The resulting certificate structure includes only the fields intended to be
     * revealed and a verifier-specific keyring for field decryption.
     *
-    * @param {sdk.PubKeyHex} verifierIdentityKey - The public identity key of the verifier who will receive access to the specified fields.
-    * @param {sdk.CertificateFieldNameUnder50Bytes[]} fieldsToReveal - An array of field names to be revealed to the verifier. Must be a subset of the certificate's fields.
-    * @param {sdk.OriginatorDomainNameStringUnder250Bytes} [originator] - Optional originator identifier, used if additional context is needed for decryption and encryption operations.
-    * @returns {Promise<Record<sdk.CertificateFieldNameUnder50Bytes[], sdk.Base64String>} - A new certificate structure containing the original encrypted fields, the verifier-specific field decryption keyring, and essential certificate metadata.
+    * @param {bsv.PubKeyHex} verifierIdentityKey - The public identity key of the verifier who will receive access to the specified fields.
+    * @param {bsv.CertificateFieldNameUnder50Bytes[]} fieldsToReveal - An array of field names to be revealed to the verifier. Must be a subset of the certificate's fields.
+    * @param {bsv.OriginatorDomainNameStringUnder250Bytes} [originator] - Optional originator identifier, used if additional context is needed for decryption and encryption operations.
+    * @returns {Promise<Record<bsv.CertificateFieldNameUnder50Bytes[], bsv.Base64String>} - A new certificate structure containing the original encrypted fields, the verifier-specific field decryption keyring, and essential certificate metadata.
     * @throws {WERR_INVALID_PARAMETER} Throws an error if:
     *   - fieldsToReveal is empty or a field in `fieldsToReveal` does not exist in the certificate.
     *   - The decrypted master field key fails to decrypt the corresponding field (indicating an invalid key).
     */
     async createKeyringForVerifier(
-        verifierIdentityKey: sdk.PubKeyHex,
-        fieldsToReveal: sdk.CertificateFieldNameUnder50Bytes[],
-        originator?: sdk.OriginatorDomainNameStringUnder250Bytes
+        verifierIdentityKey: bsv.PubKeyHex,
+        fieldsToReveal: bsv.CertificateFieldNameUnder50Bytes[],
+        originator?: bsv.OriginatorDomainNameStringUnder250Bytes
     )
-    : Promise<Record<sdk.CertificateFieldNameUnder50Bytes, sdk.Base64String>>
+    : Promise<Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String>>
     {
         if (!this._keyring || !this._encryptedFields)
             throw new sdk.WERR_INVALID_OPERATION(`certificate must be encrypted`)

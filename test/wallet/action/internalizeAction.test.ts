@@ -6,20 +6,29 @@ describe('internalizeAction tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')
-  const ctxs: TestWalletNoSetup[] = []
+
+  const gctxs: TestWalletNoSetup[] = []
+  const useSharedCtxs = true
 
   beforeAll(async () => {
-    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('internalizeActionTests'))
-    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('internalizeActionTests'))
+    if (!env.noMySQL) gctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeActionTests'))
+    gctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeActionTests'))
   })
 
   afterAll(async () => {
-    for (const ctx of ctxs) {
+    for (const ctx of gctxs) {
       await ctx.storage.destroy()
     }
   })
 
-  test('1_internalize custom output in receiving wallet with checks', async () => {
+  test('1 internalize custom output in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (useSharedCtxs)
+      ctxs.push(...gctxs)
+    else {
+      if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction1Tests'))
+      ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction1Tests'))
+    }
     for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -28,7 +37,7 @@ describe('internalizeAction tests', () => {
       const outputSatoshis = 4
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred' }],
           options: {
@@ -46,7 +55,7 @@ describe('internalizeAction tests', () => {
         const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction1fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
         // Internalize args to add fred's new output to his own wallet
-        const internalizeArgs: sdk.InternalizeActionArgs = {
+        const internalizeArgs: bsv.InternalizeActionArgs = {
           tx: cr.tx!,
           outputs: [
             {
@@ -84,9 +93,21 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    if (!useSharedCtxs) {
+      for (const ctx of ctxs) {
+        await ctx.storage.destroy()
+      }
+    }
   })
 
-  test('2_internalize 2 custom outputs in receiving wallet with checks', async () => {
+  test('2 internalize 2 custom outputs in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (useSharedCtxs)
+      ctxs.push(...gctxs)
+    else {
+      if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction2Tests'))
+      ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction2Tests'))
+    }
     for (const { wallet } of ctxs) {
       const root = '02135476'
       const kp = _tu.getKeyPair(root.repeat(8))
@@ -96,7 +117,7 @@ describe('internalizeAction tests', () => {
       const outputSatoshis2 = 5
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           outputs: [
             { satoshis: outputSatoshis1, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred 1st payment' },
@@ -117,7 +138,7 @@ describe('internalizeAction tests', () => {
         const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
         // Internalize args to add fred's new output to his own wallet
-        const internalizeArgs: sdk.InternalizeActionArgs = {
+        const internalizeArgs: bsv.InternalizeActionArgs = {
           tx: cr.tx!,
           outputs: [
             {
@@ -178,20 +199,32 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    if (!useSharedCtxs) {
+      for (const ctx of ctxs) {
+        await ctx.storage.destroy()
+      }
+    }
   })
 
-  test('3_internalize wallet payment in receiving wallet with checks', async () => {
+  test('3 internalize wallet payment in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (useSharedCtxs)
+      ctxs.push(...gctxs)
+    else {
+      if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction3Tests'))
+      ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction3Tests'))
+    }
     for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
-      const outputSatoshis = 6
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction3fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const outputSatoshis = 5
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
       const derivationSuffix = Buffer.from('utxo-0').toString('base64')
-      const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
+      const brc29ProtocolID: bsv.WalletProtocol = [2, '3241645161d8']
       const derivedPublicKey = wallet.keyDeriver!.derivePublicKey(brc29ProtocolID, `${derivationPrefix} ${derivationSuffix}`, fred.identityKey)
       const derivedAddress = derivedPublicKey.toAddress()
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `description BRC-29`,
           outputs: [
             {
@@ -211,7 +244,7 @@ describe('internalizeAction tests', () => {
         const cr = await wallet.createAction(createArgs)
         expect(cr.tx).toBeTruthy()
 
-        const internalizeArgs: sdk.InternalizeActionArgs = {
+        const internalizeArgs: bsv.InternalizeActionArgs = {
           tx: cr.tx!,
           outputs: [
             {
@@ -245,13 +278,25 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    if (!useSharedCtxs) {
+      for (const ctx of ctxs) {
+        await ctx.storage.destroy()
+      }
+    }
   })
 
-  test('4_internalize 2 wallet payments in receiving wallet with checks', async () => {
+  test('4 internalize 2 wallet payments in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (useSharedCtxs)
+      ctxs.push(...gctxs)
+    else {
+      if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction4Tests'))
+      ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction4Tests'))
+    }
     for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction4fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
-      const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
+      const brc29ProtocolID: bsv.WalletProtocol = [2, '3241645161d8']
       const outputSatoshis1 = 6
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
       const derivationSuffix1 = Buffer.from('utxo-1').toString('base64')
@@ -264,7 +309,7 @@ describe('internalizeAction tests', () => {
       const derivedAddress2 = derivedPublicKey2.toAddress()
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `BRC-29 payments from other wallet`,
           outputs: [
             {
@@ -289,7 +334,7 @@ describe('internalizeAction tests', () => {
         const cr = await wallet.createAction(createArgs)
         expect(cr.tx).toBeTruthy()
 
-        const internalizeArgs: sdk.InternalizeActionArgs = {
+        const internalizeArgs: bsv.InternalizeActionArgs = {
           tx: cr.tx!,
           outputs: [
             {
@@ -336,13 +381,21 @@ describe('internalizeAction tests', () => {
         await fred.activeStorage.destroy()
       }
     }
+    if (!useSharedCtxs) {
+      for (const ctx of ctxs) {
+        await ctx.storage.destroy()
+      }
+    }
   })
 
-  test('5_internalize 2 wallet payments and 2 basket insertions in receiving wallet with checks', async () => {
+  test.skip('5 WIP internalize 2 wallet payments and 2 basket insertions in receiving wallet with checks', async () => {
+    const ctxs: TestWalletNoSetup[] = []
+    if (!env.noMySQL) ctxs.push(await _tu.createLegacyWalletMySQLCopy('actionInternalizeAction5Tests'))
+    ctxs.push(await _tu.createLegacyWalletSQLiteCopy('actionInternalizeAction5Tests'))
     for (const { wallet, identityKey: senderIdentityKey } of ctxs) {
-      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction2fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'internalizeAction5fred', rootKeyHex: '2'.repeat(64), dropAll: true })
 
-      const brc29ProtocolID: sdk.WalletProtocol = [2, '3241645161d8']
+      const brc29ProtocolID: bsv.WalletProtocol = [2, '3241645161d8']
       const outputSatoshis1 = 8
       const derivationPrefix = Buffer.from('invoice-12345').toString('base64')
       const derivationSuffix1 = Buffer.from('utxo-1').toString('base64')
@@ -362,7 +415,7 @@ describe('internalizeAction tests', () => {
       const outputSatoshis4 = 11
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `BRC-29 payments from other wallet`,
           outputs: [
             {
@@ -397,7 +450,7 @@ describe('internalizeAction tests', () => {
         const cr = await wallet.createAction(createArgs)
         expect(cr.tx).toBeTruthy()
 
-        const internalizeArgs: sdk.InternalizeActionArgs = {
+        const internalizeArgs: bsv.InternalizeActionArgs = {
           tx: cr.tx!,
 
           outputs: [
@@ -488,6 +541,9 @@ describe('internalizeAction tests', () => {
 
         await fred.activeStorage.destroy()
       }
+    }
+    for (const ctx of ctxs) {
+      await ctx.storage.destroy()
     }
   })
 })

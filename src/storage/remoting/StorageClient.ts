@@ -20,7 +20,7 @@ export class StorageClient implements sdk.WalletStorageProvider {
     // Track ephemeral (in-memory) "settings" if you wish to align with isAvailable() checks
     public settings?: table.Settings
 
-    constructor(wallet: sdk.Wallet, endpointUrl: string) {
+    constructor(wallet: bsv.Wallet, endpointUrl: string) {
         this.authClient = new AuthFetch(wallet as bsv.Wallet)
         this.endpointUrl = endpointUrl
     }
@@ -117,9 +117,9 @@ export class StorageClient implements sdk.WalletStorageProvider {
 
     async internalizeAction(
         auth: sdk.AuthId,
-        args: sdk.InternalizeActionArgs,
-    ): Promise<sdk.InternalizeActionResult> {
-        return this.rpcCall<sdk.InternalizeActionResult>("internalizeAction", [auth, args])
+        args: bsv.InternalizeActionArgs,
+    ): Promise<bsv.InternalizeActionResult> {
+        return this.rpcCall<bsv.InternalizeActionResult>("internalizeAction", [auth, args])
     }
 
     async createAction(
@@ -138,9 +138,9 @@ export class StorageClient implements sdk.WalletStorageProvider {
 
     async abortAction(
         auth: sdk.AuthId,
-        args: sdk.AbortActionArgs,
-    ): Promise<sdk.AbortActionResult> {
-        return this.rpcCall<sdk.AbortActionResult>("abortAction", [auth, args])
+        args: bsv.AbortActionArgs,
+    ): Promise<bsv.AbortActionResult> {
+        return this.rpcCall<bsv.AbortActionResult>("abortAction", [auth, args])
     }
 
     async findOrInsertUser(
@@ -175,23 +175,23 @@ export class StorageClient implements sdk.WalletStorageProvider {
 
     async listActions(
         auth: sdk.AuthId,
-        args: sdk.ListActionsArgs,
-    ): Promise<sdk.ListActionsResult> {
-        return this.rpcCall<sdk.ListActionsResult>("listActions", [auth, args])
+        args: bsv.ListActionsArgs,
+    ): Promise<bsv.ListActionsResult> {
+        return this.rpcCall<bsv.ListActionsResult>("listActions", [auth, args])
     }
 
     async listOutputs(
         auth: sdk.AuthId,
-        args: sdk.ListOutputsArgs,
-    ): Promise<sdk.ListOutputsResult> {
-        return this.rpcCall<sdk.ListOutputsResult>("listOutputs", [auth, args])
+        args: bsv.ListOutputsArgs,
+    ): Promise<bsv.ListOutputsResult> {
+        return this.rpcCall<bsv.ListOutputsResult>("listOutputs", [auth, args])
     }
 
     async listCertificates(
         auth: sdk.AuthId,
         args: sdk.ValidListCertificatesArgs,
-    ): Promise<sdk.ListCertificatesResult> {
-        return this.rpcCall<sdk.ListCertificatesResult>("listCertificates", [auth, args])
+    ): Promise<bsv.ListCertificatesResult> {
+        return this.rpcCall<bsv.ListCertificatesResult>("listCertificates", [auth, args])
     }
 
     async findCertificatesAuth(
@@ -223,14 +223,14 @@ export class StorageClient implements sdk.WalletStorageProvider {
 
     async relinquishCertificate(
         auth: sdk.AuthId,
-        args: sdk.RelinquishCertificateArgs
+        args: bsv.RelinquishCertificateArgs
     ): Promise<number> {
         return this.rpcCall<number>("relinquishCertificate", [auth, args])
     }
 
     async relinquishOutput(
         auth: sdk.AuthId,
-        args: sdk.RelinquishOutputArgs
+        args: bsv.RelinquishOutputArgs
     ): Promise<number> {
         return this.rpcCall<number>("relinquishOutput", [auth, args])
     }

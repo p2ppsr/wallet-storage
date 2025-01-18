@@ -50,12 +50,12 @@ export abstract class TestUtilsWalletStorage {
     address: string,
     satoshis: number,
     noSendChange: string[] | undefined,
-    wallet: sdk.Wallet
+    wallet: bsv.Wallet
   ): Promise<{
     noSendChange: string[]
     txid: string
-    cr: sdk.CreateActionResult
-    sr: sdk.SignActionResult
+    cr: bsv.CreateActionResult
+    sr: bsv.SignActionResult
   }> {
     return await _tu.createNoSendP2PKHTestOutpoints(1, address, satoshis, noSendChange, wallet)
   }
@@ -65,14 +65,14 @@ export abstract class TestUtilsWalletStorage {
     address: string,
     satoshis: number,
     noSendChange: string[] | undefined,
-    wallet: sdk.Wallet
+    wallet: bsv.Wallet
   ): Promise<{
     noSendChange: string[]
     txid: string
-    cr: sdk.CreateActionResult
-    sr: sdk.SignActionResult
+    cr: bsv.CreateActionResult
+    sr: bsv.SignActionResult
   }> {
-    const outputs: sdk.CreateActionOutput[] = []
+    const outputs: bsv.CreateActionOutput[] = []
     for (let i = 0; i < count; i++) {
       outputs.push({
         basket: `test-p2pkh-output-${i}`,
@@ -82,7 +82,7 @@ export abstract class TestUtilsWalletStorage {
       })
     }
 
-    const createArgs: sdk.CreateActionArgs = {
+    const createArgs: bsv.CreateActionArgs = {
       description: `to ${address}`,
       outputs,
       options: {
@@ -114,7 +114,7 @@ export abstract class TestUtilsWalletStorage {
     // Spending authorization check happens here...
     //expect(st.amount > 242 && st.amount < 300).toBe(true)
     // sign and complete
-    const signArgs: sdk.SignActionArgs = {
+    const signArgs: bsv.SignActionArgs = {
       reference: st.reference,
       spends: {},
       options: {
@@ -163,7 +163,7 @@ export abstract class TestUtilsWalletStorage {
     args.rootKeyHex ||= '1'.repeat(64)
     const rootKey = bsv.PrivateKey.fromHex(args.rootKeyHex)
     const identityKey = rootKey.toPublicKey().toString()
-    const keyDeriver = new sdk.KeyDeriver(rootKey)
+    const keyDeriver = new bsv.KeyDeriver(rootKey)
     const chain = args.chain
     const storage = new WalletStorageManager(identityKey, args.active, args.backups)
     if (storage.stores.length > 0) await storage.makeAvailable()
@@ -207,9 +207,9 @@ export abstract class TestUtilsWalletStorage {
   }): Promise<TestWallet<T>> {
     const wo = await _tu.createWalletOnly({ chain: args.chain, rootKeyHex: args.rootKeyHex })
     const activeStorage = new StorageKnex({ chain: wo.chain, knex: args.knex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
+    if (args.dropAll) await activeStorage.dropAllData()
     await activeStorage.migrate(args.databaseName, wo.identityKey)
     await activeStorage.makeAvailable()
-    if (args.dropAll) await activeStorage.dropAllData()
     const setup = await args.insertSetup(activeStorage, wo.identityKey)
     await wo.storage.addWalletStorageProvider(activeStorage)
     const { user, isNew } = await activeStorage.findOrInsertUser(wo.identityKey)
@@ -409,7 +409,7 @@ export abstract class TestUtilsWalletStorage {
     const rootKeyHex = _tu.legacyRootKeyHex
     const identityKey = '03ac2d10bdb0023f4145cc2eba2fcd2ad3070cb2107b0b48170c46a9440e4cc3fe'
     const rootKey = bsv.PrivateKey.fromHex(rootKeyHex)
-    const keyDeriver = new sdk.KeyDeriver(rootKey)
+    const keyDeriver = new bsv.KeyDeriver(rootKey)
     const activeStorage = new StorageKnex({ chain, knex: walletKnex, commissionSatoshis: 0, commissionPubKeyHex: undefined, feeModel: { model: 'sat/kb', value: 1 } })
     if (useReader) await activeStorage.dropAllData()
     await activeStorage.migrate(databaseName, identityKey)
@@ -444,6 +444,27 @@ export abstract class TestUtilsWalletStorage {
       userId
     }
     return r
+  }
+
+  static makeSampleCert(subject?: string): { cert: bsv.WalletCertificate, subject: string, certifier: bsv.PrivateKey }
+  {
+      subject ||= bsv.PrivateKey.fromRandom().toPublicKey().toString()
+      const certifier = bsv.PrivateKey.fromRandom()
+      const verifier = bsv.PrivateKey.fromRandom()
+      const cert: bsv.WalletCertificate = {
+          type: bsv.Utils.toBase64(new Array(32).fill(1)),
+          serialNumber: bsv.Utils.toBase64(new Array(32).fill(2)),
+          revocationOutpoint: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.1',
+          subject,
+          certifier: certifier.toPublicKey().toString(),
+          fields: {
+              name: 'Alice',
+              email: 'alice@example.com',
+              organization: 'Example Corp'
+          },
+          signature: "",
+      }
+      return { cert, subject, certifier }
   }
 
   static async insertTestProvenTx(storage: StorageProvider, txid?: string) {
@@ -866,7 +887,7 @@ export interface TestWallet<T> extends TestWalletOnly {
 
   rootKey: bsv.PrivateKey
   identityKey: string
-  keyDeriver: sdk.KeyDeriver
+  keyDeriver: bsv.KeyDeriver
   chain: sdk.Chain
   storage: WalletStorageManager
   signer: WalletSigner
@@ -878,7 +899,7 @@ export interface TestWallet<T> extends TestWalletOnly {
 export interface TestWalletOnly {
   rootKey: bsv.PrivateKey
   identityKey: string
-  keyDeriver: sdk.KeyDeriver
+  keyDeriver: bsv.KeyDeriver
   chain: sdk.Chain
   storage: WalletStorageManager
   signer: WalletSigner

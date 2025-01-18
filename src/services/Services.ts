@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash } from '..'
+import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash, wait } from '..'
 import { ServiceCollection } from './ServiceCollection'
 
 import { createDefaultWalletServicesOptions } from './createDefaultWalletServicesOptions'
@@ -85,14 +85,19 @@ export class Services implements sdk.WalletServices {
 
         let r0: sdk.GetUtxoStatusResult = { name: "<noservices>", status: "error", error: new sdk.WERR_INTERNAL('No services available.'), details: [] }
 
-        for (let tries = 0; tries < services.count; tries++) {
-            const service = services.service
-            const r = await service(output, this.chain, outputFormat)
-            if (r.status === 'success') {
-                r0 = r
-                break
+        for (let retry = 0; retry < 2; retry++) {
+            for (let tries = 0; tries < services.count; tries++) {
+                const service = services.service
+                const r = await service(output, this.chain, outputFormat)
+                if (r.status === 'success') {
+                    r0 = r
+                    break
+                }
+                services.next()
             }
-            services.next()
+            if (r0.status === 'success')
+                break;
+            await wait(2000)
         }
         return r0
     }

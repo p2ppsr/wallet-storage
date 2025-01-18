@@ -25,7 +25,7 @@ describe('RelinquishOutputArgs tests', () => {
     const expectedResult = { relinquished: true }
 
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const args: sdk.RelinquishOutputArgs = {
+      const args: bsv.RelinquishOutputArgs = {
         basket: 'default',
         output: `${outputTxid}.0`
       }

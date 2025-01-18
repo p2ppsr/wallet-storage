@@ -6,9 +6,9 @@ export async function listOutputs(
     dsk: StorageKnex,
     auth: sdk.AuthId,
     vargs: sdk.ValidListOutputsArgs,
-    originator?: sdk.OriginatorDomainNameStringUnder250Bytes,
+    originator?: bsv.OriginatorDomainNameStringUnder250Bytes,
 )
-: Promise<sdk.ListOutputsResult>
+: Promise<bsv.ListOutputsResult>
 {
     const trx: sdk.TrxToken | undefined = undefined
     const userId = verifyId(auth.userId)
@@ -17,7 +17,7 @@ export async function listOutputs(
 
     const k = dsk.toDb(trx)
 
-    const r: sdk.ListOutputsResult = {
+    const r: bsv.ListOutputsResult = {
         totalOutputs: 0,
         outputs: []
     }
@@ -168,7 +168,7 @@ export async function listOutputs(
     const beef = new bsv.Beef()
 
     for (const o of outputs) {
-        const wo: sdk.WalletOutput = {
+        const wo: bsv.WalletOutput = {
             satoshis: Number(o.satoshis),
             spendable: !!o.spendable,
             outpoint: `${o.txid}.${o.vout}`

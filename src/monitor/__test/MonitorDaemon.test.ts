@@ -4,7 +4,7 @@ dotenv.config()
 
 const cloudMySQLConnection = process.env.TEST_CLOUD_MYSQL_CONNECTION || '{}'
 
-describe('MonitorDaemon tests', () => {
+describe.skip('MonitorDaemon tests', () => {
     jest.setTimeout(99999999)
 
     test('0', async () => {

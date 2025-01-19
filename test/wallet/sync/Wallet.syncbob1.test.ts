@@ -1,9 +1,8 @@
-import { write } from 'fs'
+import * as bsv from '@bsv/sdk'
 import { sdk, StorageKnex, StorageSyncReader, wait, Wallet, WalletStorageManager } from '../../../src'
 import { _tu, TestSetup1Wallet, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
 import * as dotenv from 'dotenv'
-import { CreateActionResult } from '../../../src/sdk'
 
 dotenv.config()
 describe('Wallet sync tests', () => {
@@ -39,13 +38,13 @@ describe('Wallet sync tests', () => {
       storage.addWalletStorageProvider(backup)
       const promises: Promise<number>[] = []
       const result: { i: number; r: any }[] = []
-      const crs1: CreateActionResult[] = []
-      const crs2: CreateActionResult[] = []
+      const crs1: bsv.CreateActionResult[] = []
+      const crs2: bsv.CreateActionResult[] = []
       const maxI = 6
 
       // Create 1st set of outputs for writer internaliseAction
       for (let i = 0; i < maxI; i++) {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           outputs: [{ satoshis: 1, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred' }],
           options: {
@@ -65,9 +64,9 @@ describe('Wallet sync tests', () => {
       expect(result).toBeTruthy()
     }
   })
-  async function makeWriter2(fred: TestWalletNoSetup, cr: CreateActionResult, i: number, result: { i: number; r: any }[]): Promise<number> {
+  async function makeWriter2(fred: TestWalletNoSetup, cr: bsv.CreateActionResult, i: number, result: { i: number; r: any }[]): Promise<number> {
     log(`called ${i}`)
-    const internalizeArgs: sdk.InternalizeActionArgs = {
+    const internalizeArgs: bsv.InternalizeActionArgs = {
       tx: cr.tx!,
       outputs: [
         {

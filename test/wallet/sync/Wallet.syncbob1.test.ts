@@ -28,19 +28,19 @@ describe('Wallet sync tests', () => {
   const kp = _tu.getKeyPair(root.repeat(8))
   const fredsAddress = kp.address
 
-  test('2x. Concurrent write (internalizeAction) problem with 7th outputs beef being invalid', async () => {
+  test('2x. TODOTONE - AtomicBEEF error', async () => {
     for (const { wallet, storage } of ctxs) {
-      const fred = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64) })
-      const bob = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64) })
-      // const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64), dropAll: true })
-      // const bob = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64), dropAll: true })
+      // const fred = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64) })
+      // const bob = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64) })
+      const fred = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64), dropAll: true })
+      const bob = await _tu.createSQLiteTestWallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64), dropAll: true })
       const backup = bob.activeStorage
       storage.addWalletStorageProvider(backup)
       const promises: Promise<number>[] = []
       const result: { i: number; r: any }[] = []
       const crs1: bsv.CreateActionResult[] = []
       const crs2: bsv.CreateActionResult[] = []
-      const maxI = 6
+      const maxI = 7
 
       // Create 1st set of outputs for writer internaliseAction
       for (let i = 0; i < maxI; i++) {

@@ -74,7 +74,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
     }
 
     async getActiveForWriter(): Promise<sdk.WalletStorageWriter> {
-        while (this._storageProviderLocked || this._syncLocked || this._isSingleWriter && this._writerCount > 0) {
+        while (this._storageProviderLocked || this._syncLocked || this._isSingleWriter && this._writerCount > 0 || this._readerCount > 0) {
             await wait(100)
         }
         this._writerCount++

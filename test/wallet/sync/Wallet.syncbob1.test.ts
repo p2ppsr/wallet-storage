@@ -28,6 +28,40 @@ describe('Wallet sync tests', () => {
   const kp = _tu.getKeyPair(root.repeat(8))
   const fredsAddress = kp.address
 
+  test('2y. TODOTONE - Problem using createSQLiteTestSetup1Wallet with concurrent write (internalizeAction) ', async () => {
+    for (const { wallet, storage } of ctxs) {
+      const fred = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64) })
+      const bob = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Bob', rootKeyHex: '4'.repeat(64) })
+      const backup = bob.activeStorage
+      storage.addWalletStorageProvider(backup)
+      const promises: Promise<number>[] = []
+      const result: { i: number; r: any }[] = []
+      const crs1: bsv.CreateActionResult[] = []
+      const maxI = 6
+
+      // Create 1st set of outputs for writer internaliseAction
+      for (let i = 0; i < maxI; i++) {
+        const createArgs: bsv.CreateActionArgs = {
+          description: `${kp.address} of ${root}`,
+          outputs: [{ satoshis: 1, lockingScript: _tu.getLockP2PKH(fredsAddress).toHex(), outputDescription: 'pay fred' }],
+          options: {
+            returnTXIDOnly: false,
+            randomizeOutputs: false,
+            signAndProcess: true,
+            noSend: true
+          }
+        }
+        const cr = await wallet.createAction(createArgs)
+        expect(cr.tx).toBeTruthy()
+        crs1.push(cr)
+      }
+      let j = 0
+      for (let i = 0; i < maxI; i++) promises.push(makeWriter2(fred, crs1[j++], i, result))
+      await Promise.all(promises)
+      expect(result).toBeTruthy()
+    }
+  })
+
   test('2xx. TODOTONE - Trying to recreate Setup1 error', async () => {
     for (const { wallet, storage } of ctxs) {
       const fred = await _tu.createSQLiteTestSetup1Wallet({ chain: 'test', databaseName: 'syncTest1c2Fred', rootKeyHex: '2'.repeat(64) })

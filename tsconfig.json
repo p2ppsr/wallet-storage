@@ -5,6 +5,9 @@
     },
     "references": [
         {
+            "path": "tsconfig.all.json"
+        },
+        {
             "path": "tsconfig.client.json"
         }
     ]

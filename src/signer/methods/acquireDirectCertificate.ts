@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, table, WalletSigner } from '../../index.all'
+import { sdk, table, WalletSigner } from '../../index.client'
 
 export async function acquireDirectCertificate(
   signer: WalletSigner,

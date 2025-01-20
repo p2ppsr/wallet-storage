@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { asBuffer, asString, sdk } from '../../../index.all'
+import { asBuffer, asString, sdk } from '../../../index.client'
 
 import { ChaintracksClientApi, ChaintracksInfoApi, HeaderListener, ReorgListener } from './ChaintracksClientApi'
 import { BaseBlockHeader, BaseBlockHeaderHex, BlockHeader, BlockHeaderHex, isBaseBlockHeader, toBaseBlockHeaderHex, toBlockHeader } from './BlockHeaderApi'

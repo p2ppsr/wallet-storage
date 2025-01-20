@@ -1,10 +1,10 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash, wait } from '../index.all'
+import { asArray, asString, doubleSha256BE, sdk, sha256Hash, wait } from '../index.client'
 import { ServiceCollection } from './ServiceCollection'
 
 import { createDefaultWalletServicesOptions } from './createDefaultWalletServicesOptions'
 import { ChaintracksChainTracker } from './chaintracker'
-import { getTaalArcServiceConfig, makeGetMerklePathFromTaalARC, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
+import { getTaalArcServiceConfig, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
 import { getMerklePathFromWhatsOnChainTsc, getRawTxFromWhatsOnChain, getUtxoStatusFromWhatsOnChain, updateBsvExchangeRate } from './providers/whatsonchain'
 import { updateChaintracksFiatExchangeRates, updateExchangeratesapi } from './providers/echangeRates'
 

@@ -1,6 +1,6 @@
 import { ChainTracker } from '@bsv/sdk'
 import { BaseBlockHeader, BaseBlockHeaderHex, BlockHeader, BlockHeaderHex } from './BlockHeaderApi'
-import { sdk } from '../../../index.all'
+import { sdk } from '../../../index.client'
 
 /**
  * @public

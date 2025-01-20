@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
-import { Beef, BeefParty, Utils, PrivateKey } from "@bsv/sdk";
-import { sdk, stampLog, toWalletNetwork, Monitor } from './index.all'
+import { Beef, BeefParty, Utils } from "@bsv/sdk";
+import { sdk, toWalletNetwork, Monitor } from './index.client'
 
 export class Wallet extends bsv.ProtoWallet implements bsv.Wallet {
     signer: sdk.WalletSigner

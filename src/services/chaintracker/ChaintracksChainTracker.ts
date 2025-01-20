@@ -1,4 +1,4 @@
-import { sdk, wait } from '../../index.all'
+import { sdk, wait } from '../../index.client'
 import { ChainTracker } from "@bsv/sdk";
 import { BlockHeaderHex, ChaintracksClientApi } from "./chaintracks";
 import { ChaintracksServiceClient } from "./chaintracks/ChaintracksServiceClient";

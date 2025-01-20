@@ -1,4 +1,4 @@
-import { asString, doubleSha256BE, entity, sdk, table } from '../../index.all';
+import { asString, doubleSha256BE, entity, sdk, table } from '../../index.client';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 

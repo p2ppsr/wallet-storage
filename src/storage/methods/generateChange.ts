@@ -1,4 +1,4 @@
-import { sdk, validateStorageFeeModel } from '../../index.all'
+import { sdk, validateStorageFeeModel } from '../../index.client'
 
 export interface GenerateChangeSdkResult {
     allocatedChangeInputs: GenerateChangeSdkChangeInput[]

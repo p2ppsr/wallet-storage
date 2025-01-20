@@ -30,7 +30,7 @@ export class WalletSigner implements sdk.WalletSigner {
         this._services = v
         this.storage.setServices(v)
     }
-    getServices() : sdk.WalletServices {
+    getServices(): sdk.WalletServices {
         if (!this._services)
             throw new sdk.WERR_INVALID_OPERATION('Must set WalletSigner services first.')
         return this._services
@@ -42,23 +42,23 @@ export class WalletSigner implements sdk.WalletSigner {
     }
 
     getClientChangeKeyPair(): sdk.KeyPair {
-       const kp: sdk.KeyPair = {
-           privateKey: this.keyDeriver.rootKey.toString(),
-           publicKey: this.keyDeriver.rootKey.toPublicKey().toString()
-       }
-       return kp
+        const kp: sdk.KeyPair = {
+            privateKey: this.keyDeriver.rootKey.toString(),
+            publicKey: this.keyDeriver.rootKey.toPublicKey().toString()
+        }
+        return kp
     }
 
     async getChain(): Promise<sdk.Chain> {
         return this.chain
     }
 
-    private validateAuthAndArgs<A, T extends sdk.ValidWalletSignerArgs>(args: A, validate: (args: A) => T) : { vargs: T, auth: sdk.AuthId } {
+    private validateAuthAndArgs<A, T extends sdk.ValidWalletSignerArgs>(args: A, validate: (args: A) => T): { vargs: T, auth: sdk.AuthId } {
         const vargs = validate(args)
         const auth: sdk.AuthId = { identityKey: this.identityKey }
         return { vargs, auth }
     }
-    
+
     async listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> {
         this.validateAuthAndArgs(args, sdk.validateListActionsArgs)
         const r = await this.storage.listActions(args)
@@ -128,19 +128,19 @@ export class WalletSigner implements sdk.WalletSigner {
 }
 
 export interface PendingStorageInput {
-  vin: number,
-  derivationPrefix: string,
-  derivationSuffix: string,
-  unlockerPubKey?: string,
-  sourceSatoshis: number,
-  lockingScript: string
+    vin: number,
+    derivationPrefix: string,
+    derivationSuffix: string,
+    unlockerPubKey?: string,
+    sourceSatoshis: number,
+    lockingScript: string
 }
 
 export interface PendingSignAction {
-  reference: string
-  dcr: sdk.StorageCreateActionResult
-  args: sdk.ValidCreateActionArgs
-  tx: bsv.Transaction
-  amount: number
-  pdi: PendingStorageInput[]
+    reference: string
+    dcr: sdk.StorageCreateActionResult
+    args: sdk.ValidCreateActionArgs
+    tx: bsv.Transaction
+    amount: number
+    pdi: PendingStorageInput[]
 }

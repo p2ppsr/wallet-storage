@@ -1,4 +1,4 @@
-import { sdk } from "../.."
+import { sdk } from "../../index.client"
 import axios from 'axios'
 
 export async function updateChaintracksFiatExchangeRates(targetCurrencies: string[], options: sdk.WalletServicesOptions): Promise<sdk.FiatExchangeRates> {

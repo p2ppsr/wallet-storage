@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { Utils } from "@bsv/sdk";
-import { sdk } from "..";
+import { sdk } from "../index.client";
 import { OutPoint } from "./types";
 
 export function parseWalletOutpoint(outpoint: string): { txid: string; vout: number; } {

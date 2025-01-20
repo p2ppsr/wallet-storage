@@ -17,6 +17,6 @@
     "noImplicitOverride": true
   },
   "files": [
-    "src/client.ts"
+    "src/index.client.ts"
   ]
 }

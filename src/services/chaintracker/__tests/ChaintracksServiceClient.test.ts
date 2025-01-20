@@ -1,4 +1,4 @@
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 import { ChaintracksServiceClient } from "../chaintracks"
 
 describe('ChaintracksServiceClient tests', () => {

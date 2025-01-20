@@ -1,4 +1,4 @@
-import { sdk } from '../..';
+import { sdk } from '../../index.all';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 

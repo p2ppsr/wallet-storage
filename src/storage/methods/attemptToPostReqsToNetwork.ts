@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { StorageProvider } from "../StorageProvider"
-import { entity, sdk } from '../..'
+import { entity, sdk } from '../../index.all'
 import { PostBeefResultForTxidApi } from './processAction'
 import { unlink } from 'fs'
 

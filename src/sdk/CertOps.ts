@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from '..'
+import { sdk } from '../index.all'
 import { SymmetricKey, Utils } from "@bsv/sdk";
 import { Certificate } from './Certificate';
 import { WERR_INVALID_OPERATION } from './WERR_errors';

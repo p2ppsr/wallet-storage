@@ -9,7 +9,7 @@ import * as bsv from '@bsv/sdk'
 import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
-import { sdk, Wallet, StorageProvider } from '../..'
+import { sdk, Wallet, StorageProvider } from '../../index.all'
 
 import { StorageKnex } from '../StorageKnex'
 

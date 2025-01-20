@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services, WalletStorageManager } from ".."
+import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services, WalletStorageManager } from "../index.client"
 import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
 import { TaskPurge, TaskPurgeParams } from './tasks/TaskPurge'
 import { TaskSyncWhenIdle } from './tasks/TaskSyncWhenIdle'

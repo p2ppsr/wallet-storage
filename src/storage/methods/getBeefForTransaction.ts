@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, entity, sdk, StorageProvider, verifyTruthy } from '../..'
+import { asBsvSdkTx, entity, sdk, StorageProvider, verifyTruthy } from '../../index.all'
 
 /**
  * Creates a `Beef` to support the validity of a transaction identified by its `txid`.

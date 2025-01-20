@@ -1,4 +1,4 @@
-import { asBuffer, asString } from "../../.."
+import { asBuffer, asString } from "../../../index.client"
 
 /**
  * These are fields of 80 byte serialized header in order whose double sha256 hash is a block's hash value

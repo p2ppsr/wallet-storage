@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from '../..';
-import { entity, table } from '../../storage';
+import { sdk } from '../../index.all';
+import { entity, table } from '../../storage/index.all';
 import { verifyTruthy } from '../../utility';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from "..";
+import { sdk } from "../index.client";
 import { WalletStorageManager } from "../storage/WalletStorageManager";
 import { createAction } from "./methods/createAction";
 import { signAction } from "./methods/signAction";

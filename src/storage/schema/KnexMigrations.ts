@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Knex } from 'knex'
-import { DBType, randomBytesHex, sdk } from '../..';
+import { sdk } from '../../index.all';
+import { DBType } from '../StorageReader';
 
 interface Migration {
     up: (knex: Knex) => Promise<void>;

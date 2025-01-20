@@ -1,4 +1,4 @@
-import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash, validateScriptHash } from '../..'
+import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash, validateScriptHash } from '../../index.all'
 
 import axios from 'axios'
 import Whatsonchain from 'whatsonchain'

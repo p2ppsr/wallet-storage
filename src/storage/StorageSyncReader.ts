@@ -1,4 +1,4 @@
-import { sdk, table } from "..";
+import { sdk, table } from "../index.client";
 import { StorageReader } from "./StorageReader";
 
 /**

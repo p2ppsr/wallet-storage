@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from '..'
+import { sdk } from '../index.client'
 import { ChaintracksClientApi } from '../services/chaintracker'
 /**
  * Defines standard interfaces to access functionality implemented by external transaction processing services.

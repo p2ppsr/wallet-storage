@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { Services } from '../..'
+import { Services } from '../../index.all'
 
 const BEEF_V1 = 4022206465 // 0100BEEF in LE order
 const BEEF_V2 = 4022206466 // 0200BEEF in LE order

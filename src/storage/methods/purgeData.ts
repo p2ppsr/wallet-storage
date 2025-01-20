@@ -1,7 +1,8 @@
 import * as bsv from '@bsv/sdk'
 import { Knex } from "knex"
-import { StorageKnex, table } from ".."
-import { sdk } from "../.."
+import { table } from "../index.client"
+import { sdk } from "../../index.client"
+import { StorageKnex } from '../StorageKnex'
 
 export async function purgeData(storage: StorageKnex, params: sdk.PurgeParams, trx?: sdk.TrxToken): Promise<sdk.PurgeResults> {
     const r: sdk.PurgeResults = { count: 0, log: ''}

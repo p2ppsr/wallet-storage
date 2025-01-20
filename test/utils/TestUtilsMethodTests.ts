@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex } from '../../src'
+import { sdk, StorageKnex } from '../../src/index.all'
 import { Wallet } from '../../src/Wallet'
 import { jest } from '@jest/globals'
 

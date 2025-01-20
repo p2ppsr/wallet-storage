@@ -1,5 +1,4 @@
-import { _tu, TestSetup1, TestWalletNoSetup } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
+import { _tu, TestWalletNoSetup } from '../utils/TestUtilsWalletStorage'
 
 describe('find tests', () => {
     jest.setTimeout(99999999)

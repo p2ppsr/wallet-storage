@@ -1,5 +1,5 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, asString, entity, sdk, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy, WalletStorageManager } from "../../..";
+import { arraysEqual, asString, entity, sdk, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy, WalletStorageManager } from "../../../index.client";
 import { EntityBase } from ".";
 
 import { StorageProcessActionArgs } from "../../../sdk";

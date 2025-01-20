@@ -12,8 +12,8 @@ import {
     verifyOne,
     verifyOptionalHexString,
     verifyTruthy
-} from "../..";
-import { table } from ".."
+} from "../../index.all";
+import { table } from "../index.all"
 
 import { Knex } from "knex";
 import { isHexString } from '../../sdk';

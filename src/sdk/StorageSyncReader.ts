@@ -1,4 +1,4 @@
-import { sdk, table } from "..";
+import { sdk, table } from "../index.client";
 
 /**
  * This is the minimal interface required for a WalletStorageProvider to export data to another provider.

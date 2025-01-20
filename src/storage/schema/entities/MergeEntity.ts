@@ -1,5 +1,5 @@
-import { entity } from "../..";
-import { maxDate, sdk, verifyId } from "../../..";
+import { entity } from "../../index.client";
+import { maxDate, sdk, verifyId } from "../../../index.client";
 import { EntityBase } from "./EntityBase";
 
 /**

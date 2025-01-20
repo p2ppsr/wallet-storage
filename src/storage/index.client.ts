@@ -1,0 +1,6 @@
+export * from './WalletStorageManager'
+export * from './StorageProvider'
+export * from './StorageSyncReader'
+export * as table from './schema/tables'
+export * as entity from './schema/entities'
+export * from './remoting/StorageClient'

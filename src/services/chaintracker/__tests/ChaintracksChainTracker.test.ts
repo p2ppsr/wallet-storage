@@ -1,5 +1,5 @@
 import { ChaintracksChainTracker } from ".."
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 
 describe('ChaintracksChaintracker tests', () => {
     jest.setTimeout(99999999)

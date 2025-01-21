@@ -1,7 +1,7 @@
 import * as bsv from '@bsv/sdk'
 import { listCertificates } from '../../../src/storage/methods/listCertificates'
 import { StorageProvider } from '../../../src/storage/StorageProvider'
-import { sdk, table } from '../../../src/index'
+import { sdk, table } from '../../../src/index.all'
 import { TrxToken } from '../../../src/sdk'
 
 jest.mock('../../../src/storage/StorageProvider')

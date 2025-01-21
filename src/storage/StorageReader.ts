@@ -1,4 +1,4 @@
-import { DBType, sdk, StorageProviderOptions, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "..";
+import { sdk, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { getSyncChunk } from "./methods/getSyncChunk";
 
 /**
@@ -206,4 +206,10 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
 
 export interface StorageReaderOptions {
     chain: sdk.Chain
+}
+
+export type DBType = 'SQLite' | 'MySQL'
+
+type DbEntityTimeStamp<T extends sdk.EntityTimeStamp> = {
+  [K in keyof T]: T[K] extends Date ? Date | string : T[K]
 }

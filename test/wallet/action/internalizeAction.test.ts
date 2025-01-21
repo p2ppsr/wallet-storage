@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from '../../../src'
+import { sdk } from '../../../src/index.all'
 import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
 describe('internalizeAction tests', () => {

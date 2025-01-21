@@ -1,6 +1,6 @@
-import * as bsv from '@bsv/sdk'
-import { Monitor, sdk, Services, StorageKnex, StorageSyncReader, verifyTruthy, wait, Wallet, WalletSigner, WalletStorageManager } from '../../../src'
-import { _tu, TestSetup1Wallet, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
+import { wait, WalletStorageManager } from '../../../src/index.client'
+import { StorageKnex } from '../../../src/storage/StorageKnex'
+import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
 import * as dotenv from 'dotenv'
 

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { entity, sdk, StorageProvider, StorageSyncReader, table, wait } from "..";
+import { entity, sdk, StorageProvider, StorageSyncReader, table, wait } from "../index.client";
 
 /**
  * The `SignerStorage` class delivers authentication checking storage access to the wallet.

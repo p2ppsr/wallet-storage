@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { _tu, expectToThrowWERR } from "../../utils/TestUtilsWalletStorage"
-import { sdk, Wallet } from '../../../src'
+import { sdk, Wallet } from '../../../src/index.all'
 
 describe('acquireCertificate tests', () => {
     jest.setTimeout(99999999)

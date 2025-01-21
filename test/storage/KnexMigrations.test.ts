@@ -1,5 +1,5 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { KnexMigrations, StorageKnex, wait } from "../../src"
+import { KnexMigrations, StorageKnex, wait } from "../../src/index.all"
 import { Knex } from 'knex'
 
 describe('KnexMigrations tests', () => {

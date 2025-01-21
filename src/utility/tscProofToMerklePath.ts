@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { asString } from './utilityHelpers'
-import { sdk } from '..'
+import { sdk } from '../index.client'
 
 export function deserializeTscMerkleProofNodes(nodes: Buffer): string[] {
     if (!Buffer.isBuffer(nodes)) throw new sdk.WERR_INTERNAL('Buffer or string expected.')

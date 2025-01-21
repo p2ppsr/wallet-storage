@@ -1,4 +1,4 @@
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 import { ChaintracksServiceClient } from "../chaintracks"
 
 describe('ChaintracksServiceClient tests', () => {
@@ -9,12 +9,8 @@ describe('ChaintracksServiceClient tests', () => {
         for (const chain of chains) {
             const client = new ChaintracksServiceClient(chain, `https://npm-registry.babbage.systems:${chain === 'main' ? 8084 : 8083}`)
             {
-                const r = await client.getInfo()
-                expect(r.chain).toBe(chain)
-            } 
-            {
                 // testnet block
-                const r = await client.findHeaderHexForBlockHash('0000000049686fe721f70614c89df146e410240f838b8f3ef8e6471c6dfdd153')
+                const r = await client.findHeaderForBlockHash('0000000049686fe721f70614c89df146e410240f838b8f3ef8e6471c6dfdd153')
                 if (chain === 'main')
                     expect(r).toBe(undefined)
                 else
@@ -22,7 +18,7 @@ describe('ChaintracksServiceClient tests', () => {
             } 
             {
                 // mainnet block
-                const r = await client.findHeaderHexForBlockHash('00000000000000000b010edee7422c59ec9131742e35f3e0d5837d710b961406')
+                const r = await client.findHeaderForBlockHash('00000000000000000b010edee7422c59ec9131742e35f3e0d5837d710b961406')
                 if (chain === 'main')
                     expect(r?.height).toBe(877595)
                 else

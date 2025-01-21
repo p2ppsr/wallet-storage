@@ -1,5 +1,5 @@
 import * as bsv from "@bsv/sdk"
-import { sdk } from '../..'
+import { sdk } from '../../index.all'
 
 describe('CertOps tests', () => {
     jest.setTimeout(99999999)

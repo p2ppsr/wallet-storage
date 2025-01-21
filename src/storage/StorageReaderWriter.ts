@@ -1,4 +1,4 @@
-import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { createSyncMap } from "./schema/entities";
 import { StorageReader, StorageReaderOptions } from "./StorageReader";
 

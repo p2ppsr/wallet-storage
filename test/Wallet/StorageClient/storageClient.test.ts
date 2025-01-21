@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageClient } from '../../../src'
+import { sdk, StorageClient } from '../../../src/index.all'
 import { _tu, expectToThrowWERR, TestWalletNoSetup, TestWalletOnly } from '../../utils/TestUtilsWalletStorage'
 
 const noLog = false

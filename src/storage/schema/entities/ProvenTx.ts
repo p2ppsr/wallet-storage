@@ -1,7 +1,6 @@
 import { MerklePath } from "@bsv/sdk"
-import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../..";
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from "../../../index.client";
 import { EntityBase } from ".";
-import { ChaintracksClientApi } from "../../../services/chaintracker";
 
 export class ProvenTx extends EntityBase<table.ProvenTx> {
     
@@ -17,7 +16,6 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
      * this is optional and can be done by the caller if appropriate.
      * 
      * @param txid 
-     * @param chaintracks 
      * @param services 
      * @param rawTx 
      * @returns 
@@ -172,19 +170,15 @@ export class ProvenTx extends EntityBase<table.ProvenTx> {
     /**
      * Try to create a new ProvenTx from a ProvenTxReq and GetMerkleProofResultApi
      * 
-     * If a valid proof can be confirmed by chaintracks, it succeeds.
-     * 
      * Otherwise it returns undefined and updates req.status to either 'unknown', 'invalid', or 'unconfirmed'
      * 
      * @param req 
      * @param gmpResult 
-     * @param chaintracks 
      * @returns 
      */
     static async fromReq(
         req: entity.ProvenTxReq,
         gmpResult: sdk.GetMerklePathResult,
-        chaintracks: ChaintracksClientApi,
         countsAsAttempt: boolean
     )
     : Promise<ProvenTx | undefined>

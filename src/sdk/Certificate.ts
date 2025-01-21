@@ -2,6 +2,7 @@ import { Utils } from "@bsv/sdk"
 import { Base64String, CertificateFieldNameUnder50Bytes, HexString, OutpointString, PubKeyHex } from "./Wallet.interfaces"
 import { WalletCrypto } from "./WalletCrypto"
 import { KeyDeriver } from "./KeyDeriver"
+import { asString } from "../utility"
 
 /**
  * Represents an Identity Certificate as per the Wallet interface specifications.
@@ -105,9 +106,10 @@ export class Certificate {
     writer.writeVarIntNum(Number(outputIndex))
 
     // Write fields
-    const fieldEntries = Object.entries(this.fields)
-    writer.writeVarIntNum(fieldEntries.length)
-    for (const [fieldName, fieldValue] of fieldEntries) {
+    const fieldNames = Object.keys(this.fields).sort()
+    writer.writeVarIntNum(fieldNames.length)
+    for (const fieldName of fieldNames) {
+      const fieldValue = this.fields[fieldName]
       // Field name
       const fieldNameBytes = Utils.toArray(fieldName, 'utf8')
       writer.writeVarIntNum(fieldNameBytes.length)
@@ -205,6 +207,7 @@ export class Certificate {
     // A verifier can be any wallet capable of verifying signatures
     const verifier = new WalletCrypto(new KeyDeriver('anyone'))
     const verificationData = this.toBin(false) // Exclude the signature from the verification data
+    //console.log(`verificationData\n------\n${asString(verificationData)}\n--------`)
 
     const { valid } = await verifier.verifySignature({
       signature: Utils.toArray(this.signature, 'hex'),

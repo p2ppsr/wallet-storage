@@ -26,6 +26,8 @@ export class WalletSigner implements sdk.WalletSigner {
         this.pendingSignActions = {}
     }
 
+    getProtoWallet() : bsv.ProtoWallet { return new bsv.ProtoWallet(this.keyDeriver) }
+
     setServices(v: sdk.WalletServices) {
         this._services = v
         this.storage.setServices(v)
@@ -108,6 +110,7 @@ export class WalletSigner implements sdk.WalletSigner {
     }
     async acquireDirectCertificate(args: bsv.AcquireCertificateArgs): Promise<bsv.AcquireCertificateResult> {
         const { auth, vargs } = this.validateAuthAndArgs(args, sdk.validateAcquireDirectCertificateArgs)
+        vargs.subject = (await this.getProtoWallet().getPublicKey({ identityKey: true, privileged: args.privileged, privilegedReason: args.privilegedReason })).publicKey
         const r = await acquireDirectCertificate(this, auth, vargs)
         return r
     }

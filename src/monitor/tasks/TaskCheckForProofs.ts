@@ -160,7 +160,7 @@ export class TaskCheckForProofs extends WalletMonitorTask {
             // one more time.
             //
             r = await this.monitor.services.getMerklePath(req.txid)
-            ptx = await entity.ProvenTx.fromReq(req, r, this.monitor.chaintracks, countsAsAttempt && req.status !== 'nosend')
+            ptx = await entity.ProvenTx.fromReq(req, r, countsAsAttempt && req.status !== 'nosend')
 
             if (ptx) {
                 // We have a merklePath proof for the request (and a block header)

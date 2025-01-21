@@ -142,7 +142,7 @@ describe('Wallet sync tests', () => {
         log(`checking table:${table}`)
         const updatedBobData = await knexInstance(table).select()
         const initialTableData = initialBobData[table]
-        // Ensure all other tables remain unchanged
+        // Ensure all tables remain unchanged
         try {
           expect(updatedBobData).toEqual(initialTableData)
         } catch (error) {

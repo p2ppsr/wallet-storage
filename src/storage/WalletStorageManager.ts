@@ -384,7 +384,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
             for (const backup of this.stores.slice(1)) {
                 await this.syncToWriter(auth, backup, sync)
             }
-        })
+        }, activeSync)
     }
 
     async syncToWriter(auth: sdk.AuthId, writer: sdk.WalletStorageProvider, activeSync?: sdk.WalletStorageSync): Promise<{ inserts: number, updates: number }> {

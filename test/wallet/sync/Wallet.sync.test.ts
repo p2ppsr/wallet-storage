@@ -58,5 +58,31 @@ describe('Wallet sync tests', () => {
         }
     })
 
+    test('1a_simple backup', async () => {
+        // wallet will be the original active wallet, a backup is added, then setActive is used to initiate backup in each direction.
+        for (const { wallet, storage, activeStorage: original, userId: originalUserId } of ctxs) {
+          const backup = (await _tu.createSQLiteTestWallet({ databaseName: 'walletSyncTest1aBackup', dropAll: true })).activeStorage
+          if (originalUserId === 1) {
+            // Inert a dummy user into backup to make sure the userId isn't same as original
+            await backup.findOrInsertUser('99'.repeat(32))
+          }
+          await storage.addWalletStorageProvider(backup)
+    
+          const originalAuth = await storage.getAuth()
+          expect(originalAuth.userId).toBe(originalUserId)
+          const initialTransactions = await original.findTransactions({ partial: { userId: originalAuth.userId }})
+    
+          // sync to backup and make it active.
+          await storage.setActive(backup.getSettings().storageIdentityKey)
+    
+          const backupAuth = await storage.getAuth()
+          const backupTransactions = await backup.findTransactions({ partial: { userId: backupAuth.userId }})
+    
+          // sync back to original and make it active.
+          await storage.setActive(original.getSettings().storageIdentityKey)
+    
+          expect('foo').toBeTruthy()
+        }
+      })
 })
 

@@ -70,11 +70,11 @@ describe('Wallet sync tests', () => {
       'proven_tx_reqs',
       'proven_txs',
       'settings',
-      'sync_states',
       'transactions',
       'tx_labels',
       'tx_labels_map',
-      'users'
+      'users',
+      'sync_states'
     ]
     const bobDatabaseName = 'syncTest1Bob'
     const fredDatabaseName = 'syncTest1Fred'
@@ -102,7 +102,6 @@ describe('Wallet sync tests', () => {
 
       // Capture Bob's initial sync_states
       const knexInstance = bob.activeStorage.knex
-      const initialBobSyncStates = await knexInstance('sync_states').select()
 
       const initialBobData = {}
       for (const table of tables) {
@@ -136,26 +135,19 @@ describe('Wallet sync tests', () => {
       const fredReader = new StorageSyncReader(await bobAuth, fred.activeStorage)
       expect(fredReader).toBeTruthy()
 
-      bob.storage.syncFromReader(bobIdentityKey, fredReader)
+      await bob.storage.syncFromReader(bobIdentityKey, fredReader)
       expect(fredReader).toBeTruthy()
 
       for (const table of tables) {
+        log(`checking table:${table}`)
         const updatedBobData = await knexInstance(table).select()
-        if (table === 'sync_states') {
-          // Verify that sync_states changed as expected
-          expect(updatedBobData.length).toBeGreaterThan(initialBobData[table].length)
-          expect(updatedBobData).toEqual(
-            expect.arrayContaining([
-              ...initialBobData[table], // Ensure existing data is preserved
-              expect.objectContaining({
-                storageName: fredDatabaseName,
-                storageIdentityKey: fredStorageIdentityKey
-              })
-            ])
-          )
-        } else {
-          // Ensure all other tables remain unchanged
-          expect(updatedBobData).toEqual(initialBobData[table])
+        const initialTableData = initialBobData[table]
+        // Ensure all other tables remain unchanged
+        try {
+          expect(updatedBobData).toEqual(initialTableData)
+        } catch (error) {
+          console.error(`Test failed for table: ${table}`, { updatedBobData, initialTableData })
+          throw error
         }
       }
 

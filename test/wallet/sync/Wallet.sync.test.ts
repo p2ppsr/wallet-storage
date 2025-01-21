@@ -1,4 +1,4 @@
-import { wait, WalletStorageManager } from '../../../src/index.client'
+import { StorageSyncReader, wait, WalletStorageManager } from '../../../src/index.client'
 import { StorageKnex } from '../../../src/storage/StorageKnex'
 import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
@@ -125,7 +125,7 @@ describe('Wallet sync tests', () => {
       expect(initialFredActions).toEqual({ totalActions: 0, actions: [] })
 
       // Synchronize Fred's data into Bob's database
-      const fredReader = new StorageSyncReader(await bobAuth, fred.activeStorage)
+      const fredReader = new StorageSyncReader(bobAuth, fred.activeStorage)
       expect(fredReader).toBeTruthy()
 
       await bob.storage.syncFromReader(bobIdentityKey, fredReader)

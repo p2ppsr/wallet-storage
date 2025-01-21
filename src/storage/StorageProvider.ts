@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
 import { attemptToPostReqsToNetwork, PostReqsToNetworkResult } from './methods/attemptToPostReqsToNetwork';

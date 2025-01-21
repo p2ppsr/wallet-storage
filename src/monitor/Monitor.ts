@@ -1,6 +1,5 @@
-import * as bsv from '@bsv/sdk'
-import { asBsvSdkTx, asString, doubleSha256BE, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, wait, Services, WalletStorageManager } from ".."
-import { BlockHeader, ChaintracksClientApi } from "../services/chaintracker"
+import { sdk, wait, Services, WalletStorageManager } from "../index.client"
+import { BlockHeader, ChaintracksServiceClient } from "../services/chaintracker"
 import { TaskPurge, TaskPurgeParams } from './tasks/TaskPurge'
 import { TaskSyncWhenIdle } from './tasks/TaskSyncWhenIdle'
 import { TaskFailAbandoned } from './tasks/TaskFailAbandoned'
@@ -22,7 +21,7 @@ export interface MonitorOptions {
 
     storage: MonitorStorage
 
-    chaintracks: ChaintracksClientApi
+    chaintracks: ChaintracksServiceClient
 
     /**
      * How many msecs to wait after each getMerkleProof service request.
@@ -69,7 +68,7 @@ export class Monitor {
     services: Services
     chain: sdk.Chain
     storage: MonitorStorage
-    chaintracks: ChaintracksClientApi
+    chaintracks: ChaintracksServiceClient
 
     constructor(options: MonitorOptions) {
         this.options = { ... options }

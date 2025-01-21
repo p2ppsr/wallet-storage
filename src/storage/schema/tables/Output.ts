@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { OutputBasket, OutputTag } from "."
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 
 export interface Output extends sdk.EntityTimeStamp {
    created_at: Date

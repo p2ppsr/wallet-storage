@@ -1,12 +1,13 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '..'
-import { KnexMigrations, table } from '.'
+import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '../index.all'
+import { KnexMigrations, table } from './index.all'
 
 import { Knex } from 'knex'
 import { StorageProvider, StorageProviderOptions } from './StorageProvider'
 import { purgeData } from './methods/purgeData'
 import { listActions } from './methods/listActions'
 import { listOutputs } from './methods/listOutputs'
+import { DBType } from './StorageReader'
 
 export interface StorageKnexOptions extends StorageProviderOptions {
   /**
@@ -919,10 +920,4 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
 
     return r
   }
-}
-
-export type DBType = 'SQLite' | 'MySQL'
-
-type DbEntityTimeStamp<T extends sdk.EntityTimeStamp> = {
-  [K in keyof T]: T[K] extends Date ? Date | string : T[K]
 }

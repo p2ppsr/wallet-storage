@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { Services } from "../.."
+import { Services } from "../../index.client"
 
 describe('getRawTx service tests', () => {
     jest.setTimeout(99999999)

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from "../../../src"
+import { sdk } from "../../../src/index.client"
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from "../../utils/TestUtilsWalletStorage"
 
 describe('abortAction tests', () => {

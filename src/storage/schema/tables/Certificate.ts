@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, table } from "../../.."
+import { sdk, table } from "../../../index.client"
 
 export interface Certificate extends sdk.EntityTimeStamp {
    created_at: Date

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, table } from "..";
+import { sdk, table } from "../index.client";
 
 /**
  * This is the `WalletStorage` interface implemented by a class such as `WalletStorageManager`,

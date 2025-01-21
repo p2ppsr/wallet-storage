@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { Beef, Hash, PrivateKey, PublicKey, Random, Script, Transaction, Utils } from "@bsv/sdk";
-import { sdk } from "..";
+import { sdk } from "../index.client";
 import { Chain } from "../sdk/types";
 
 export function toWalletNetwork(chain: Chain): bsv.WalletNetwork {

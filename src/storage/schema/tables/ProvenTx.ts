@@ -1,4 +1,4 @@
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 
 export interface ProvenTx extends sdk.EntityTimeStamp {
    created_at: Date

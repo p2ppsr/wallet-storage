@@ -1,6 +1,4 @@
-import * as bsv from '@bsv/sdk'
-import { sdk } from '../..';
-import { entity, table } from '../../storage';
+import { entity, table } from '../../storage/index.client';
 import { verifyTruthy } from '../../utility';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';

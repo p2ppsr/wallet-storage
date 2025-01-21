@@ -1,6 +1,7 @@
 import * as bsv from "@bsv/sdk"
-import { StorageKnex, table } from ".."
-import { asString, sdk, verifyId, verifyOne } from "../.."
+import { table } from "../index.client"
+import { asString, sdk, verifyId, verifyOne } from "../../index.client"
+import { StorageKnex } from "../StorageKnex"
 
 export async function listOutputs(
     dsk: StorageKnex,

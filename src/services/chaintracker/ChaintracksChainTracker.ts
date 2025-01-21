@@ -1,6 +1,6 @@
-import { sdk, wait } from '../..'
+import { sdk, wait } from '../../index.client'
 import { ChainTracker } from "@bsv/sdk";
-import { BlockHeaderHex, ChaintracksClientApi } from "./chaintracks";
+import { BlockHeader } from "./chaintracks";
 import { ChaintracksServiceClient } from "./chaintracks/ChaintracksServiceClient";
 
 export interface ChaintracksChainTrackerOptions {
@@ -8,11 +8,11 @@ export interface ChaintracksChainTrackerOptions {
 }
 
 export class ChaintracksChainTracker implements ChainTracker {
-    chaintracks: ChaintracksClientApi
+    chaintracks: ChaintracksServiceClient
     cache: Record<number, string>
     options: ChaintracksChainTrackerOptions
 
-    constructor(chain?: sdk.Chain, chaintracks?: ChaintracksClientApi, options?: ChaintracksChainTrackerOptions) {
+    constructor(chain?: sdk.Chain, chaintracks?: ChaintracksServiceClient, options?: ChaintracksChainTrackerOptions) {
 
         chain ||= 'main'
         this.chaintracks = chaintracks ?? new ChaintracksServiceClient(chain, `https://npm-registry.babbage.systems:808${chain === 'main' ? '4' : '3'}`)
@@ -30,7 +30,7 @@ export class ChaintracksChainTracker implements ChainTracker {
             return cachedRoot === root
         }
 
-        let header: BlockHeaderHex | undefined
+        let header: BlockHeader | undefined
 
         const retries = this.options.maxRetries || 3
 
@@ -39,7 +39,7 @@ export class ChaintracksChainTracker implements ChainTracker {
         for (let tryCount = 1; tryCount <= retries; tryCount++) {
 
             try {
-                header = await this.chaintracks.findHeaderHexForHeight(height)
+                header = await this.chaintracks.findHeaderForHeight(height)
 
                 if (!header) {
                     return false

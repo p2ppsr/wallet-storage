@@ -1,5 +1,5 @@
 import { createSyncMap, EntityBase, EntitySyncMap, MergeEntity, SyncError, SyncMap } from "."
-import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../.."
+import { entity, maxDate, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../../../index.client"
 
 export class SyncState extends EntityBase<table.SyncState> {
     constructor(api?: table.SyncState) {

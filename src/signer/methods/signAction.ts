@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
+import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../../index.client"
 import { PendingSignAction, WalletSigner } from "../WalletSigner"
 import { processAction } from './createAction'
 

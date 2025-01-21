@@ -9,7 +9,7 @@ import * as bsv from '@bsv/sdk'
 import express, { Request, Response } from 'express'
 import { AuthMiddlewareOptions, createAuthMiddleware } from '@bsv/auth-express-middleware'
 import { createPaymentMiddleware } from '@bsv/payment-express-middleware'
-import { sdk, Wallet, StorageProvider } from '../..'
+import { sdk, Wallet, StorageProvider } from '../../index.all'
 
 import { StorageKnex } from '../StorageKnex'
 
@@ -37,6 +37,22 @@ export class StorageServer {
 
   private setupRoutes(): void {
     this.app.use(express.json({ limit: '30mb' }))
+
+    // This allows the API to be used everywhere when CORS is enforced
+    this.app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*')
+      res.header('Access-Control-Allow-Headers', '*')
+      res.header('Access-Control-Allow-Methods', '*')
+      res.header('Access-Control-Expose-Headers', '*')
+      res.header('Access-Control-Allow-Private-Network', 'true')
+      if (req.method === 'OPTIONS') {
+        // Handle CORS preflight requests to allow cross-origin POST/PUT requests
+        res.sendStatus(200)
+      } else {
+        next()
+      }
+    })
+
     const options: AuthMiddlewareOptions = {
       wallet: this.wallet as bsv.Wallet
     }

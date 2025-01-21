@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
-import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyId, verifyTruthy, WalletSigner } from "../.."
+import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyId, verifyTruthy, WalletSigner } from "../../index.client"
 
 export async function createAction(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
 : Promise<bsv.CreateActionResult>

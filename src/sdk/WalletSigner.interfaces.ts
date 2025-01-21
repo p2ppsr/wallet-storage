@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from "..";
+import { sdk } from "../index.client";
 
 /**
  * Subset of `NinjaApi` interface and `NinjaBase` methods and properties that are required to support

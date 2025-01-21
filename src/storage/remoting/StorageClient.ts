@@ -6,7 +6,7 @@
  */
 
 import * as bsv from '@bsv/sdk'
-import { sdk, table } from "../..";
+import { sdk, table } from "../../index.client";
 import { AuthFetch } from '@bsv/sdk';
 
 // We import the base interface:

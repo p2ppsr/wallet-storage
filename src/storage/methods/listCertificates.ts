@@ -1,6 +1,6 @@
 import * as bsv from "@bsv/sdk"
-import { StorageProvider, StorageKnex, table } from ".."
-import { asString, sdk, verifyOne } from "../.."
+import { StorageProvider, table } from "../index.client"
+import { sdk } from "../../index.client"
 
 export async function listCertificates(
   storage: StorageProvider,

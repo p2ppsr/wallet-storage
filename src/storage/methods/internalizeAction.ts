@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as bsv from '@bsv/sdk'
-import { entity, randomBytesBase64, sdk, stampLog, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone } from "../.."
+import { entity, randomBytesBase64, sdk, stampLog, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone } from "../../index.client"
 
 export interface StorageInternalizeActionResult extends bsv.InternalizeActionResult {
   /** true if internalizing outputs on an existing storage transaction */

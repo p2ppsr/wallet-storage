@@ -83,26 +83,25 @@ describe('Wallet sync tests', () => {
     const label = 'babbage_app_projectbabbage.com'
 
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const bob = _tu.createLegacyWalletSQLiteCopy(bobDatabaseName)
-      const bobAuth = (await bob).storage.getAuth()
+      const bob = await _tu.createLegacyWalletSQLiteCopy(bobDatabaseName)
+      const bobAuth = await bob.storage.getAuth()
       expect(bobAuth).toBeTruthy()
-      const bobIdentityKey = (await bobAuth).identityKey
+      const bobIdentityKey = bobAuth.identityKey
       expect(bob).toBeTruthy()
 
-      const initialBobSettings = (await bob).activeStorage.getSettings()
+      const initialBobSettings = bob.activeStorage.getSettings()
       expect(initialBobSettings).toBeTruthy()
 
       const bobStorageIdentityKey = initialBobSettings.storageIdentityKey
       expect(bobStorageIdentityKey).toBeTruthy()
-      ;(await bob).storage.setActive(bobStorageIdentityKey)
+      bob.storage.setActive(bobStorageIdentityKey)
 
-      const initialBobActions = await (await bob).wallet.listActions({ labels: [label] })
+      const initialBobActions = await bob.wallet.listActions({ labels: [label] })
       const legacyActions = await wallet.listActions({ labels: [label] })
       expect(initialBobActions).toEqual(legacyActions)
 
       // Capture Bob's initial sync_states
-      const resolvedBob = await bob
-      const knexInstance = resolvedBob.activeStorage.knex
+      const knexInstance = bob.activeStorage.knex
       const initialBobSyncStates = await knexInstance('sync_states').select()
 
       const initialBobData = {}
@@ -137,7 +136,7 @@ describe('Wallet sync tests', () => {
       const fredReader = new StorageSyncReader(await bobAuth, fred.activeStorage)
       expect(fredReader).toBeTruthy()
 
-      await (await bob).storage.syncFromReader(bobIdentityKey, fredReader)
+      bob.storage.syncFromReader(bobIdentityKey, fredReader)
       expect(fredReader).toBeTruthy()
 
       for (const table of tables) {
@@ -160,7 +159,7 @@ describe('Wallet sync tests', () => {
         }
       }
 
-      await (await bob).activeStorage.destroy()
+      bob.activeStorage.destroy()
       await fred.activeStorage.destroy()
     }
   })

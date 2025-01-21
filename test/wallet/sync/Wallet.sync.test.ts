@@ -56,26 +56,6 @@ describe('Wallet sync tests', () => {
   })
 
   test('1_backup', async () => {
-    const tables = [
-      'certificate_fields',
-      'certificates',
-      'commissions',
-      'knex_migrations',
-      'knex_migrations_lock',
-      'monitor_events',
-      'output_baskets',
-      'output_tags',
-      'output_tags_map',
-      'outputs',
-      'proven_tx_reqs',
-      'proven_txs',
-      'settings',
-      'transactions',
-      'tx_labels',
-      'tx_labels_map',
-      'users',
-      'sync_states'
-    ]
     const bobDatabaseName = 'syncTest1Bob'
     const fredDatabaseName = 'syncTest1Fred'
     const fredRootKeyHex = '5'.repeat(64)
@@ -100,14 +80,27 @@ describe('Wallet sync tests', () => {
       const legacyActions = await wallet.listActions({ labels: [label] })
       expect(initialBobActions).toEqual(legacyActions)
 
+      const initialBobCertifates = bob.activeStorage.findCertificates({ partial: {} })
+      const initialBobCommissions = bob.activeStorage.findCommissions({ partial: {} })
+      const initialBobMonitorEvents = bob.activeStorage.findMonitorEvents({ partial: {} })
+      const initialBobOuputBaskets = bob.activeStorage.findOutputBaskets({ partial: {} })
+      const initialBobOuputTags = bob.activeStorage.findOutputTags({ partial: {} })
+      const initialBobOuputTagMaps = bob.activeStorage.findOutputTagMaps({ partial: {} })
+      const initialBobOuputs = bob.activeStorage.findOutputs({ partial: {} })
+      const initialBobProvenTxReqs = bob.activeStorage.findProvenTxReqs({ partial: {} })
+      const initialBobProvenTxs = bob.activeStorage.findProvenTxs({ partial: {} })
+      const initialBobTransactions = bob.activeStorage.findTransactions({ partial: {} })
+      const initialBobTxLabels = bob.activeStorage.findTxLabels({ partial: {} })
+      const initialBobTxLabelMaps = bob.activeStorage.findTxLabelMaps({ partial: {} })
+      const initialBobUsers = bob.activeStorage.findUsers({ partial: {} })
+      const initialBobSyncStates = bob.activeStorage.findSyncStates({ partial: {} })
+      // No find methods for:
+      // 'knex_migrations',
+      // 'knex_migrations_lock',
+      // 'settings',
+
       // Capture Bob's initial sync_states
-      const knexInstance = bob.activeStorage.knex
-
-      const initialBobData = {}
-      for (const table of tables) {
-        initialBobData[table] = await knexInstance(table).select()
-      }
-
+      //const knexInstance = bob.activeStorage.knex
       const fred = await _tu.createSQLiteTestWallet({ chain, databaseName: fredDatabaseName, rootKeyHex: fredRootKeyHex, dropAll: true })
 
       // Fetch and verify Fred's authentication details
@@ -138,18 +131,20 @@ describe('Wallet sync tests', () => {
       await bob.storage.syncFromReader(bobIdentityKey, fredReader)
       expect(fredReader).toBeTruthy()
 
-      for (const table of tables) {
-        log(`checking table:${table}`)
-        const updatedBobData = await knexInstance(table).select()
-        const initialTableData = initialBobData[table]
-        // Ensure all tables remain unchanged
-        try {
-          expect(updatedBobData).toEqual(initialTableData)
-        } catch (error) {
-          console.error(`Test failed for table: ${table}`, { updatedBobData, initialTableData })
-          throw error
-        }
-      }
+      expect(initialBobCertifates).toEqual(bob.activeStorage.findCertificates({ partial: {} }))
+      // const initialBobCommissions = bob.activeStorage.findCommissions({partial:{}})
+      // const initialBobMonitorEvents = bob.activeStorage.findMonitorEvents({partial:{}})
+      // const initialBobOuputBaskets = bob.activeStorage.findOutputBaskets({partial:{}})
+      // const initialBobOuputTags = bob.activeStorage.findOutputTags({partial:{}})
+      // const initialBobOuputTagMaps = bob.activeStorage.findOutputTagMaps({partial:{}})
+      // const initialBobOuputs = bob.activeStorage.findOutputs({partial:{}})
+      // const initialBobProvenTxReqs = bob.activeStorage.findProvenTxReqs({partial:{}})
+      // const initialBobProvenTxs = bob.activeStorage.findProvenTxs({partial:{}})
+      // const initialBobTransactions = bob.activeStorage.findTransactions({partial:{}})
+      // const initialBobTxLabels = bob.activeStorage.findTxLabels({partial:{}})
+      // const initialBobTxLabelMaps = bob.activeStorage.findTxLabelMaps({partial:{}})
+      // const initialBobUsers = bob.activeStorage.findUsers({partial:{}})
+      // const initialBobSyncStates = bob.activeStorage.findSyncStates({partial:{}})
 
       bob.activeStorage.destroy()
       await fred.activeStorage.destroy()

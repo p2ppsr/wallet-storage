@@ -1,3 +1,4 @@
+//@ts-nocheck
 /**
  * StorageServer.ts
  *
@@ -73,24 +74,28 @@ export class StorageServer {
               console.log(`StorageServer: method=${method} IGNORED`)
               return res.json({ jsonrpc: '2.0', result: undefined, id })
             }
-            case 'getSettings': {
-              /** */
-            } break;
-            case 'findOrInsertUser': {
-              if (params[0] !== req.auth.identityKey)
-                throw new sdk.WERR_UNAUTHORIZED('function may only access authenticated user.');
-            } break;
-            default: {
-              if (typeof params[0] !== 'object' || !params[0]) {
-                params = [{}]
+            case 'getSettings':
+              {
+                /** */
               }
-              if (params[0]['identityKey'] && params[0]['identityKey'] !== req.auth.identityKey)
-                throw new sdk.WERR_UNAUTHORIZED('identityKey does not match authentiation')
-              console.log('looking up user with identityKey:', req.auth.identityKey)
-              const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
-              params[0].reqAuthUserId = user.userId
-              if (params[0]['identityKey']) params[0].userId = user.userId;
-            } break;
+              break
+            case 'findOrInsertUser':
+              {
+                if (params[0] !== req.auth.identityKey) throw new sdk.WERR_UNAUTHORIZED('function may only access authenticated user.')
+              }
+              break
+            default:
+              {
+                if (typeof params[0] !== 'object' || !params[0]) {
+                  params = [{}]
+                }
+                if (params[0]['identityKey'] && params[0]['identityKey'] !== req.auth.identityKey) throw new sdk.WERR_UNAUTHORIZED('identityKey does not match authentiation')
+                console.log('looking up user with identityKey:', req.auth.identityKey)
+                const { user, isNew } = await this.storage.findOrInsertUser(req.auth.identityKey)
+                params[0].reqAuthUserId = user.userId
+                if (params[0]['identityKey']) params[0].userId = user.userId
+              }
+              break
           }
           console.log(`StorageServer: method=${method} params=${JSON.stringify(params).slice(0, 100)}`)
           const result = await (this.storage as any)[method](...(params || []))

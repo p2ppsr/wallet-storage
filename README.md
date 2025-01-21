@@ -22,9 +22,9 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 | [ArcServiceConfig](#interface-arcserviceconfig) | [InternalizeActionResult](#interface-internalizeactionresult) | [TscMerkleProofApi](#interface-tscmerkleproofapi) |
 | [AuthId](#interface-authid) | [InternalizeOutput](#interface-internalizeoutput) | [TxScriptOffsets](#interface-txscriptoffsets) |
 | [AuthenticatedResult](#interface-authenticatedresult) | [KeyDeriverApi](#interface-keyderiverapi) | [UpdateProvenTxReqWithNewProvenTxArgs](#interface-updateproventxreqwithnewproventxargs) |
-| [BaseBlockHeaderHex](#interface-baseblockheaderhex) | [KeyLinkageResult](#interface-keylinkageresult) | [UpdateProvenTxReqWithNewProvenTxResult](#interface-updateproventxreqwithnewproventxresult) |
+| [BaseBlockHeader](#interface-baseblockheader) | [KeyLinkageResult](#interface-keylinkageresult) | [UpdateProvenTxReqWithNewProvenTxResult](#interface-updateproventxreqwithnewproventxresult) |
 | [BasketInsertion](#interface-basketinsertion) | [KeyPair](#interface-keypair) | [ValidAbortActionArgs](#interface-validabortactionargs) |
-| [BlockHeaderHex](#interface-blockheaderhex) | [ListActionsArgs](#interface-listactionsargs) | [ValidAcquireCertificateArgs](#interface-validacquirecertificateargs) |
+| [BlockHeader](#interface-blockheader) | [ListActionsArgs](#interface-listactionsargs) | [ValidAcquireCertificateArgs](#interface-validacquirecertificateargs) |
 | [BsvExchangeRate](#interface-bsvexchangerate) | [ListActionsResult](#interface-listactionsresult) | [ValidAcquireDirectCertificateArgs](#interface-validacquiredirectcertificateargs) |
 | [CertificateResult](#interface-certificateresult) | [ListCertificatesArgs](#interface-listcertificatesargs) | [ValidBasketInsertion](#interface-validbasketinsertion) |
 | [CreateActionArgs](#interface-createactionargs) | [ListCertificatesResult](#interface-listcertificatesresult) | [ValidCreateActionArgs](#interface-validcreateactionargs) |
@@ -241,12 +241,15 @@ export interface AuthenticatedResult {
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
 ---
-#### Interface: BaseBlockHeaderHex
+#### Interface: BaseBlockHeader
 
-Like BlockHeader but 32 byte fields are hex encoded strings.
+These are fields of 80 byte serialized header in order whose double sha256 hash is a block's hash value
+and the next block's previousHash value.
+
+All block hash values and merkleRoot values are 32 byte hex string values with the byte order reversed from the serialized byte order.
 
 ```ts
-export interface BaseBlockHeaderHex {
+export interface BaseBlockHeader {
     version: number;
     previousHash: string;
     merkleRoot: string;
@@ -255,6 +258,60 @@ export interface BaseBlockHeaderHex {
     nonce: number;
 }
 ```
+
+<details>
+
+<summary>Interface BaseBlockHeader Details</summary>
+
+##### Property bits
+
+Block header bits value. Serialized length is 4 bytes.
+
+```ts
+bits: number
+```
+
+##### Property merkleRoot
+
+Root hash of the merkle tree of all transactions in this block. Serialized length is 32 bytes.
+
+```ts
+merkleRoot: string
+```
+
+##### Property nonce
+
+Block header nonce value. Serialized length is 4 bytes.
+
+```ts
+nonce: number
+```
+
+##### Property previousHash
+
+Hash of previous block's block header. Serialized length is 32 bytes.
+
+```ts
+previousHash: string
+```
+
+##### Property time
+
+Block header time value. Serialized length is 4 bytes.
+
+```ts
+time: number
+```
+
+##### Property version
+
+Block header version value. Serialized length is 4 bytes.
+
+```ts
+version: number
+```
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
@@ -274,18 +331,40 @@ See also: [BasketStringUnder300Bytes](#type-basketstringunder300bytes), [OutputT
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
 ---
-#### Interface: BlockHeaderHex
+#### Interface: BlockHeader
 
-Like BlockHeader but 32 byte fields are hex encoded strings.
+A `BaseBlockHeader` extended with its computed hash and height in its chain.
 
 ```ts
-export interface BlockHeaderHex extends BaseBlockHeaderHex {
+export interface BlockHeader extends BaseBlockHeader {
     height: number;
     hash: string;
 }
 ```
 
-See also: [BaseBlockHeaderHex](#interface-baseblockheaderhex)
+See also: [BaseBlockHeader](#interface-baseblockheader)
+
+<details>
+
+<summary>Interface BlockHeader Details</summary>
+
+##### Property hash
+
+The double sha256 hash of the serialized `BaseBlockHeader` fields.
+
+```ts
+hash: string
+```
+
+##### Property height
+
+Height of the header, starting from zero.
+
+```ts
+height: number
+```
+
+</details>
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
@@ -1009,12 +1088,12 @@ Properties on result returned from `WalletServices` function `getMerkleProof`.
 export interface GetMerklePathResult {
     name?: string;
     merklePath?: bsv.MerklePath;
-    header?: BlockHeaderHex;
+    header?: BlockHeader;
     error?: sdk.WalletError;
 }
 ```
 
-See also: [BlockHeaderHex](#interface-blockheaderhex), [WalletError](#class-walleterror)
+See also: [BlockHeader](#interface-blockheader), [WalletError](#class-walleterror)
 
 <details>
 
@@ -1723,7 +1802,7 @@ export interface MonitorOptions {
     chain: sdk.Chain;
     services: Services;
     storage: MonitorStorage;
-    chaintracks: ChaintracksClientApi;
+    chaintracks: ChaintracksServiceClient;
     msecsWaitPerMerkleProofServiceReq: number;
     taskRunWaitMsecs: number;
     abandonedMsecs: number;
@@ -4193,12 +4272,12 @@ export interface WalletServices {
     postTxs(beef: bsv.Beef, txids: string[]): Promise<PostTxsResult[]>;
     postBeef(beef: bsv.Beef, txids: string[]): Promise<PostBeefResult[]>;
     getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormat, useNext?: boolean): Promise<GetUtxoStatusResult>;
-    hashToHeader(hash: string): Promise<sdk.BlockHeaderHex>;
+    hashToHeader(hash: string): Promise<sdk.BlockHeader>;
     nLockTimeIsFinal(txOrLockTime: string | number[] | bsv.Transaction | number): Promise<boolean>;
 }
 ```
 
-See also: [BlockHeaderHex](#interface-blockheaderhex), [Chain](#type-chain), [GetMerklePathResult](#interface-getmerklepathresult), [GetRawTxResult](#interface-getrawtxresult), [GetUtxoStatusOutputFormat](#type-getutxostatusoutputformat), [GetUtxoStatusResult](#interface-getutxostatusresult), [PostBeefResult](#interface-postbeefresult), [PostTxsResult](#interface-posttxsresult)
+See also: [BlockHeader](#interface-blockheader), [Chain](#type-chain), [GetMerklePathResult](#interface-getmerklepathresult), [GetRawTxResult](#interface-getrawtxresult), [GetUtxoStatusOutputFormat](#type-getutxostatusoutputformat), [GetUtxoStatusResult](#interface-getutxostatusresult), [PostBeefResult](#interface-postbeefresult), [PostTxsResult](#interface-posttxsresult)
 
 <details>
 
@@ -4299,7 +4378,7 @@ Cycles through configured transaction processing services attempting to get a va
 
 On success:
 Result txid is the requested transaction hash
-Result rawTx will be Buffer containing raw transaction bytes.
+Result rawTx will be an array containing raw transaction bytes.
 Result name will be the responding service's identifying name.
 Returns result without incrementing active service.
 
@@ -4343,16 +4422,16 @@ Argument Details
 'hashLE' little-endian sha256 hash of output script
 'hashBE' big-endian sha256 hash of output script
 'script' entire transaction output script
-undefined if asBuffer length of `output` is 32 then 'hashBE`, otherwise 'script'.
+undefined if length of `output` is 32 then 'hashBE`, otherwise 'script'.
 + **useNext**
   + optional, forces skip to next service before starting service requests cycle.
 
 ##### Method hashToHeader
 
 ```ts
-hashToHeader(hash: string): Promise<sdk.BlockHeaderHex>
+hashToHeader(hash: string): Promise<sdk.BlockHeader>
 ```
-See also: [BlockHeaderHex](#interface-blockheaderhex)
+See also: [BlockHeader](#interface-blockheader)
 
 Returns
 
@@ -4396,7 +4475,7 @@ export interface WalletServicesOptions {
     disableMapiCallback?: boolean;
     exchangeratesapiKey?: string;
     chaintracksFiatExchangeRatesUrl?: string;
-    chaintracks?: ChaintracksClientApi;
+    chaintracks?: ChaintracksServiceClient;
 }
 ```
 
@@ -5181,7 +5260,7 @@ export class Monitor {
     services: Services;
     chain: sdk.Chain;
     storage: MonitorStorage;
-    chaintracks: ChaintracksClientApi;
+    chaintracks: ChaintracksServiceClient;
     constructor(options: MonitorOptions) 
     oneSecond = 1000;
     oneMinute = 60 * this.oneSecond;
@@ -5217,7 +5296,7 @@ export class Monitor {
 }
 ```
 
-See also: [Chain](#type-chain), [MonitorOptions](#interface-monitoroptions), [MonitorStorage](#type-monitorstorage), [Services](#class-services), [TaskPurgeParams](#interface-taskpurgeparams), [WalletMonitorTask](#class-walletmonitortask)
+See also: [BlockHeader](#interface-blockheader), [Chain](#type-chain), [MonitorOptions](#interface-monitoroptions), [MonitorStorage](#type-monitorstorage), [Services](#class-services), [TaskPurgeParams](#interface-taskpurgeparams), [WalletMonitorTask](#class-walletmonitortask)
 
 <details>
 
@@ -5268,6 +5347,7 @@ Kicks processing 'unconfirmed' and 'unmined' request processing.
 ```ts
 processNewBlockHeader(header: BlockHeader): void 
 ```
+See also: [BlockHeader](#interface-blockheader)
 
 ##### Method processReorg
 
@@ -5283,6 +5363,7 @@ Coinbase transactions always become invalid.
 ```ts
 processReorg(depth: number, oldTip: BlockHeader, newTip: BlockHeader): void 
 ```
+See also: [BlockHeader](#interface-blockheader)
 
 </details>
 
@@ -5408,7 +5489,7 @@ export class Services implements sdk.WalletServices {
     async invokeChaintracksWithRetry<R>(method: () => Promise<R>): Promise<R> 
     async getHeaderForHeight(height: number): Promise<number[]> 
     async getHeight(): Promise<number> 
-    async hashToHeader(hash: string): Promise<sdk.BlockHeaderHex> 
+    async hashToHeader(hash: string): Promise<sdk.BlockHeader> 
     async getMerklePath(txid: string, useNext?: boolean): Promise<sdk.GetMerklePathResult> 
     targetCurrencies = ["USD", "GBP", "EUR"];
     async updateFiatExchangeRates(rates?: sdk.FiatExchangeRates, updateMsecs?: number): Promise<sdk.FiatExchangeRates> 
@@ -5416,7 +5497,7 @@ export class Services implements sdk.WalletServices {
 }
 ```
 
-See also: [BlockHeaderHex](#interface-blockheaderhex), [Chain](#type-chain), [FiatExchangeRates](#interface-fiatexchangerates), [GetMerklePathResult](#interface-getmerklepathresult), [GetMerklePathService](#type-getmerklepathservice), [GetRawTxResult](#interface-getrawtxresult), [GetRawTxService](#type-getrawtxservice), [GetUtxoStatusOutputFormat](#type-getutxostatusoutputformat), [GetUtxoStatusResult](#interface-getutxostatusresult), [GetUtxoStatusService](#type-getutxostatusservice), [PostBeefResult](#interface-postbeefresult), [PostBeefService](#type-postbeefservice), [PostTxsResult](#interface-posttxsresult), [PostTxsService](#type-posttxsservice), [ServiceCollection](#class-servicecollection), [UpdateFiatExchangeRateService](#type-updatefiatexchangerateservice), [WalletServices](#interface-walletservices), [WalletServicesOptions](#interface-walletservicesoptions)
+See also: [BlockHeader](#interface-blockheader), [Chain](#type-chain), [FiatExchangeRates](#interface-fiatexchangerates), [GetMerklePathResult](#interface-getmerklepathresult), [GetMerklePathService](#type-getmerklepathservice), [GetRawTxResult](#interface-getrawtxresult), [GetRawTxService](#type-getrawtxservice), [GetUtxoStatusOutputFormat](#type-getutxostatusoutputformat), [GetUtxoStatusResult](#interface-getutxostatusresult), [GetUtxoStatusService](#type-getutxostatusservice), [PostBeefResult](#interface-postbeefresult), [PostBeefService](#type-postbeefservice), [PostTxsResult](#interface-posttxsresult), [PostTxsService](#type-posttxsservice), [ServiceCollection](#class-servicecollection), [UpdateFiatExchangeRateService](#type-updatefiatexchangerateservice), [WalletServices](#interface-walletservices), [WalletServicesOptions](#interface-walletservicesoptions)
 
 <details>
 
@@ -6301,9 +6382,9 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ```ts
 export class TaskNewHeader extends WalletMonitorTask {
     static taskName = "NewHeader";
-    header?: sdk.BlockHeaderHex;
+    header?: sdk.BlockHeader;
     constructor(monitor: Monitor, public triggerMsecs = 1 * monitor.oneMinute) 
-    async getHeader(): Promise<sdk.BlockHeaderHex> 
+    async getHeader(): Promise<sdk.BlockHeader> 
     trigger(nowMsecsSinceEpoch: number): {
         run: boolean;
     } 
@@ -6311,7 +6392,7 @@ export class TaskNewHeader extends WalletMonitorTask {
 }
 ```
 
-See also: [BlockHeaderHex](#interface-blockheaderhex), [Monitor](#class-monitor), [WalletMonitorTask](#class-walletmonitortask)
+See also: [BlockHeader](#interface-blockheader), [Monitor](#class-monitor), [WalletMonitorTask](#class-walletmonitortask)
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
@@ -7077,7 +7158,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 | [generateChangeSdkMakeStorage](#function-generatechangesdkmakestorage) | [signAction](#function-signaction) | [validateSecondsSinceEpoch](#function-validatesecondssinceepoch) |
 | [getBeefForTransaction](#function-getbeeffortransaction) | [stampLog](#function-stamplog) | [validateSignActionArgs](#function-validatesignactionargs) |
 | [getExchangeRatesIo](#function-getexchangeratesio) | [stampLogFormat](#function-stamplogformat) | [validateSignActionOptions](#function-validatesignactionoptions) |
-| [getMerklePathFromTaalARC](#function-getmerklepathfromtaalarc) | [toBinaryBaseBlockHeaderHex](#function-tobinarybaseblockheaderhex) | [validateStorageFeeModel](#function-validatestoragefeemodel) |
+| [getMerklePathFromTaalARC](#function-getmerklepathfromtaalarc) | [toBinaryBaseBlockHeader](#function-tobinarybaseblockheader) | [validateStorageFeeModel](#function-validatestoragefeemodel) |
 | [getMerklePathFromWhatsOnChainTsc](#function-getmerklepathfromwhatsonchaintsc) | [toWalletNetwork](#function-towalletnetwork) | [validateStringLength](#function-validatestringlength) |
 | [getRawTxFromWhatsOnChain](#function-getrawtxfromwhatsonchain) | [transactionInputSize](#function-transactioninputsize) | [validateWalletPayment](#function-validatewalletpayment) |
 | [getSyncChunk](#function-getsyncchunk) | [transactionOutputSize](#function-transactionoutputsize) | [varUintSize](#function-varuintsize) |
@@ -8088,15 +8169,15 @@ Argument Details
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
 ---
-#### Function: toBinaryBaseBlockHeaderHex
+#### Function: toBinaryBaseBlockHeader
 
-Serializes a block header as an 80 byte Buffer.
+Serializes a block header as an 80 byte array.
 The exact serialized format is defined in the Bitcoin White Paper
-such that computing a double sha256 hash of the buffer computes
+such that computing a double sha256 hash of the array computes
 the block hash for the header.
 
 ```ts
-export function toBinaryBaseBlockHeaderHex(header: sdk.BaseBlockHeaderHex): number[] {
+export function toBinaryBaseBlockHeader(header: sdk.BaseBlockHeader): number[] {
     const writer = new bsv.Utils.Writer();
     writer.writeUInt32BE(header.version);
     writer.writeReverse(asArray(header.previousHash));
@@ -8109,15 +8190,15 @@ export function toBinaryBaseBlockHeaderHex(header: sdk.BaseBlockHeaderHex): numb
 }
 ```
 
-See also: [BaseBlockHeaderHex](#interface-baseblockheaderhex), [asArray](#function-asarray)
+See also: [BaseBlockHeader](#interface-baseblockheader), [asArray](#function-asarray)
 
 <details>
 
-<summary>Function toBinaryBaseBlockHeaderHex Details</summary>
+<summary>Function toBinaryBaseBlockHeader Details</summary>
 
 Returns
 
-80 byte Buffer
+80 byte array
 
 </details>
 

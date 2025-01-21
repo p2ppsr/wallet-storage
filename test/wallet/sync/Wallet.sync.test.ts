@@ -99,7 +99,6 @@ describe('Wallet sync tests', () => {
       // 'knex_migrations_lock',
       // 'settings',
 
-      // Capture Bob's initial sync_states
       //const knexInstance = bob.activeStorage.knex
       const fred = await _tu.createSQLiteTestWallet({ chain, databaseName: fredDatabaseName, rootKeyHex: fredRootKeyHex, dropAll: true })
 

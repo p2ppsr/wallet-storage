@@ -194,7 +194,8 @@ describe('createAction test', () => {
           {
             satoshis: 1000,
             lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Basic Output'
+            outputDescription: 'Basic Output',
+            tags: ['brandNewTag']
           }
         ],
         options: {

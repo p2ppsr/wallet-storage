@@ -206,16 +206,16 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
   const storage = dojo
 
   // Lookup output baskets
-  const baskets: Record<string, table.OutputBasket> = {}
+  const txBaskets: Record<string, table.OutputBasket> = {}
   for (const xo of ctx.xoutputs) {
-    if (xo.basket !== undefined && !baskets[xo.basket])
-      baskets[xo.basket] = await dojo.findOrInsertOutputBasket(userId, xo.basket!);
+    if (xo.basket !== undefined && !txBaskets[xo.basket])
+      txBaskets[xo.basket] = await dojo.findOrInsertOutputBasket(userId, xo.basket!);
   }
   // Lookup output tags
-  const tags: Record<string, table.OutputTag> = {}
+  const txTags: Record<string, table.OutputTag> = {}
   for (const xo of ctx.xoutputs) {
     for (const tag of xo.tags) {
-      tags[tag] = await storage.findOrInsertOutputTag(userId, tag)
+      txTags[tag] = await storage.findOrInsertOutputTag(userId, tag)
     }
   }
 
@@ -247,7 +247,7 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
       newOutputs.push({ o, tags: [] })
     } else {
       // The user wants tracking if they put their output in a basket
-      const basketId = !xo.basket ? undefined : baskets[xo.basket].basketId!
+      const basketId = !xo.basket ? undefined : txBaskets[xo.basket].basketId!
 
       const o = makeDefaultOutput(userId, ctx.transactionId, xo.satoshis, xo.vout)
       o.lockingScript = lockingScript
@@ -316,7 +316,7 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
 
     // Add tags to the output
     for (const tagName of tags) {
-      const tag = tags[tagName]!
+      const tag = txTags[tagName]!
       await storage.findOrInsertOutputTagMap(verifyId(o.outputId), verifyId(tag.outputTagId))
     }
 
@@ -326,7 +326,7 @@ async function createNewOutputs(dojo: StorageProvider, userId: number, vargs: sd
       lockingScript: !o.lockingScript ? '' : asString(o.lockingScript),
       providedBy: verifyTruthy(o.providedBy) as sdk.StorageProvidedBy,
       purpose: o.purpose || undefined,
-      basket: Object.values(baskets).find(b => b.basketId === o.basketId)?.name,
+      basket: Object.values(txBaskets).find(b => b.basketId === o.basketId)?.name,
       tags: tags,
       outputDescription: o.outputDescription,
       derivationSuffix: o.derivationSuffix,

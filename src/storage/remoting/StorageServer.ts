@@ -17,6 +17,7 @@ export interface WalletStorageServerOptions {
   port: number
   wallet: Wallet
   monetize: boolean
+  calculateRequestPrice?: (req: Request) => number | Promise<number>
 }
 
 export class StorageServer {
@@ -25,12 +26,14 @@ export class StorageServer {
   private storage: StorageProvider
   private wallet: Wallet
   private monetize: boolean
+  private calculateRequestPrice?: (req: Request) => number | Promise<number>
 
   constructor(storage: StorageProvider, options: WalletStorageServerOptions) {
     this.storage = storage
     this.port = options.port
     this.wallet = options.wallet
     this.monetize = options.monetize
+    this.calculateRequestPrice = options.calculateRequestPrice
 
     this.setupRoutes()
   }
@@ -61,7 +64,7 @@ export class StorageServer {
       this.app.use(
         createPaymentMiddleware({
           wallet: this.wallet as bsv.Wallet,
-          calculateRequestPrice: () => 100
+          calculateRequestPrice: this.calculateRequestPrice || (() => 100)
         })
       )
     }

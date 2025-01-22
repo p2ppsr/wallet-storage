@@ -1,24 +1,4 @@
 import * as bsv from '@bsv/sdk'
-import { asString } from './utilityHelpers.buffer'
-import { sdk } from '../index.all'
-
-export function deserializeTscMerkleProofNodes(nodes: Buffer): string[] {
-    if (!Buffer.isBuffer(nodes)) throw new sdk.WERR_INTERNAL('Buffer or string expected.')
-    const buffer = nodes
-    const ns: string[] = []
-    for (let offset = 0; offset < buffer.length;) {
-        const flag = buffer[offset++]
-        if (flag === 1)
-            ns.push('*')
-        else if (flag === 0) {
-            ns.push(asString(buffer.subarray(offset, offset + 32)))
-            offset += 32
-        } else {
-            throw new sdk.WERR_BAD_REQUEST(`node type byte ${flag} is not supported here.`)
-        }
-    }
-    return ns
-}
 
 export interface TscMerkleProofApi {
   height: number

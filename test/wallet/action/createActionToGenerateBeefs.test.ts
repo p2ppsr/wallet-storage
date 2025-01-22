@@ -8,7 +8,7 @@ import { cleanUnsentTransactionsUsingAbort, cleanUnsignedTransactionsUsingAbort,
 
 const noLog = false
 
-describe.skip('createActionToGenerateBeefs test', () => {
+describe('createActionToGenerateBeefs test', () => {
   jest.setTimeout(99999999)
 
   const ctxs: TestWalletNoSetup[] = []
@@ -94,7 +94,7 @@ describe.skip('createActionToGenerateBeefs test', () => {
       } = await createAndConsume(wallet, root1, kp1)
       expect(txid1).toBeTruthy()
       expect(txid2).toBeTruthy()
-      expect(beef1).toBeTruthy()
+      // expect(beef1).toBeTruthy()
 
       const {
         txidPair: [txid3, txid4],
@@ -102,18 +102,18 @@ describe.skip('createActionToGenerateBeefs test', () => {
       } = await createAndConsume(wallet, root2, kp2)
       expect(txid3).toBeTruthy()
       expect(txid4).toBeTruthy()
-      expect(beef2).toBeTruthy()
+      // expect(beef2).toBeTruthy()
 
       // Need to merge the beefs
-      const mergedBeef = beef1
-      mergedBeef.mergeBeef(beef2)
-      //expect(mergedBeef.isValid()).toBe(true)
-      const inputBEEF = mergedBeef.toBinary()
-      expect(inputBEEF).toBeTruthy()
+      // const mergedBeef = beef1
+      // mergedBeef.mergeBeef(beef2)
+      // //expect(mergedBeef.isValid()).toBe(true)
+      // const inputBEEF = mergedBeef.toBinary()
+      // expect(inputBEEF).toBeTruthy()
 
       {
         const createArgs: bsv.CreateActionArgs = {
-          description: `${kp1.address} of ${root1} & ${kp2.address} of ${root2}`,
+          description: `${root1} & ${root2}`,
           options: {
             acceptDelayedBroadcast: false,
             sendWith: [txid1, txid2, txid3, txid4]

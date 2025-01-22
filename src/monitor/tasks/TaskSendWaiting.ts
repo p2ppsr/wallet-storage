@@ -1,5 +1,5 @@
 import { entity, table } from '../../storage/index.client';
-import { verifyTruthy } from '../../utility';
+import { verifyTruthy } from '../../utility/index.client';
 import { Monitor } from '../Monitor';
 import { WalletMonitorTask } from './WalletMonitorTask';
 import { attemptToPostReqsToNetwork } from '../../storage/methods/attemptToPostReqsToNetwork';

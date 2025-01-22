@@ -1,4 +1,4 @@
-import { entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../index.client";
+import { entity, randomBytesBase64, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { createSyncMap } from "./schema/entities";
 import { StorageReader, StorageReaderOptions } from "./StorageReader";
 
@@ -53,6 +53,10 @@ export abstract class StorageReaderWriter extends StorageReader {
     abstract updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number>
     abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>
+
+    async setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number> {
+        return await this.updateUser(verifyId(auth.userId), { activeStorage: newActiveStorageIdentityKey })
+    }
 
     async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
         return verifyOneOrNone(await this.findCertificates({ partial: { certificateId: id }, trx }))
@@ -250,7 +254,16 @@ export abstract class StorageReaderWriter extends StorageReader {
                 const now = new Date()
                 let syncState = verifyOneOrNone(await this.findSyncStates({ partial }))
                 if (!syncState) {
-                    syncState = { ...partial, created_at: now, updated_at: now, syncStateId: 0, status: "unknown", init: false, refNum: "", syncMap: JSON.stringify(createSyncMap()) }
+                    syncState = {
+                        ...partial,
+                        created_at: now,
+                        updated_at: now,
+                        syncStateId: 0,
+                        status: "unknown",
+                        init: false,
+                        refNum: randomBytesBase64(12),
+                        syncMap: JSON.stringify(createSyncMap())
+                    }
                     await this.insertSyncState(syncState)
                     return { syncState, isNew: true }
                 } 

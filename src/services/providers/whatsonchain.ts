@@ -1,4 +1,5 @@
-import { asArray, asString, convertProofToMerklePath, sdk, validateScriptHash } from '../../index.client'
+import { asArray, asString, sdk, validateScriptHash } from '../../index.client'
+import { convertProofToMerklePath } from '../../utility/tscProofToMerklePath'
 
 import axios from 'axios'
 import Whatsonchain from 'whatsonchain'

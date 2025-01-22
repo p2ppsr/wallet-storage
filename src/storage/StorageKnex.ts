@@ -183,7 +183,7 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number> {
-    if (!auth.userId  || certificate.userId && certificate.userId !== auth.userId)
+    if (!auth.userId || certificate.userId && certificate.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     certificate.userId = auth.userId
     return await this.insertCertificate(certificate)
@@ -319,11 +319,11 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     await this.verifyReadyForDatabaseAccess(trx)
     let r: number
     if (Array.isArray(id)) {
-        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
     } else if (Number.isInteger(id)) {
-        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
     } else {
-        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+      throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
     }
     return r
   }
@@ -341,11 +341,11 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     await this.verifyReadyForDatabaseAccess(trx)
     let r: number
     if (Array.isArray(id)) {
-        r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
     } else if (Number.isInteger(id)) {
-        r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
     } else {
-        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+      throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
     }
     return r
   }
@@ -456,19 +456,19 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findCertificates(args)
   }
   override async findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findOutputBaskets(args)
   }
   override async findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs): Promise<table.Output[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findOutputs(args)
@@ -920,4 +920,51 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
 
     return r
   }
+
+  /**
+   * Helper to force uniform behavior across database engines.
+   * Use to process all individual records with time stamps retreived from database.
+   */
+  validateEntity<T extends sdk.EntityTimeStamp>(
+    entity: T,
+    dateFields?: string[],
+    booleanFields?: string[]
+  ): T {
+    entity.created_at = this.validateDate(entity.created_at)
+    entity.updated_at = this.validateDate(entity.updated_at)
+    if (dateFields) {
+      for (const df of dateFields) {
+        if (entity[df])
+          entity[df] = this.validateDate(entity[df])
+      }
+    }
+    if (booleanFields) {
+      for (const df of booleanFields) {
+        if (entity[df] !== undefined)
+          entity[df] = !!(entity[df])
+      }
+    }
+    for (const key of Object.keys(entity)) {
+      const val = entity[key]
+      if (val === null) {
+        entity[key] = undefined
+      } else if (Buffer.isBuffer(val)) {
+        entity[key] = Array.from(val)
+      }
+    }
+    return entity
+  }
+
+  /**
+   * Helper to force uniform behavior across database engines.
+   * Use to process all arrays of records with time stamps retreived from database.
+   * @returns input `entities` array with contained values validated.
+   */
+  validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] {
+    for (let i = 0; i < entities.length; i++) {
+      entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
+    }
+    return entities
+  }
+
 }

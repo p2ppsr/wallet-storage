@@ -64,6 +64,8 @@ export interface WalletStorageProvider extends WalletStorageSync {
 export interface WalletStorageSync extends WalletStorageWriter {
    findOrInsertSyncStateAuth(auth: sdk.AuthId, storageIdentityKey: string, storageName: string) : Promise<{ syncState: table.SyncState, isNew: boolean}>
 
+   setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number>
+
    getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>
    processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk) : Promise<sdk.ProcessSyncChunkResult>
 }

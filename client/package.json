@@ -1,6 +1,6 @@
 {
   "name": "wallet-storage-client",
-  "version": "1.0.10",
+  "version": "1.0.13",
   "description": "Client only Wallet Storage",
   "main": "./out/src/index.client.js",
   "types": "./out/src/index.client.d.ts",

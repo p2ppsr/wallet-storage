@@ -434,7 +434,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         const newActiveStorageIdentityKey = (await newActive.makeAvailable()).storageIdentityKey
 
         return await this.runAsSync(async (sync) => {
-            //await sync.setActive(auth, newActiveStorageIdentityKey)
+            await sync.setActive(auth, newActiveStorageIdentityKey)
             await this.updateBackups(sync)
             // swap stores...
             const oldActive = this.stores[0]

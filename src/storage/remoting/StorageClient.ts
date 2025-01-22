@@ -253,4 +253,11 @@ export class StorageClient implements sdk.WalletStorageProvider {
     ): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> {
         return this.rpcCall<sdk.UpdateProvenTxReqWithNewProvenTxResult>("updateProvenTxReqWithNewProvenTx", [args])
     }
+
+    async setActive(
+        auth: sdk.AuthId,
+        newActiveStorageIdentityKey: string
+    ): Promise<number> {
+        return this.rpcCall<number>("setActive", [auth, newActiveStorageIdentityKey])
+    }
 }

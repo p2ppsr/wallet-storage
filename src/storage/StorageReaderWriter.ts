@@ -54,6 +54,10 @@ export abstract class StorageReaderWriter extends StorageReader {
     abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>
 
+    async setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number> {
+        return await this.updateUser(verifyId(auth.userId), { activeStorage: newActiveStorageIdentityKey })
+    }
+
     async findCertificateById(id: number, trx?: sdk.TrxToken) : Promise<table.Certificate| undefined> {
         return verifyOneOrNone(await this.findCertificates({ partial: { certificateId: id }, trx }))
     }

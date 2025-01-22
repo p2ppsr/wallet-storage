@@ -5878,6 +5878,8 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
         });
         return r;
     }
+    validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]): T 
+    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] 
 }
 ```
 
@@ -5916,6 +5918,30 @@ or a Knex.Transaction as appropriate.
 toDb(trx?: sdk.TrxToken) 
 ```
 See also: [TrxToken](#interface-trxtoken)
+
+##### Method validateEntities
+
+Helper to force uniform behavior across database engines.
+Use to process all arrays of records with time stamps retreived from database.
+
+```ts
+validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] 
+```
+See also: [EntityTimeStamp](#interface-entitytimestamp)
+
+Returns
+
+input `entities` array with contained values validated.
+
+##### Method validateEntity
+
+Helper to force uniform behavior across database engines.
+Use to process all individual records with time stamps retreived from database.
+
+```ts
+validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]): T 
+```
+See also: [EntityTimeStamp](#interface-entitytimestamp)
 
 ##### Method validateEntityForInsert
 
@@ -6154,8 +6180,6 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
     abstract getOutputTagMapsForUser(args: sdk.FindForUserSincePagedArgs): Promise<table.OutputTagMap[]>;
     async findUserByIdentityKey(key: string): Promise<table.User | undefined> 
     async getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk> 
-    validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]): T 
-    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] 
     validateEntityDate(date: Date | string | number): Date | string 
     validateOptionalEntityDate(date: Date | string | number | null | undefined, useNowAsDefault?: boolean): Date | string | undefined 
     validateDate(date: Date | string | number): Date 
@@ -6164,35 +6188,11 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
 }
 ```
 
-See also: [Certificate](#class-certificate), [Chain](#type-chain), [DBType](#type-dbtype), [EntityTimeStamp](#interface-entitytimestamp), [FindCertificateFieldsArgs](#interface-findcertificatefieldsargs), [FindCertificatesArgs](#interface-findcertificatesargs), [FindCommissionsArgs](#interface-findcommissionsargs), [FindForUserSincePagedArgs](#interface-findforusersincepagedargs), [FindMonitorEventsArgs](#interface-findmonitoreventsargs), [FindOutputBasketsArgs](#interface-findoutputbasketsargs), [FindOutputTagsArgs](#interface-findoutputtagsargs), [FindOutputsArgs](#interface-findoutputsargs), [FindSyncStatesArgs](#interface-findsyncstatesargs), [FindTransactionsArgs](#interface-findtransactionsargs), [FindTxLabelsArgs](#interface-findtxlabelsargs), [FindUsersArgs](#interface-findusersargs), [RequestSyncChunkArgs](#interface-requestsyncchunkargs), [StorageReaderOptions](#interface-storagereaderoptions), [StorageSyncReader](#class-storagesyncreader), [SyncChunk](#interface-syncchunk), [TrxToken](#interface-trxtoken), [getSyncChunk](#function-getsyncchunk)
+See also: [Certificate](#class-certificate), [Chain](#type-chain), [DBType](#type-dbtype), [FindCertificateFieldsArgs](#interface-findcertificatefieldsargs), [FindCertificatesArgs](#interface-findcertificatesargs), [FindCommissionsArgs](#interface-findcommissionsargs), [FindForUserSincePagedArgs](#interface-findforusersincepagedargs), [FindMonitorEventsArgs](#interface-findmonitoreventsargs), [FindOutputBasketsArgs](#interface-findoutputbasketsargs), [FindOutputTagsArgs](#interface-findoutputtagsargs), [FindOutputsArgs](#interface-findoutputsargs), [FindSyncStatesArgs](#interface-findsyncstatesargs), [FindTransactionsArgs](#interface-findtransactionsargs), [FindTxLabelsArgs](#interface-findtxlabelsargs), [FindUsersArgs](#interface-findusersargs), [RequestSyncChunkArgs](#interface-requestsyncchunkargs), [StorageReaderOptions](#interface-storagereaderoptions), [StorageSyncReader](#class-storagesyncreader), [SyncChunk](#interface-syncchunk), [TrxToken](#interface-trxtoken), [getSyncChunk](#function-getsyncchunk)
 
 <details>
 
 <summary>Class StorageReader Details</summary>
-
-##### Method validateEntities
-
-Helper to force uniform behavior across database engines.
-Use to process all arrays of records with time stamps retreived from database.
-
-```ts
-validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] 
-```
-See also: [EntityTimeStamp](#interface-entitytimestamp)
-
-Returns
-
-input `entities` array with contained values validated.
-
-##### Method validateEntity
-
-Helper to force uniform behavior across database engines.
-Use to process all individual records with time stamps retreived from database.
-
-```ts
-validateEntity<T extends sdk.EntityTimeStamp>(entity: T, dateFields?: string[], booleanFields?: string[]): T 
-```
-See also: [EntityTimeStamp](#interface-entitytimestamp)
 
 ##### Method validateEntityDate
 
@@ -7420,44 +7420,45 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 | | | |
 | --- | --- | --- |
 | [acquireDirectCertificate](#function-acquiredirectcertificate) | [makeAtomicBeef](#function-makeatomicbeef) | [validateCreateActionOptions](#function-validatecreateactionoptions) |
-| [arraysEqual](#function-arraysequal) | [makeErrorResult](#function-makeerrorresult) | [validateCreateActionOutput](#function-validatecreateactionoutput) |
-| [asArray](#function-asarray) | [makeGetMerklePathFromTaalARC](#function-makegetmerklepathfromtaalarc) | [validateDiscoverByAttributesArgs](#function-validatediscoverbyattributesargs) |
-| [asBsvSdkPrivateKey](#function-asbsvsdkprivatekey) | [makePostBeefResult](#function-makepostbeefresult) | [validateDiscoverByIdentityKeyArgs](#function-validatediscoverbyidentitykeyargs) |
-| [asBsvSdkPublickKey](#function-asbsvsdkpublickkey) | [makePostBeefToTaalARC](#function-makepostbeeftotaalarc) | [validateGenerateChangeSdkParams](#function-validategeneratechangesdkparams) |
-| [asBsvSdkScript](#function-asbsvsdkscript) | [makePostTxsToTaalARC](#function-makeposttxstotaalarc) | [validateGenerateChangeSdkResult](#function-validategeneratechangesdkresult) |
-| [asBsvSdkTx](#function-asbsvsdktx) | [maxDate](#function-maxdate) | [validateInteger](#function-validateinteger) |
-| [asBuffer](#function-asbuffer) | [offsetPubKey](#function-offsetpubkey) | [validateInternalizeActionArgs](#function-validateinternalizeactionargs) |
-| [asString](#function-asstring) | [optionalArraysEqual](#function-optionalarraysequal) | [validateInternalizeOutput](#function-validateinternalizeoutput) |
-| [attemptToPostReqsToNetwork](#function-attempttopostreqstonetwork) | [parseTxScriptOffsets](#function-parsetxscriptoffsets) | [validateListActionsArgs](#function-validatelistactionsargs) |
-| [completeSignedTransaction](#function-completesignedtransaction) | [parseWalletOutpoint](#function-parsewalletoutpoint) | [validateListCertificatesArgs](#function-validatelistcertificatesargs) |
-| [completeSignedTransaction](#function-completesignedtransaction) | [postBeefToArcMiner](#function-postbeeftoarcminer) | [validateListOutputsArgs](#function-validatelistoutputsargs) |
-| [convertProofToMerklePath](#function-convertprooftomerklepath) | [postBeefToTaalArcMiner](#function-postbeeftotaalarcminer) | [validateOptionalInteger](#function-validateoptionalinteger) |
-| [createAction](#function-createaction) | [postTxsToTaalArcMiner](#function-posttxstotaalarcminer) | [validateOptionalOutpointString](#function-validateoptionaloutpointstring) |
-| [createAction](#function-createaction) | [processAction](#function-processaction) | [validateOriginator](#function-validateoriginator) |
-| [createDefaultWalletServicesOptions](#function-createdefaultwalletservicesoptions) | [processAction](#function-processaction) | [validateOutpointString](#function-validateoutpointstring) |
-| [createStorageServiceChargeScript](#function-createstorageservicechargescript) | [proveCertificate](#function-provecertificate) | [validatePositiveIntegerOrZero](#function-validatepositiveintegerorzero) |
-| [deserializeTscMerkleProofNodes](#function-deserializetscmerkleproofnodes) | [purgeData](#function-purgedata) | [validateProveCertificateArgs](#function-validateprovecertificateargs) |
-| [doubleSha256BE](#function-doublesha256be) | [randomBytes](#function-randombytes) | [validateRelinquishCertificateArgs](#function-validaterelinquishcertificateargs) |
-| [doubleSha256HashLE](#function-doublesha256hashle) | [randomBytesBase64](#function-randombytesbase64) | [validateRelinquishOutputArgs](#function-validaterelinquishoutputargs) |
-| [expectToThrowWERR](#function-expecttothrowwerr) | [randomBytesHex](#function-randombyteshex) | [validateSatoshis](#function-validatesatoshis) |
-| [generateChangeSdk](#function-generatechangesdk) | [sha256Hash](#function-sha256hash) | [validateScriptHash](#function-validatescripthash) |
-| [generateChangeSdkMakeStorage](#function-generatechangesdkmakestorage) | [signAction](#function-signaction) | [validateSecondsSinceEpoch](#function-validatesecondssinceepoch) |
-| [getBeefForTransaction](#function-getbeeffortransaction) | [stampLog](#function-stamplog) | [validateSignActionArgs](#function-validatesignactionargs) |
-| [getExchangeRatesIo](#function-getexchangeratesio) | [stampLogFormat](#function-stamplogformat) | [validateSignActionOptions](#function-validatesignactionoptions) |
-| [getMerklePathFromTaalARC](#function-getmerklepathfromtaalarc) | [toBinaryBaseBlockHeader](#function-tobinarybaseblockheader) | [validateStorageFeeModel](#function-validatestoragefeemodel) |
-| [getMerklePathFromWhatsOnChainTsc](#function-getmerklepathfromwhatsonchaintsc) | [toWalletNetwork](#function-towalletnetwork) | [validateStringLength](#function-validatestringlength) |
-| [getRawTxFromWhatsOnChain](#function-getrawtxfromwhatsonchain) | [transactionInputSize](#function-transactioninputsize) | [validateWalletPayment](#function-validatewalletpayment) |
-| [getSyncChunk](#function-getsyncchunk) | [transactionOutputSize](#function-transactionoutputsize) | [varUintSize](#function-varuintsize) |
-| [getTaalArcServiceConfig](#function-gettaalarcserviceconfig) | [transactionSize](#function-transactionsize) | [verifyHexString](#function-verifyhexstring) |
-| [getUtxoStatusFromWhatsOnChain](#function-getutxostatusfromwhatsonchain) | [updateBsvExchangeRate](#function-updatebsvexchangerate) | [verifyId](#function-verifyid) |
-| [internalizeAction](#function-internalizeaction) | [updateChaintracksFiatExchangeRates](#function-updatechaintracksfiatexchangerates) | [verifyInteger](#function-verifyinteger) |
-| [internalizeAction](#function-internalizeaction) | [updateExchangeratesapi](#function-updateexchangeratesapi) | [verifyNumber](#function-verifynumber) |
-| [isHexString](#function-ishexstring) | [validateAbortActionArgs](#function-validateabortactionargs) | [verifyOne](#function-verifyone) |
-| [listActions](#function-listactions) | [validateAcquireCertificateArgs](#function-validateacquirecertificateargs) | [verifyOneOrNone](#function-verifyoneornone) |
-| [listCertificates](#function-listcertificates) | [validateAcquireDirectCertificateArgs](#function-validateacquiredirectcertificateargs) | [verifyOptionalHexString](#function-verifyoptionalhexstring) |
-| [listOutputs](#function-listoutputs) | [validateBasketInsertion](#function-validatebasketinsertion) | [verifyTruthy](#function-verifytruthy) |
-| [lockScriptWithKeyOffsetFromPubKey](#function-lockscriptwithkeyoffsetfrompubkey) | [validateCreateActionArgs](#function-validatecreateactionargs) | [wait](#function-wait) |
-| [makeAtomicBeef](#function-makeatomicbeef) | [validateCreateActionInput](#function-validatecreateactioninput) |  |
+| [arraysEqual](#function-arraysequal) | [makeAtomicBeef](#function-makeatomicbeef) | [validateCreateActionOutput](#function-validatecreateactionoutput) |
+| [asArray](#function-asarray) | [makeErrorResult](#function-makeerrorresult) | [validateDiscoverByAttributesArgs](#function-validatediscoverbyattributesargs) |
+| [asArray](#function-asarray) | [makeGetMerklePathFromTaalARC](#function-makegetmerklepathfromtaalarc) | [validateDiscoverByIdentityKeyArgs](#function-validatediscoverbyidentitykeyargs) |
+| [asBsvSdkPrivateKey](#function-asbsvsdkprivatekey) | [makePostBeefResult](#function-makepostbeefresult) | [validateGenerateChangeSdkParams](#function-validategeneratechangesdkparams) |
+| [asBsvSdkPublickKey](#function-asbsvsdkpublickkey) | [makePostBeefToTaalARC](#function-makepostbeeftotaalarc) | [validateGenerateChangeSdkResult](#function-validategeneratechangesdkresult) |
+| [asBsvSdkScript](#function-asbsvsdkscript) | [makePostTxsToTaalARC](#function-makeposttxstotaalarc) | [validateInteger](#function-validateinteger) |
+| [asBsvSdkTx](#function-asbsvsdktx) | [maxDate](#function-maxdate) | [validateInternalizeActionArgs](#function-validateinternalizeactionargs) |
+| [asBuffer](#function-asbuffer) | [offsetPubKey](#function-offsetpubkey) | [validateInternalizeOutput](#function-validateinternalizeoutput) |
+| [asString](#function-asstring) | [optionalArraysEqual](#function-optionalarraysequal) | [validateListActionsArgs](#function-validatelistactionsargs) |
+| [asString](#function-asstring) | [parseTxScriptOffsets](#function-parsetxscriptoffsets) | [validateListCertificatesArgs](#function-validatelistcertificatesargs) |
+| [attemptToPostReqsToNetwork](#function-attempttopostreqstonetwork) | [parseWalletOutpoint](#function-parsewalletoutpoint) | [validateListOutputsArgs](#function-validatelistoutputsargs) |
+| [completeSignedTransaction](#function-completesignedtransaction) | [postBeefToArcMiner](#function-postbeeftoarcminer) | [validateOptionalInteger](#function-validateoptionalinteger) |
+| [completeSignedTransaction](#function-completesignedtransaction) | [postBeefToTaalArcMiner](#function-postbeeftotaalarcminer) | [validateOptionalOutpointString](#function-validateoptionaloutpointstring) |
+| [convertProofToMerklePath](#function-convertprooftomerklepath) | [postTxsToTaalArcMiner](#function-posttxstotaalarcminer) | [validateOriginator](#function-validateoriginator) |
+| [createAction](#function-createaction) | [processAction](#function-processaction) | [validateOutpointString](#function-validateoutpointstring) |
+| [createAction](#function-createaction) | [processAction](#function-processaction) | [validatePositiveIntegerOrZero](#function-validatepositiveintegerorzero) |
+| [createDefaultWalletServicesOptions](#function-createdefaultwalletservicesoptions) | [proveCertificate](#function-provecertificate) | [validateProveCertificateArgs](#function-validateprovecertificateargs) |
+| [createStorageServiceChargeScript](#function-createstorageservicechargescript) | [purgeData](#function-purgedata) | [validateRelinquishCertificateArgs](#function-validaterelinquishcertificateargs) |
+| [deserializeTscMerkleProofNodes](#function-deserializetscmerkleproofnodes) | [randomBytes](#function-randombytes) | [validateRelinquishOutputArgs](#function-validaterelinquishoutputargs) |
+| [doubleSha256BE](#function-doublesha256be) | [randomBytesBase64](#function-randombytesbase64) | [validateSatoshis](#function-validatesatoshis) |
+| [doubleSha256HashLE](#function-doublesha256hashle) | [randomBytesHex](#function-randombyteshex) | [validateScriptHash](#function-validatescripthash) |
+| [expectToThrowWERR](#function-expecttothrowwerr) | [sha256Hash](#function-sha256hash) | [validateSecondsSinceEpoch](#function-validatesecondssinceepoch) |
+| [generateChangeSdk](#function-generatechangesdk) | [signAction](#function-signaction) | [validateSignActionArgs](#function-validatesignactionargs) |
+| [generateChangeSdkMakeStorage](#function-generatechangesdkmakestorage) | [stampLog](#function-stamplog) | [validateSignActionOptions](#function-validatesignactionoptions) |
+| [getBeefForTransaction](#function-getbeeffortransaction) | [stampLogFormat](#function-stamplogformat) | [validateStorageFeeModel](#function-validatestoragefeemodel) |
+| [getExchangeRatesIo](#function-getexchangeratesio) | [toBinaryBaseBlockHeader](#function-tobinarybaseblockheader) | [validateStringLength](#function-validatestringlength) |
+| [getMerklePathFromTaalARC](#function-getmerklepathfromtaalarc) | [toWalletNetwork](#function-towalletnetwork) | [validateWalletPayment](#function-validatewalletpayment) |
+| [getMerklePathFromWhatsOnChainTsc](#function-getmerklepathfromwhatsonchaintsc) | [transactionInputSize](#function-transactioninputsize) | [varUintSize](#function-varuintsize) |
+| [getRawTxFromWhatsOnChain](#function-getrawtxfromwhatsonchain) | [transactionOutputSize](#function-transactionoutputsize) | [verifyHexString](#function-verifyhexstring) |
+| [getSyncChunk](#function-getsyncchunk) | [transactionSize](#function-transactionsize) | [verifyId](#function-verifyid) |
+| [getTaalArcServiceConfig](#function-gettaalarcserviceconfig) | [updateBsvExchangeRate](#function-updatebsvexchangerate) | [verifyInteger](#function-verifyinteger) |
+| [getUtxoStatusFromWhatsOnChain](#function-getutxostatusfromwhatsonchain) | [updateChaintracksFiatExchangeRates](#function-updatechaintracksfiatexchangerates) | [verifyNumber](#function-verifynumber) |
+| [internalizeAction](#function-internalizeaction) | [updateExchangeratesapi](#function-updateexchangeratesapi) | [verifyOne](#function-verifyone) |
+| [internalizeAction](#function-internalizeaction) | [validateAbortActionArgs](#function-validateabortactionargs) | [verifyOneOrNone](#function-verifyoneornone) |
+| [isHexString](#function-ishexstring) | [validateAcquireCertificateArgs](#function-validateacquirecertificateargs) | [verifyOptionalHexString](#function-verifyoptionalhexstring) |
+| [listActions](#function-listactions) | [validateAcquireDirectCertificateArgs](#function-validateacquiredirectcertificateargs) | [verifyTruthy](#function-verifytruthy) |
+| [listCertificates](#function-listcertificates) | [validateBasketInsertion](#function-validatebasketinsertion) | [wait](#function-wait) |
+| [listOutputs](#function-listoutputs) | [validateCreateActionArgs](#function-validatecreateactionargs) |  |
+| [lockScriptWithKeyOffsetFromPubKey](#function-lockscriptwithkeyoffsetfrompubkey) | [validateCreateActionInput](#function-validatecreateactioninput) |  |
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
 
@@ -7480,6 +7481,15 @@ Compares lengths and direct equality of values.
 
 ```ts
 export function arraysEqual(arr1: Number[], arr2: Number[]) 
+```
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
+
+---
+#### Function: asArray
+
+```ts
+export function asArray(val: string | number[]): number[] 
 ```
 
 Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
@@ -7536,7 +7546,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 #### Function: asBsvSdkScript
 
-Coerce a bsv script encoded as a hex string, serialized Buffer, or Script to Script
+Coerce a bsv script encoded as a hex string, serialized array, or Script to Script
 If script is already a Script, just return it.
 
 ```ts
@@ -7558,7 +7568,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 ---
 #### Function: asBsvSdkTx
 
-Coerce a bsv transaction encoded as a hex string, serialized Buffer, or Transaction to Transaction
+Coerce a bsv transaction encoded as a hex string, serialized array, or Transaction to Transaction
 If tx is already a Transaction, just return it.
 
 ```ts
@@ -7609,6 +7619,36 @@ Argument Details
   + Buffer or string or number[]. If string, encoding param applies. If number[], Buffer.from constructor is used.
 + **encoding**
   + defaults to 'hex'. Only applies to val of type string
+
+</details>
+
+Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](#functions), [Types](#types), [Variables](#variables)
+
+---
+#### Function: asString
+
+Coerce a value to a hex encoded string if currently a hex encoded string or number[]
+
+```ts
+export function asString(val: string | number[]): string {
+    if (typeof val === "string")
+        return val;
+    return bsv.Utils.toHex(val);
+}
+```
+
+<details>
+
+<summary>Function asString Details</summary>
+
+Returns
+
+input val if it is a string; or if number[], converts byte values to hex
+
+Argument Details
+
++ **val**
+  + string or number[]. If string, encoding must be hex. If number[], each value must be 0..255.
 
 </details>
 
@@ -8325,7 +8365,7 @@ export function randomBytes(count: number): number[]
 
 Returns
 
-count cryptographically secure random bytes as Buffer
+count cryptographically secure random bytes as array of bytes
 
 </details>
 

@@ -1,4 +1,4 @@
-import { sdk } from "../../.."
+import { sdk } from "../../../index.client"
 
 export interface ProvenTxReq extends ProvenTxReqDynamics {
    created_at: Date

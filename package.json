@@ -1,6 +1,6 @@
 {
   "name": "wallet-storage",
-  "version": "0.0.16",
+  "version": "0.0.27",
   "description": "BRC100 conforming wallet, wallet storage and wallet signer components",
   "main": "./out/src/index.js",
   "types": "./out/src/index.d.ts",
@@ -31,7 +31,7 @@
   "dependencies": {
     "@bsv/auth-express-middleware": "^1.0.1",
     "@bsv/payment-express-middleware": "^1.0.1",
-    "@bsv/sdk": "^1.3.3",
+    "@bsv/sdk": "^1.3.8",
     "axios": "^0.21.1",
     "express": "^4.21.2",
     "knex": "^3.1.0",

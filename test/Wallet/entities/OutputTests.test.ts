@@ -27,6 +27,7 @@ describe('Output class method tests', () => {
     }
   })
 
+  // Test: equals identifies matching entities with and without SyncMap
   test('0_equals identifies matching entities with and without SyncMap', async () => {
     const ctx = ctxs[0]
 
@@ -84,6 +85,7 @@ describe('Output class method tests', () => {
     expect(entity1.equals(entity2.toApi(), syncMap)).toBe(true)
   })
 
+  // Test: equals identifies non-matching entities
   test('1_equals identifies non-matching entities', async () => {
     const ctx = ctxs[0]
 
@@ -120,13 +122,14 @@ describe('Output class method tests', () => {
     const entity1 = new Output(initialData)
     const entity2 = new Output({
       ...initialData,
-      satoshis: 2000 // Change a field
+      satoshis: 2000
     })
 
     // Verify equals returns false for different entities
     expect(entity1.equals(entity2.toApi())).toBe(false)
   })
 
+  // Test: equals identifies non-matching entities with optional fields and arrays
   test('2_equals handles optional fields and arrays', async () => {
     const ctx = ctxs[0]
 
@@ -163,13 +166,14 @@ describe('Output class method tests', () => {
     const entity1 = new Output(initialData)
     const entity2 = new Output({
       ...initialData,
-      lockingScript: [1, 2, 4] // Change the array
+      lockingScript: [1, 2, 4]
     })
 
     // Verify equals returns false for different arrays
     expect(entity1.equals(entity2.toApi())).toBe(false)
   })
 
+  // Test: mergeExisting updates entity and database when ei.updated_at > this.updated_at
   test('3_mergeExisting updates entity and database when ei.updated_at > this.updated_at', async () => {
     const ctx = ctxs[0]
 
@@ -222,7 +226,7 @@ describe('Output class method tests', () => {
       scriptLength: 15,
       scriptOffset: 5,
       lockingScript: [4, 5, 6],
-      spentBy: 105 // Simulate a valid reference
+      spentBy: 105
     }
 
     const syncMap: entity.SyncMap = {
@@ -290,6 +294,7 @@ describe('Output class method tests', () => {
     }
   })
 
+  // Test: mergeExisting does not update when ei.updated_at <= this.updated_at
   test('4_mergeExisting does not update when ei.updated_at <= this.updated_at', async () => {
     const ctx = ctxs[0]
 
@@ -365,6 +370,7 @@ describe('Output class method tests', () => {
     expect(unchangedRecord[0].spendable).toBe(true)
   })
 
+  // Test: Output entity getters and setters
   test('Output entity getters and setters', async () => {
     const now = new Date()
 

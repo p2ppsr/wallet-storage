@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, randomBytesHex, sdk, Services } from "../..";
+import { asArray, randomBytesHex, sdk, Services } from "../../index.client";
 
 import axios from 'axios'
 import { Readable } from 'stream'

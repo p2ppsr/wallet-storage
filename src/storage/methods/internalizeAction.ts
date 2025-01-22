@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as bsv from '@bsv/sdk'
-import { entity, randomBytesBase64, sdk, stampLog, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone } from "../.."
+import { entity, randomBytesBase64, sdk, stampLog, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone } from "../../index.client"
 
-export interface StorageInternalizeActionResult extends sdk.InternalizeActionResult {
+export interface StorageInternalizeActionResult extends bsv.InternalizeActionResult {
   /** true if internalizing outputs on an existing storage transaction */
   isMerge: boolean
   /** txid of transaction being internalized */
@@ -41,8 +41,8 @@ export interface StorageInternalizeActionResult extends sdk.InternalizeActionRes
 export async function internalizeAction(
     storage: StorageProvider,
     auth: sdk.AuthId,
-    args: sdk.InternalizeActionArgs
-) : Promise<sdk.InternalizeActionResult>
+    args: bsv.InternalizeActionArgs
+) : Promise<bsv.InternalizeActionResult>
 {
 
   const ctx = new InternalizeActionContext(storage, auth, args)
@@ -57,7 +57,7 @@ export async function internalizeAction(
 
 }
 
-interface BasketInsertion extends sdk.BasketInsertion {
+interface BasketInsertion extends bsv.BasketInsertion {
   /** incoming transaction output index */
   vout: number
   /** incoming transaction output */
@@ -66,7 +66,7 @@ interface BasketInsertion extends sdk.BasketInsertion {
   eo?: table.Output
 }
 
-interface WalletPayment extends sdk.WalletPayment {
+interface WalletPayment extends bsv.WalletPayment {
   /** incoming transaction output index */
   vout: number
   /** incoming transaction output */
@@ -102,7 +102,7 @@ class InternalizeActionContext {
   constructor(
     public storage: StorageProvider,
     public auth: sdk.AuthId,
-    public args: sdk.InternalizeActionArgs,
+    public args: bsv.InternalizeActionArgs,
   ) {
     this.vargs = sdk.validateInternalizeActionArgs(args)
     this.userId = auth.userId!

@@ -1,8 +1,8 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
+import { asArray, asString, entity, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../../index.client";
 import { generateChangeSdk, GenerateChangeSdkChangeInput, GenerateChangeSdkParams } from './generateChange';
 
-export async function createAction(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: sdk.OriginatorDomainNameStringUnder250Bytes)
+export async function createAction(storage: StorageProvider, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs, originator?: bsv.OriginatorDomainNameStringUnder250Bytes)
 : Promise<sdk.StorageCreateActionResult> {
   //stampLog(vargs, `start dojo createTransactionSdk`) 
 
@@ -371,12 +371,12 @@ async function createNewTxRecord(dojo: StorageProvider, userId: number, vargs: s
 /**
  * Convert vargs.outputs:
  *
- * lockingScript: sdk.HexString
- * satoshis: sdk.SatoshiValue
- * outputDescription: sdk.DescriptionString5to50Bytes
- * basket?: sdk.BasketStringUnder300Bytes
+ * lockingScript: bsv.HexString
+ * satoshis: bsv.SatoshiValue
+ * outputDescription: bsv.DescriptionString5to50Bytes
+ * basket?: bsv.BasketStringUnder300Bytes
  * customInstructions?: string
- * tags: sdk.OutputTagStringUnder300Bytes[]
+ * tags: bsv.BasketStringUnderBytes[]
  *
  * to XValidCreateActionOutput (which aims for sdk.StorageCreateTransactionSdkOutput)
  * 

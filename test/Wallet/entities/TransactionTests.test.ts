@@ -162,11 +162,19 @@ describe('Transaction class method tests', () => {
       tx.rawTx = Array.from(rawTx)
 
       // Insert test outputs with spentBy linked to the transaction
-      await _tu.insertTestOutput(activeStorage, tx, 0, 100, undefined, false, tx.id) // vout = 0
-      await _tu.insertTestOutput(activeStorage, tx, 1, 200, undefined, false, tx.id) // vout = 1
+      const output1 = await _tu.insertTestOutput(activeStorage, tx, 0, 100)
+      await activeStorage.updateOutput(output1.outputId, { spentBy: tx.transactionId })
+
+      const output2 = await _tu.insertTestOutput(activeStorage, tx, 1, 200)
+      await activeStorage.updateOutput(output2.outputId, { spentBy: tx.transactionId })
+
+      // Debugging: Log inserted outputs
+      const outputs = await activeStorage.findOutputs({ partial: { spentBy: tx.transactionId } })
+      console.log('Inserted Outputs:', outputs)
 
       // Get inputs from the transaction
       const inputs = await tx.getInputs(activeStorage)
+      console.log('Transaction Inputs:', inputs)
 
       // Validate the inputs
       expect(inputs).toHaveLength(2)

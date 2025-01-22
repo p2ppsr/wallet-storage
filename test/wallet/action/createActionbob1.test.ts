@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex } from '../../../src'
+import { sdk, StorageKnex } from '../../../src/index.all'
 
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { parseWalletOutpoint } from '../../../src/sdk'
@@ -50,7 +50,7 @@ describe.skip('createActionbob1 test', () => {
     for (const { wallet } of ctxs) {
       {
         const log = `\n${testName()}\n`
-        const args: sdk.CreateActionArgs = {
+        const args: bsv.CreateActionArgs = {
           description: ''
         }
         // description is too short...
@@ -81,7 +81,7 @@ describe.skip('createActionbob1 test', () => {
       let noSendChange: string[] | undefined
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(kp.address).toHex(), outputDescription: 'pay fred' }],
           options: {
@@ -113,7 +113,7 @@ describe.skip('createActionbob1 test', () => {
         //expect(st.amount > 242 && st.amount < 300).toBe(true)
 
         // sign and complete
-        const signArgs: sdk.SignActionArgs = {
+        const signArgs: bsv.SignActionArgs = {
           reference: st.reference,
           spends: {},
           options: {
@@ -133,7 +133,7 @@ describe.skip('createActionbob1 test', () => {
         const unlock = _tu.getUnlockP2PKH(kp.privateKey, outputSatoshis)
         const unlockingScriptLength = await unlock.estimateLength()
 
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           inputs: [
             {
@@ -164,7 +164,7 @@ describe.skip('createActionbob1 test', () => {
         await tx.sign()
         const unlockingScript = tx.inputs[0].unlockingScript!.toHex()
 
-        const signArgs: sdk.SignActionArgs = {
+        const signArgs: bsv.SignActionArgs = {
           reference: st.reference,
           spends: { 0: { unlockingScript } },
           options: {
@@ -178,7 +178,7 @@ describe.skip('createActionbob1 test', () => {
         txid2 = sr.txid!
       }
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           options: {
             sendWith: [txid1, txid2]

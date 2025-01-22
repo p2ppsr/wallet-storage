@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { entity, sdk, StorageProvider, StorageSyncReader, table, wait } from "..";
+import { entity, sdk, StorageProvider, StorageSyncReader, table, wait } from "../index.client";
 
 /**
  * The `SignerStorage` class delivers authentication checking storage access to the wallet.
@@ -208,7 +208,8 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
     async destroy(): Promise<void> {
         return await this.runAsWriter(async (writer) => {
-            return writer.destroy()
+            for (const store of this.stores)
+                await store.destroy()
         })
     }
 
@@ -228,7 +229,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async abortAction(args: sdk.AbortActionArgs): Promise<sdk.AbortActionResult> {
+    async abortAction(args: bsv.AbortActionArgs): Promise<bsv.AbortActionResult> {
         const vargs = sdk.validateAbortActionArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -245,7 +246,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async internalizeAction(args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+    async internalizeAction(args: bsv.InternalizeActionArgs): Promise<bsv.InternalizeActionResult> {
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
 
@@ -254,7 +255,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async relinquishCertificate(args: sdk.RelinquishCertificateArgs): Promise<number> {
+    async relinquishCertificate(args: bsv.RelinquishCertificateArgs): Promise<number> {
         const vargs = sdk.validateRelinquishCertificateArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -263,7 +264,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async relinquishOutput(args: sdk.RelinquishOutputArgs): Promise<number> {
+    async relinquishOutput(args: bsv.RelinquishOutputArgs): Promise<number> {
         const vargs = sdk.validateRelinquishOutputArgs(args)
         const auth = await this.getAuth()
         return await this.runAsWriter(async (writer) => {
@@ -290,7 +291,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
         })
     }
 
-    async listActions(args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+    async listActions(args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> {
         const vargs = sdk.validateListActionsArgs(args)
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {
@@ -299,7 +300,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+    async listCertificates(args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult> {
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {
 
@@ -307,7 +308,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
         })
     }
-    async listOutputs(args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+    async listOutputs(args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> {
         const vargs = sdk.validateListOutputsArgs(args)
         const auth = await this.getAuth()
         return await this.runAsReader(async (reader) => {
@@ -384,7 +385,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
             for (const backup of this.stores.slice(1)) {
                 await this.syncToWriter(auth, backup, sync)
             }
-        })
+        }, activeSync)
     }
 
     async syncToWriter(auth: sdk.AuthId, writer: sdk.WalletStorageProvider, activeSync?: sdk.WalletStorageSync): Promise<{ inserts: number, updates: number }> {
@@ -428,13 +429,19 @@ export class WalletStorageManager implements sdk.WalletStorage {
         if (newActiveIndex === 0)
             /** Setting the current active as the new active is a permitted no-op. */
             return;
+        
+        const auth = await this.getAuth()
+        const newActive = this.stores[newActiveIndex]
+        const newActiveStorageIdentityKey = (await newActive.makeAvailable()).storageIdentityKey
 
         return await this.runAsSync(async (sync) => {
+            await sync.setActive(auth, newActiveStorageIdentityKey)
             await this.updateBackups(sync)
             // swap stores...
             const oldActive = this.stores[0]
             this.stores[0] = this.stores[newActiveIndex]
             this.stores[newActiveIndex] = oldActive
+            this._authId = { ...this._authId, userId: undefined }
         })
     }
 }

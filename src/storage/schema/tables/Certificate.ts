@@ -1,17 +1,18 @@
-import { sdk, table } from "../../.."
+import * as bsv from '@bsv/sdk'
+import { sdk, table } from "../../../index.client"
 
 export interface Certificate extends sdk.EntityTimeStamp {
    created_at: Date
    updated_at: Date
    certificateId: number
    userId: number
-   type: sdk.Base64String
-   serialNumber: sdk.Base64String
-   certifier: sdk.PubKeyHex
-   subject: sdk.PubKeyHex
-   verifier?: sdk.PubKeyHex
-   revocationOutpoint: sdk.OutpointString
-   signature: sdk.HexString
+   type: bsv.Base64String
+   serialNumber: bsv.Base64String
+   certifier: bsv.PubKeyHex
+   subject: bsv.PubKeyHex
+   verifier?: bsv.PubKeyHex
+   revocationOutpoint: bsv.OutpointString
+   signature: bsv.HexString
    isDeleted: boolean
 }
 

@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, entity, sdk, verifyOne, verifyTruthy, wait } from "../../src"
+import { asArray, entity, sdk, verifyOne, verifyTruthy, wait } from "../../src/index.client"
 import { TaskCheckForProofs } from "../../src/monitor/tasks/TaskCheckForProofs"
 import { TaskClock } from "../../src/monitor/tasks/TaskClock"
 import { TaskNewHeader } from "../../src/monitor/tasks/TaskNewHeader"

@@ -1,11 +1,13 @@
-import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '..'
-import { KnexMigrations, table } from '.'
+import * as bsv from '@bsv/sdk'
+import { sdk, verifyOne, verifyOneOrNone, verifyTruthy } from '../index.all'
+import { KnexMigrations, table } from './index.all'
 
 import { Knex } from 'knex'
 import { StorageProvider, StorageProviderOptions } from './StorageProvider'
 import { purgeData } from './methods/purgeData'
 import { listActions } from './methods/listActions'
 import { listOutputs } from './methods/listOutputs'
+import { DBType } from './StorageReader'
 
 export interface StorageKnexOptions extends StorageProviderOptions {
   /**
@@ -145,12 +147,12 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     return this.validateEntities(rs, undefined, ['isDeleted'])
   }
 
-  override async listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult> {
+  override async listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult> {
     if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
     const vargs = sdk.validateListActionsArgs(args)
     return await listActions(this, auth, vargs)
   }
-  override async listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult> {
+  override async listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult> {
     if (!auth.userId) throw new sdk.WERR_UNAUTHORIZED()
     const vargs = sdk.validateListOutputsArgs(args)
     return await listOutputs(this, auth, vargs)
@@ -181,7 +183,7 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async insertCertificateAuth(auth: sdk.AuthId, certificate: table.CertificateX): Promise<number> {
-    if (!auth.userId  || certificate.userId && certificate.userId !== auth.userId)
+    if (!auth.userId || certificate.userId && certificate.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     certificate.userId = auth.userId
     return await this.insertCertificate(certificate)
@@ -189,12 +191,14 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
 
   override async insertCertificate(certificate: table.CertificateX, trx?: sdk.TrxToken): Promise<number> {
     const e = await this.validateEntityForInsert(certificate, trx, undefined, ['isDeleted'])
+    const fields = e.fields
+    if (e.fields) delete e.fields
     if (e.certificateId === 0) delete e.certificateId
     const [id] = await this.toDb(trx)<table.Certificate>('certificates').insert(e)
     certificate.certificateId = id
 
-    if (certificate.fields) {
-      for (const field of certificate.fields) {
+    if (fields) {
+      for (const field of fields) {
         field.certificateId = id
         field.userId = certificate.userId
         await this.insertCertificateField(field, trx)
@@ -315,11 +319,11 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     await this.verifyReadyForDatabaseAccess(trx)
     let r: number
     if (Array.isArray(id)) {
-        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').whereIn('provenTxReqId', id).update(this.validatePartialForUpdate(update))
     } else if (Number.isInteger(id)) {
-        r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.ProvenTxReq>('proven_tx_reqs').where({ 'provenTxReqId': id }).update(this.validatePartialForUpdate(update))
     } else {
-        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+      throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
     }
     return r
   }
@@ -337,11 +341,11 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
     await this.verifyReadyForDatabaseAccess(trx)
     let r: number
     if (Array.isArray(id)) {
-        r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.Transaction>('transactions').whereIn('transactionId', id).update(await this.validatePartialForUpdate(update))
     } else if (Number.isInteger(id)) {
-        r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
+      r = await this.toDb(trx)<table.Transaction>('transactions').where({ transactionId: id }).update(await this.validatePartialForUpdate(update))
     } else {
-        throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
+      throw new sdk.WERR_INVALID_PARAMETER('id', 'transactionId or array of transactionId')
     }
     return r
   }
@@ -452,19 +456,19 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
   }
 
   override async findCertificatesAuth(auth: sdk.AuthId, args: sdk.FindCertificatesArgs): Promise<table.Certificate[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findCertificates(args)
   }
   override async findOutputBasketsAuth(auth: sdk.AuthId, args: sdk.FindOutputBasketsArgs): Promise<table.OutputBasket[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findOutputBaskets(args)
   }
   override async findOutputsAuth(auth: sdk.AuthId, args: sdk.FindOutputsArgs): Promise<table.Output[]> {
-    if (!auth.userId  || args.partial.userId && args.partial.userId !== auth.userId)
+    if (!auth.userId || args.partial.userId && args.partial.userId !== auth.userId)
       throw new sdk.WERR_UNAUTHORIZED()
     args.partial.userId = auth.userId
     return await this.findOutputs(args)
@@ -916,10 +920,51 @@ export class StorageKnex extends StorageProvider implements sdk.WalletStoragePro
 
     return r
   }
-}
 
-export type DBType = 'SQLite' | 'MySQL'
+  /**
+   * Helper to force uniform behavior across database engines.
+   * Use to process all individual records with time stamps retreived from database.
+   */
+  validateEntity<T extends sdk.EntityTimeStamp>(
+    entity: T,
+    dateFields?: string[],
+    booleanFields?: string[]
+  ): T {
+    entity.created_at = this.validateDate(entity.created_at)
+    entity.updated_at = this.validateDate(entity.updated_at)
+    if (dateFields) {
+      for (const df of dateFields) {
+        if (entity[df])
+          entity[df] = this.validateDate(entity[df])
+      }
+    }
+    if (booleanFields) {
+      for (const df of booleanFields) {
+        if (entity[df] !== undefined)
+          entity[df] = !!(entity[df])
+      }
+    }
+    for (const key of Object.keys(entity)) {
+      const val = entity[key]
+      if (val === null) {
+        entity[key] = undefined
+      } else if (Buffer.isBuffer(val)) {
+        entity[key] = Array.from(val)
+      }
+    }
+    return entity
+  }
 
-type DbEntityTimeStamp<T extends sdk.EntityTimeStamp> = {
-  [K in keyof T]: T[K] extends Date ? Date | string : T[K]
+  /**
+   * Helper to force uniform behavior across database engines.
+   * Use to process all arrays of records with time stamps retreived from database.
+   * @returns input `entities` array with contained values validated.
+   */
+  validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] {
+    for (let i = 0; i < entities.length; i++) {
+      entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
+    }
+    return entities
+  }
+
 }

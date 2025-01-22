@@ -1,4 +1,5 @@
-import { sdk } from "../../.."
+import * as bsv from '@bsv/sdk'
+import { sdk } from "../../../index.client"
 
 export interface CertificateField extends sdk.EntityTimeStamp {
    created_at: Date
@@ -7,7 +8,7 @@ export interface CertificateField extends sdk.EntityTimeStamp {
    certificateId: number
    fieldName: string
    fieldValue: string
-   masterKey: sdk.Base64String
+   masterKey: bsv.Base64String
 }
 
 

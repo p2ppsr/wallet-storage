@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Knex } from 'knex'
-import { DBType, randomBytesHex, sdk } from '../..';
+import { sdk } from '../../index.all';
+import { DBType } from '../StorageReader';
 
 interface Migration {
     up: (knex: Knex) => Promise<void>;
@@ -57,25 +58,6 @@ export class KnexMigrations implements MigrationSource<string> {
     ): Record<string, Migration> {
 
         const migrations: Record<string, Migration> = {}
-/*
-
-        This is sample code for when next migration must be added...
-
-        this.migrations['2024-12-15-001 add batch column to proven-tx-reqs'] = {
-            async up(knex) {
-                await knex.schema.alterTable('proven_tx_reqs', table => {
-                    table.string('batch', 64).nullable()
-                    table.index('batch')
-                })
-            },
-            async down(knex) {
-                await knex.schema.alterTable('proven_tx_reqs', table => {
-                    table.dropIndex('batch')
-                    table.dropColumn('batch')
-                })
-            }
-        }
-*/
 
         const addTimeStamps = (knex: Knex<any, any[]>, table: Knex.CreateTableBuilder, dbtype: DBType) => {
             if (dbtype === 'MySQL') {
@@ -86,9 +68,20 @@ export class KnexMigrations implements MigrationSource<string> {
                 table.timestamp('updated_at', { precision: 3 }).defaultTo(knex.fn.now()).notNullable()
             }
         }
-        /**
-         * This updated initial migration is the merge of what were previously 13 separate migrations now included as noops.
-         */
+
+        migrations['2025-01-21-001 add activeStorage to users'] = {
+            async up(knex) {
+                await knex.schema.alterTable('users', table => {
+                    table.string('activeStorage', 130).nullable().defaultTo(null)
+                })
+            },
+            async down(knex) {
+                await knex.schema.alterTable('users', table => {
+                    table.dropColumn('activeStorage')
+                })
+            }
+        }
+
         migrations['2024-12-26-001 initial migration'] = {
             async up(knex) {
                 const dbtype = await KnexMigrations.dbtype(knex)
@@ -124,7 +117,6 @@ export class KnexMigrations implements MigrationSource<string> {
                     addTimeStamps(knex, table, dbtype)
                     table.increments('userId')
                     table.string('identityKey', 130).notNullable().unique()
-                    table.string('activeStorage', 130).nullable().defaultTo(null)
                 })
                 await knex.schema.createTable('certificates', table => {
                     addTimeStamps(knex, table, dbtype)

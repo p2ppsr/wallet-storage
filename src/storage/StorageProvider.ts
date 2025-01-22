@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "..";
+import { asArray, asString, entity, sdk, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { getBeefForTransaction } from './methods/getBeefForTransaction';
 import { GetReqsAndBeefDetail, GetReqsAndBeefResult, processAction } from './methods/processAction';
 import { attemptToPostReqsToNetwork, PostReqsToNetworkResult } from './methods/attemptToPostReqsToNetwork';
@@ -14,7 +14,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     _services?: sdk.WalletServices
     feeModel: sdk.StorageFeeModel
     commissionSatoshis: number
-    commissionPubKeyHex?: sdk.PubKeyHex
+    commissionPubKeyHex?: bsv.PubKeyHex
     maxRecursionDepth?: number
 
     static defaultOptions() {
@@ -50,8 +50,8 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
     abstract getLabelsForTransactionId(transactionId?: number, trx?: sdk.TrxToken): Promise<table.TxLabel[]>
     abstract getTagsForOutputId(outputId: number, trx?: sdk.TrxToken): Promise<table.OutputTag[]>
 
-    abstract listActions(auth: sdk.AuthId, args: sdk.ListActionsArgs): Promise<sdk.ListActionsResult>
-    abstract listOutputs(auth: sdk.AuthId, args: sdk.ListOutputsArgs): Promise<sdk.ListOutputsResult>
+    abstract listActions(auth: sdk.AuthId, args: bsv.ListActionsArgs): Promise<bsv.ListActionsResult>
+    abstract listOutputs(auth: sdk.AuthId, args: bsv.ListOutputsArgs): Promise<bsv.ListOutputsResult>
 
     abstract countChangeInputs(userId: number, basketId: number, excludeSending: boolean): Promise<number>
 
@@ -69,7 +69,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return this._services
     }
 
-    async abortAction(auth: sdk.AuthId, args: Partial<table.Transaction>): Promise<sdk.AbortActionResult> {
+    async abortAction(auth: sdk.AuthId, args: Partial<table.Transaction>): Promise<bsv.AbortActionResult> {
         const r = await this.transaction(async trx => {
             const tx = verifyOneOrNone(await this.findTransactions({ partial: args, noRawTx: true, trx }))
             const unAbortableStatus: sdk.TransactionStatus[] = ['completed', 'failed', 'sending', 'unproven']
@@ -84,7 +84,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
                     await req.updateStorageDynamicProperties(this, trx)
                 }
             }
-            const r: sdk.AbortActionResult = {
+            const r: bsv.AbortActionResult = {
                 aborted: true
             }
             return r
@@ -92,7 +92,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return r
     }
 
-    async internalizeAction(auth: sdk.AuthId, args: sdk.InternalizeActionArgs): Promise<sdk.InternalizeActionResult> {
+    async internalizeAction(auth: sdk.AuthId, args: bsv.InternalizeActionArgs): Promise<bsv.InternalizeActionResult> {
         return await internalizeAction(this, auth, args)
     }
 
@@ -303,7 +303,7 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return await attemptToPostReqsToNetwork(this, reqs, trx)
     }
 
-    async listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<sdk.ListCertificatesResult> {
+    async listCertificates(auth: sdk.AuthId, args: sdk.ValidListCertificatesArgs): Promise<bsv.ListCertificatesResult> {
         return await listCertificates(this, auth, args)
     }
 
@@ -312,14 +312,14 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return proven != undefined || rawTx != undefined
     }
 
-    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef> {
+    async getValidBeefForKnownTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: bsv.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef> {
         const beef = await this.getValidBeefForTxid(txid, mergeToBeef, trustSelf, knownTxids, trx)
         if (!beef)
             throw new sdk.WERR_INVALID_PARAMETER('txid', `${txid} is not known to storage.`)
         return beef
     }
 
-    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: sdk.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef | undefined> {
+    async getValidBeefForTxid(txid: string, mergeToBeef?: bsv.Beef, trustSelf?: bsv.TrustSelf, knownTxids?: string[], trx?: sdk.TrxToken): Promise<bsv.Beef | undefined> {
 
         const beef = mergeToBeef || new bsv.Beef()
 
@@ -366,13 +366,13 @@ export abstract class StorageProvider extends StorageReaderWriter implements sdk
         return verifyOneOrNone(await this.findMonitorEvents({ partial: { id }, trx }))
     }
 
-    async relinquishCertificate(auth: sdk.AuthId, args: sdk.RelinquishCertificateArgs): Promise<number> {
+    async relinquishCertificate(auth: sdk.AuthId, args: bsv.RelinquishCertificateArgs): Promise<number> {
         const vargs = sdk.validateRelinquishCertificateArgs(args)
         const cert = verifyOne(await this.findCertificates({ partial: { certifier: vargs.certifier, serialNumber: vargs.serialNumber, type: vargs.type } }))
         return await this.updateCertificate(cert.certificateId, { isDeleted: true })
     }
 
-    async relinquishOutput(auth: sdk.AuthId, args: sdk.RelinquishOutputArgs): Promise<number> {
+    async relinquishOutput(auth: sdk.AuthId, args: bsv.RelinquishOutputArgs): Promise<number> {
         const vargs = sdk.validateRelinquishOutputArgs(args)
         const { txid, vout } = sdk.parseWalletOutpoint(vargs.output)
         const output = verifyOne(await this.findOutputs({ partial: { txid, vout } }))
@@ -523,7 +523,7 @@ export interface StorageProviderOptions extends StorageReaderWriterOptions {
      * The actual locking script for each commission will use a public key derived
      * from this key by information stored in the commissions table.
      */
-    commissionPubKeyHex?: sdk.PubKeyHex
+    commissionPubKeyHex?: bsv.PubKeyHex
 }
 
 export function validateStorageFeeModel (v?: sdk.StorageFeeModel): sdk.StorageFeeModel {

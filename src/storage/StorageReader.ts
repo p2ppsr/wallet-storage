@@ -1,4 +1,4 @@
-import { DBType, sdk, StorageProviderOptions, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "..";
+import { sdk, table, validateSecondsSinceEpoch, verifyOneOrNone, verifyTruthy } from "../index.client";
 import { getSyncChunk } from "./methods/getSyncChunk";
 
 /**
@@ -83,52 +83,6 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
     }
 
     /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all individual records with time stamps retreived from database.
-     */
-    validateEntity<T extends sdk.EntityTimeStamp>(
-        entity: T,
-        dateFields?: string[],
-        booleanFields?: string[]
-    ): T {
-        entity.created_at = this.validateDate(entity.created_at)
-        entity.updated_at = this.validateDate(entity.updated_at)
-        if (dateFields) {
-            for (const df of dateFields) {
-                if (entity[df])
-                    entity[df] = this.validateDate(entity[df])
-            }
-        }
-        if (booleanFields) {
-            for (const df of booleanFields) {
-                if (entity[df] !== undefined)
-                    entity[df] = !!(entity[df])
-            }
-        }
-        for (const key of Object.keys(entity)) {
-            const val = entity[key]
-            if (val === null) {
-                entity[key] = undefined
-            } else if (Buffer.isBuffer(val)) {
-                entity[key] = Array.from(val)
-            }
-        }
-        return entity
-    }
-
-    /**
-     * Helper to force uniform behavior across database engines.
-     * Use to process all arrays of records with time stamps retreived from database.
-     * @returns input `entities` array with contained values validated.
-     */
-    validateEntities<T extends sdk.EntityTimeStamp>(entities: T[], dateFields?: string[], booleanFields?: string[]): T[] {
-        for (let i = 0; i < entities.length; i++) {
-            entities[i] = this.validateEntity(entities[i], dateFields, booleanFields)
-        }
-        return entities
-    }
-
-    /**
      * Force dates to strings on SQLite and Date objects on MySQL
      * @param date 
      * @returns 
@@ -206,4 +160,10 @@ export abstract class StorageReader implements sdk.StorageSyncReader {
 
 export interface StorageReaderOptions {
     chain: sdk.Chain
+}
+
+export type DBType = 'SQLite' | 'MySQL'
+
+type DbEntityTimeStamp<T extends sdk.EntityTimeStamp> = {
+  [K in keyof T]: T[K] extends Date ? Date | string : T[K]
 }

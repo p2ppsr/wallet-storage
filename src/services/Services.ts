@@ -1,10 +1,10 @@
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, convertProofToMerklePath, doubleSha256BE, sdk, sha256Hash, wait } from '..'
+import { asArray, asString, doubleSha256BE, sdk, sha256Hash, wait } from '../index.client'
 import { ServiceCollection } from './ServiceCollection'
 
 import { createDefaultWalletServicesOptions } from './createDefaultWalletServicesOptions'
 import { ChaintracksChainTracker } from './chaintracker'
-import { getTaalArcServiceConfig, makeGetMerklePathFromTaalARC, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
+import { getTaalArcServiceConfig, makePostBeefToTaalARC, makePostTxsToTaalARC } from './providers/arcServices'
 import { getMerklePathFromWhatsOnChainTsc, getRawTxFromWhatsOnChain, getUtxoStatusFromWhatsOnChain, updateBsvExchangeRate } from './providers/whatsonchain'
 import { updateChaintracksFiatExchangeRates, updateExchangeratesapi } from './providers/echangeRates'
 
@@ -186,10 +186,10 @@ export class Services implements sdk.WalletServices {
 
     async getHeaderForHeight(height: number): Promise<number[]> {
         const method = async () => {
-            const header = await this.options.chaintracks!.findHeaderHexForHeight(height)
+            const header = await this.options.chaintracks!.findHeaderForHeight(height)
             if (!header)
                 throw new sdk.WERR_INVALID_PARAMETER('hash', `valid height '${height}' on mined chain ${this.chain}`);
-            return toBinaryBaseBlockHeaderHex(header)
+            return toBinaryBaseBlockHeader(header)
         }
         return this.invokeChaintracksWithRetry(method)
     }
@@ -201,9 +201,9 @@ export class Services implements sdk.WalletServices {
         return this.invokeChaintracksWithRetry(method)
     }
 
-    async hashToHeader(hash: string): Promise<sdk.BlockHeaderHex> {
+    async hashToHeader(hash: string): Promise<sdk.BlockHeader> {
         const method = async () => {
-            const header = await this.options.chaintracks!.findHeaderHexForBlockHash(hash)
+            const header = await this.options.chaintracks!.findHeaderForBlockHash(hash)
             if (!header)
                 throw new sdk.WERR_INVALID_PARAMETER('hash', `valid blockhash '${hash}' on mined chain ${this.chain}`);
             return header
@@ -338,14 +338,14 @@ export function validateScriptHash(output: string, outputFormat?: sdk.GetUtxoSta
 }
 
 /**
- * Serializes a block header as an 80 byte Buffer.
+ * Serializes a block header as an 80 byte array.
  * The exact serialized format is defined in the Bitcoin White Paper
- * such that computing a double sha256 hash of the buffer computes
+ * such that computing a double sha256 hash of the array computes
  * the block hash for the header.
- * @returns 80 byte Buffer
+ * @returns 80 byte array
  * @publicbody
  */
-export function toBinaryBaseBlockHeaderHex(header: sdk.BaseBlockHeaderHex): number[] {
+export function toBinaryBaseBlockHeader(header: sdk.BaseBlockHeader): number[] {
     const writer = new bsv.Utils.Writer()
     writer.writeUInt32BE(header.version)
     writer.writeReverse(asArray(header.previousHash))

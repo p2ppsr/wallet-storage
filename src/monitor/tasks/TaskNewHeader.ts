@@ -1,4 +1,4 @@
-import { sdk } from '../..';
+import { sdk } from '../../index.client';
 import { Monitor } from '../Monitor';
 import { TaskCheckForProofs } from './TaskCheckForProofs';
 import { WalletMonitorTask } from './WalletMonitorTask';
@@ -6,14 +6,14 @@ import { WalletMonitorTask } from './WalletMonitorTask';
 
 export class TaskNewHeader extends WalletMonitorTask {
     static taskName = 'NewHeader';
-    header?: sdk.BlockHeaderHex
+    header?: sdk.BlockHeader
 
     constructor(monitor: Monitor, public triggerMsecs = 1 * monitor.oneMinute) {
         super(monitor, TaskNewHeader.taskName);
     }
 
-    async getHeader() : Promise<sdk.BlockHeaderHex> {
-        return await this.monitor.chaintracks.findChainTipHeaderHex()
+    async getHeader() : Promise<sdk.BlockHeader> {
+        return await this.monitor.chaintracks.findChainTipHeader()
     }
 
     trigger(nowMsecsSinceEpoch: number): { run: boolean; } {

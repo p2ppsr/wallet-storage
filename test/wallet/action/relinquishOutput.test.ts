@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex } from '../../../src'
+import { sdk, StorageKnex } from '../../../src/index.all'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { getBeefForTransaction } from '../../../src/storage/methods/getBeefForTransaction'
 
@@ -25,7 +25,7 @@ describe('RelinquishOutputArgs tests', () => {
     const expectedResult = { relinquished: true }
 
     for (const { wallet, activeStorage: storage } of ctxs) {
-      const args: sdk.RelinquishOutputArgs = {
+      const args: bsv.RelinquishOutputArgs = {
         basket: 'default',
         output: `${outputTxid}.0`
       }

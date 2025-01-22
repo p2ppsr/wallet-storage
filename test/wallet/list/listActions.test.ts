@@ -1,4 +1,5 @@
-import { sdk } from "../../../src"
+import * as bsv from '@bsv/sdk'
+import { sdk } from "../../../src/index.client"
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from "../../utils/TestUtilsWalletStorage"
 
 describe('listActions tests', () => {
@@ -21,7 +22,7 @@ describe('listActions tests', () => {
 
     test('0 invalid params', async () => {
         for (const { wallet } of ctxs) {
-            const invalidArgs: sdk.ListActionsArgs[] = [
+            const invalidArgs: bsv.ListActionsArgs[] = [
                 { labels: [] },
                 { includeLabels: true, labels: [] }
                 // Oh so many things to test...
@@ -36,7 +37,7 @@ describe('listActions tests', () => {
     test('3_label babbage_protocol_perm', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeLabels: true,
                     labels: ['babbage_protocol_perm']
                 }
@@ -57,7 +58,7 @@ describe('listActions tests', () => {
     test('4_label babbage_protocol_perm', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeLabels: true,
                     labels: ['babbage_protocol_perm']
                 }
@@ -80,7 +81,7 @@ describe('listActions tests', () => {
     test('5_label babbage_protocol_perm or babbage_basket_access', async () => {
         for (const { wallet } of ctxs) {
         {
-            const args: sdk.ListActionsArgs = {
+            const args: bsv.ListActionsArgs = {
                 includeLabels: true,
                 labels: ['babbage_protocol_perm', 'babbage_basket_access']
             }
@@ -105,7 +106,7 @@ describe('listActions tests', () => {
     test('6_label babbage_protocol_perm and babbage_basket_access', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeLabels: true,
                     labels: ['babbage_protocol_perm', 'babbage_basket_access'],
                     labelQueryMode: 'all'
@@ -119,7 +120,7 @@ describe('listActions tests', () => {
     test('7_includeOutputs', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeOutputs: true,
                     labels: ['babbage_protocol_perm']
                 }
@@ -144,7 +145,7 @@ describe('listActions tests', () => {
     test('8_includeOutputs and script', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeOutputs: true,
                     includeOutputLockingScripts: true,
                     labels: ['babbage_protocol_perm']
@@ -163,7 +164,7 @@ describe('listActions tests', () => {
     test('9_includeInputs', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeInputs: true,
                     labels: ['babbage_protocol_perm']
                 }
@@ -186,7 +187,7 @@ describe('listActions tests', () => {
     test('10_includeInputs and unlock', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeInputs: true,
                     includeInputUnlockingScripts: true,
                     labels: ['babbage_protocol_perm']
@@ -210,7 +211,7 @@ describe('listActions tests', () => {
     test('11_includeInputs and lock', async () => {
         for (const { wallet } of ctxs) {
             {
-                const args: sdk.ListActionsArgs = {
+                const args: bsv.ListActionsArgs = {
                     includeInputs: true,
                     includeInputSourceLockingScripts: true,
                     labels: ['babbage_protocol_perm']

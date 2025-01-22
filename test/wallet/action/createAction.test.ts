@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex } from '../../../src'
+import { sdk, StorageKnex } from '../../../src/index.all'
 import { _tu, expectToThrowWERR, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 
 const noLog = false
@@ -29,7 +29,7 @@ describe('createAction test', () => {
     for (const { wallet } of ctxs) {
       {
         const log = `\n${testName()}\n`
-        const args: sdk.CreateActionArgs = {
+        const args: bsv.CreateActionArgs = {
           description: ''
         }
         // description is too short...
@@ -61,7 +61,7 @@ describe('createAction test', () => {
       let inputBEEF: bsv.AtomicBEEF | undefined
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(kp.address).toHex(), outputDescription: 'pay fred' }],
           options: {
@@ -94,7 +94,7 @@ describe('createAction test', () => {
         //expect(st.amount > 242 && st.amount < 300).toBe(true)
 
         // sign and complete
-        const signArgs: sdk.SignActionArgs = {
+        const signArgs: bsv.SignActionArgs = {
           reference: st.reference,
           spends: {},
           options: {
@@ -115,7 +115,7 @@ describe('createAction test', () => {
         const unlock = _tu.getUnlockP2PKH(kp.privateKey, outputSatoshis)
         const unlockingScriptLength = await unlock.estimateLength()
 
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           inputs: [
             {
@@ -148,7 +148,7 @@ describe('createAction test', () => {
         await tx.sign()
         const unlockingScript = tx.inputs[0].unlockingScript!.toHex()
 
-        const signArgs: sdk.SignActionArgs = {
+        const signArgs: bsv.SignActionArgs = {
           reference: st.reference,
           spends: { 0: { unlockingScript } },
           options: {
@@ -162,7 +162,7 @@ describe('createAction test', () => {
         txid2 = sr.txid!
       }
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           options: {
             acceptDelayedBroadcast: false,
@@ -188,7 +188,7 @@ describe('createAction test', () => {
     const kp = _tu.getKeyPair(root.repeat(8))
 
     for (const { wallet } of ctxs) {
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Basic Transaction',
         outputs: [
           {
@@ -227,7 +227,7 @@ describe('createAction test', () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
     for (const { wallet } of ctxs) {
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Multiple Outputs',
         outputs: [
           {
@@ -272,7 +272,7 @@ describe('createAction test', () => {
     const kp = _tu.getKeyPair(root.repeat(8))
 
     for (const { wallet } of ctxs) {
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Locking Script Transaction',
         outputs: [
           {
@@ -319,7 +319,7 @@ describe('createAction test', () => {
         outputDescription: `Output ${i + 1}`
       }))
 
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Large Number of Outputs',
         outputs,
         options: {
@@ -358,7 +358,7 @@ describe('createAction test', () => {
         }
       ]
 
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Randomized Outputs',
         outputs,
         options: {
@@ -387,7 +387,7 @@ describe('createAction test', () => {
     const kp = _tu.getKeyPair(root.repeat(8))
 
     for (const { wallet } of ctxs) {
-      const args: sdk.CreateActionArgs = {
+      const args: bsv.CreateActionArgs = {
         description: 'Lock Time Transaction',
         outputs: [
           {

@@ -1,5 +1,5 @@
 import { MerklePath } from '@bsv/sdk'
-import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from '../../..'
+import { arraysEqual, entity, sdk, table, verifyId, verifyOneOrNone } from '../../../index.client'
 import { EntityBase } from '.'
 
 export class OutputBasket extends EntityBase<table.OutputBasket> {

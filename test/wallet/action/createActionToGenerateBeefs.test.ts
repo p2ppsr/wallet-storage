@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { sdk, StorageKnex, table, Wallet } from '../../../src'
+import { sdk, StorageKnex, table, Wallet } from '../../../src/index.all'
 
 import { _tu, expectToThrowWERR, TestKeyPair, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
 import { parseWalletOutpoint } from '../../../src/sdk'
@@ -54,7 +54,7 @@ describe.skip('createActionToGenerateBeefs test', () => {
       } = await createAndConsume(wallet, root, kp)
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp.address} of ${root}`,
           options: {
             acceptDelayedBroadcast: false,
@@ -112,7 +112,7 @@ describe.skip('createActionToGenerateBeefs test', () => {
       expect(inputBEEF).toBeTruthy()
 
       {
-        const createArgs: sdk.CreateActionArgs = {
+        const createArgs: bsv.CreateActionArgs = {
           description: `${kp1.address} of ${root1} & ${kp2.address} of ${root2}`,
           options: {
             acceptDelayedBroadcast: false,
@@ -222,15 +222,15 @@ function logBasket(storage: StorageKnex, basket: table.OutputBasket): string {
   return log
 }
 
-async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): Promise<{ txidPair: sdk.TXIDHexString[]; Beef: bsv.Beef }> {
-  let txid1: sdk.TXIDHexString
-  let txid2: sdk.TXIDHexString
+async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): Promise<{ txidPair: bsv.TXIDHexString[]; Beef: bsv.Beef }> {
+  let txid1: bsv.TXIDHexString
+  let txid2: bsv.TXIDHexString
   const outputSatoshis = 42
   let noSendChange: string[] | undefined
   let inputBEEF: bsv.AtomicBEEF | undefined
 
   {
-    const createArgs: sdk.CreateActionArgs = {
+    const createArgs: bsv.CreateActionArgs = {
       description: `${kp.address} of ${root}`,
       outputs: [{ satoshis: outputSatoshis, lockingScript: _tu.getLockP2PKH(kp.address).toHex(), outputDescription: 'pay fred' }],
       options: {
@@ -263,7 +263,7 @@ async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): 
     //expect(st.amount > 242 && st.amount < 300).toBe(true)
 
     // sign and complete
-    const signArgs: sdk.SignActionArgs = {
+    const signArgs: bsv.SignActionArgs = {
       reference: st.reference,
       spends: {},
       options: {
@@ -283,7 +283,7 @@ async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): 
     const unlock = _tu.getUnlockP2PKH(kp.privateKey, outputSatoshis)
     const unlockingScriptLength = await unlock.estimateLength()
 
-    const createArgs: sdk.CreateActionArgs = {
+    const createArgs: bsv.CreateActionArgs = {
       description: `${kp.address} of ${root}`,
       inputs: [
         {
@@ -316,7 +316,7 @@ async function createAndConsume(wallet: Wallet, root: string, kp: TestKeyPair): 
     await tx.sign()
     const unlockingScript = tx.inputs[0].unlockingScript!.toHex()
 
-    const signArgs: sdk.SignActionArgs = {
+    const signArgs: bsv.SignActionArgs = {
       reference: st.reference,
       spends: { 0: { unlockingScript } },
       options: {

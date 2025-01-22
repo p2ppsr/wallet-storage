@@ -2,7 +2,7 @@
 
 import * as bsv from '@bsv/sdk'
 import { randomValsUsed1 } from "./randomValsUsed1";
-import { sdk } from "../../../..";
+import { sdk } from "../../../../index.client";
 import { generateChangeSdk, GenerateChangeSdkChangeInput, generateChangeSdkMakeStorage, GenerateChangeSdkParams, GenerateChangeSdkResult } from '../../generateChange';
 
 describe("generateChange tests", () => {

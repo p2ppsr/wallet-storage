@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { asBuffer, asString, sdk } from '../../../'
+import { asString, sdk } from '../../../index.client'
 
-import { ChaintracksClientApi, ChaintracksInfoApi, HeaderListener, ReorgListener } from './ChaintracksClientApi'
-import { BaseBlockHeader, BaseBlockHeaderHex, BlockHeader, BlockHeaderHex, isBaseBlockHeader, toBaseBlockHeaderHex, toBlockHeader } from './BlockHeaderApi'
+import { BaseBlockHeader, BlockHeader, isBaseBlockHeader } from './BlockHeaderApi'
 
 interface FetchStatus<T> {
     status: 'success' | 'error',
@@ -19,7 +18,7 @@ export interface ChaintracksServiceClientOptions {
  * Connects to a ChaintracksService to implement 'ChaintracksClientApi'
  *
  */
-export class ChaintracksServiceClient implements ChaintracksClientApi {
+export class ChaintracksServiceClient {
     static createChaintracksServiceClientOptions(): ChaintracksServiceClientOptions {
         const options: ChaintracksServiceClientOptions = {
             useAuthrite: false
@@ -43,10 +42,6 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
         const isValid = root === asString(r.merkleRoot)
         return isValid
     }
-
-    async subscribeHeaders(listener: HeaderListener): Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
-    async subscribeReorgs(listener: ReorgListener): Promise<string> { throw new sdk.WERR_NOT_IMPLEMENTED() }
-    async unsubscribe(subscriptionId: string): Promise<boolean> { throw new sdk.WERR_NOT_IMPLEMENTED() }
 
     async getJsonOrUndefined<T>(path: string): Promise<T | undefined> {
         let e: Error | undefined = undefined
@@ -98,7 +93,7 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
     // HTTP API FUNCTIONS
     //
 
-    async addHeaderHex(header: BaseBlockHeaderHex): Promise<void> {
+    async addHeader(header: BaseBlockHeader): Promise<void> {
         const r = await this.postJsonVoid('/addHeaderHex', header)
         if (typeof r === 'string')
             throw new Error(r)
@@ -112,64 +107,26 @@ export class ChaintracksServiceClient implements ChaintracksClientApi {
         return this.chain
         //return await this.getJson('/getChain')
     }
-    async getInfo(wait?: number): Promise<ChaintracksInfoApi> {
-        return await this.getJson(`/getInfo?wait=${wait || ''}`)
-    }
 
     async isListening(): Promise<boolean> { return await this.getJson('/isListening') }
     async isSynchronized(): Promise<boolean> { return await this.getJson('/isSynchronized') }
     async getPresentHeight(): Promise<number> { return await this.getJson('/getPresentHeight') }
-    async findChainTipHeaderHex(): Promise<BlockHeaderHex> { return await this.getJson('/findChainTipHeaderHex') }
+    async findChainTipHeader(): Promise<BlockHeader> { return await this.getJson('/findChainTipHeaderHex') }
     async findChainTipHashHex(): Promise<string> { return await this.getJson('/findChainTipHashHex') }
 
-    async getHeadersHex(height: number, count: number): Promise<string> {
+    async getHeaders(height: number, count: number): Promise<string> {
         return await this.getJson(`/getHeaders?height=${height}&count=${count}`)
     }
-    async findHeaderHexForHeight(height: number): Promise<BlockHeaderHex | undefined> {
+    async findHeaderForHeight(height: number): Promise<BlockHeader | undefined> {
         return await this.getJsonOrUndefined(`/findHeaderHexForHeight?height=${height}`)
     }
-    async findChainWorkHexForBlockHash(hash: string | Buffer): Promise<string | undefined> {
+    async findChainWorkForBlockHash(hash: string): Promise<string | undefined> {
         return await this.getJsonOrUndefined(`/findChainWorkHexForBlockHash?hash=${asString(hash)}`)
     }
-    async findHeaderHexForBlockHash(hash: Buffer | string): Promise<BlockHeaderHex | undefined> {
+    async findHeaderForBlockHash(hash: string): Promise<BlockHeader | undefined> {
         return await this.getJsonOrUndefined(`/findHeaderHexForBlockHash?hash=${asString(hash)}`)
     }
-    async findHeaderHexForMerkleRoot(merkleRoot: Buffer | string, height?: number): Promise<BlockHeaderHex | undefined> {
+    async findHeaderForMerkleRoot(merkleRoot: string, height?: number): Promise<BlockHeader | undefined> {
         return await this.getJsonOrUndefined(`/findHeaderHexForMerkleRoot?root=${asString(merkleRoot)}&height=${height}`)
-    }
-
-    //
-    // IMPLEMENTED IN TERMS OF OTHER API FUNCTIONS
-    //
-
-    async findChainTipHeader(): Promise<BlockHeader> {
-        return toBlockHeader(await this.findChainTipHeaderHex())
-    }
-    async findChainTipHash(): Promise<Buffer> {
-        return asBuffer(await this.findChainTipHashHex())
-    }
-    async findChainWorkForBlockHash(hash: string | Buffer): Promise<Buffer | undefined> {
-        const chainWork = await this.findChainWorkHexForBlockHash(hash)
-        return chainWork ? asBuffer(chainWork) : undefined
-    }
-    async findHeaderForBlockHash(hash: string | Buffer): Promise<BlockHeader | undefined> {
-        const header = await this.findHeaderHexForBlockHash(hash)
-        return header ? toBlockHeader(header) : undefined
-    }
-    async getHeaders(height: number, count: number): Promise<Buffer> {
-        return asBuffer(await this.getHeadersHex(height, count))
-    }
-    async findHeaderForHeight(height: number): Promise<BlockHeader | undefined> {
-        const header = await this.findHeaderHexForHeight(height)
-        return header ? toBlockHeader(header) : undefined
-    }
-    async findHeaderForMerkleRoot(root: string | Buffer, height?: number): Promise<BlockHeader | undefined> {
-        const header = await this.findHeaderHexForMerkleRoot(root, height)
-        return header ? toBlockHeader(header) : undefined
-    }
-
-    async addHeader(header: BaseBlockHeader | BaseBlockHeaderHex): Promise<void> {
-        const bbhh = isBaseBlockHeader(header) ? toBaseBlockHeaderHex(header) : header
-        return this.addHeaderHex(bbhh)
     }
 }

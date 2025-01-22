@@ -1,6 +1,5 @@
 import * as bsv from "@bsv/sdk"
-import { sdk, StorageKnex, wait, Wallet, WalletSigner, WalletStorageManager } from "../../src"
-import { KeyDeriver } from "../../src/sdk"
+import { sdk, wait } from "../../src/index.client"
 import { _tu, TestSetup1Wallet } from "../utils/TestUtilsWalletStorage"
 
 describe('Wallet services tests', () => {

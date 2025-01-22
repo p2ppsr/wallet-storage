@@ -1,5 +1,6 @@
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table  } from "../../src"
+import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, table  } from "../../src/index.client"
+import { StorageKnex } from '../../src/storage/StorageKnex'
 
 describe('insert tests', () => {
     jest.setTimeout(99999999)

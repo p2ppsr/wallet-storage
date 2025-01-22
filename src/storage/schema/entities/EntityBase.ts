@@ -1,4 +1,4 @@
-import { sdk, StorageProvider } from "../../..";
+import { sdk, StorageProvider } from "../../../index.client";
 
 export type EntityStorage = StorageProvider
 

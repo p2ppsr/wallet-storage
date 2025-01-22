@@ -1,4 +1,5 @@
-import { sdk } from ".."
+import * as bsv from '@bsv/sdk'
+import { sdk } from "../index.client"
 import { WalletErrorObject } from "./Wallet.interfaces"
 
 /**
@@ -28,14 +29,14 @@ export class WalletError extends Error implements WalletErrorObject {
   /**
      * Error class compatible accessor for  `code`.
      */
-  get code (): sdk.ErrorCodeString10To40Bytes { return this.name }
-  set code (v: sdk.ErrorCodeString10To40Bytes) { this.name = v }
+  get code (): bsv.ErrorCodeString10To40Bytes { return this.name }
+  set code (v: bsv.ErrorCodeString10To40Bytes) { this.name = v }
 
   /**
      * Error class compatible accessor for `description`.
      */
-  get description (): sdk.ErrorDescriptionString20To200Bytes { return this.message }
-  set description (v: sdk.ErrorDescriptionString20To200Bytes) { this.message = v }
+  get description (): bsv.ErrorDescriptionString20To200Bytes { return this.message }
+  set description (v: bsv.ErrorDescriptionString20To200Bytes) { this.message = v }
 
   /**
    * Recovers all public fields from WalletError derived error classes and relevant Error derived errors.

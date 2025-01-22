@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../.."
+import { asBsvSdkScript, ScriptTemplateSABPPP, sdk } from "../../index.client"
 import { PendingSignAction, WalletSigner } from "../WalletSigner"
 import { processAction } from './createAction'
 
 export async function signAction(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidSignActionArgs)
-: Promise<sdk.SignActionResult>
+: Promise<bsv.SignActionResult>
 {
   const prior = signer.pendingSignActions[vargs.reference]
   if (!prior)
@@ -18,7 +18,7 @@ export async function signAction(signer: WalletSigner, auth: sdk.AuthId, vargs: 
 
   const sendWithResults = await processAction(prior, signer, auth, vargs)
 
-  const r: sdk.SignActionResult = {
+  const r: bsv.SignActionResult = {
     txid: prior.tx.id('hex'),
     tx: vargs.options.returnTXIDOnly ? undefined : makeAtomicBeef(prior.tx, prior.dcr.inputBeef),
     sendWithResults
@@ -36,7 +36,7 @@ export function makeAtomicBeef(tx: bsv.Transaction, beef: number[] | bsv.Beef) :
 
 export async function completeSignedTransaction(
   prior: PendingSignAction,
-  spends: Record<number, sdk.SignActionSpend>,
+  spends: Record<number, bsv.SignActionSpend>,
   ninja: WalletSigner,
 )
 : Promise<bsv.Transaction>
@@ -59,7 +59,7 @@ export async function completeSignedTransaction(
   }
 
   const results = {
-    sdk: <sdk.SignActionResult>{}
+    sdk: <bsv.SignActionResult>{}
   }
 
   /////////////////////

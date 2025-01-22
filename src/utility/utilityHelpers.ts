@@ -1,8 +1,9 @@
+import * as bsv from '@bsv/sdk'
 import { Beef, Hash, PrivateKey, PublicKey, Random, Script, Transaction, Utils } from "@bsv/sdk";
-import { sdk } from "..";
+import { sdk } from "../index.client";
 import { Chain } from "../sdk/types";
 
-export function toWalletNetwork(chain: Chain): sdk.WalletNetwork {
+export function toWalletNetwork(chain: Chain): bsv.WalletNetwork {
     return chain === 'main' ? 'mainnet' : 'testnet';
 }
 
@@ -14,11 +15,11 @@ export function makeAtomicBeef(tx: Transaction, beef: number[] | Beef) : number[
 }
 
 /**
- * Coerce a bsv transaction encoded as a hex string, serialized Buffer, or Transaction to Transaction
+ * Coerce a bsv transaction encoded as a hex string, serialized array, or Transaction to Transaction
  * If tx is already a Transaction, just return it.
  * @publicbody
  */
-export function asBsvSdkTx(tx: sdk.HexString | number[] | Transaction): Transaction {
+export function asBsvSdkTx(tx: bsv.HexString | number[] | Transaction): Transaction {
   if (Array.isArray(tx)) {
     tx = Transaction.fromBinary(tx)
   } else if (typeof tx === 'string') {
@@ -28,11 +29,11 @@ export function asBsvSdkTx(tx: sdk.HexString | number[] | Transaction): Transact
 }
 
 /**
- * Coerce a bsv script encoded as a hex string, serialized Buffer, or Script to Script
+ * Coerce a bsv script encoded as a hex string, serialized array, or Script to Script
  * If script is already a Script, just return it.
  * @publicbody
  */
-export function asBsvSdkScript(script: sdk.HexString | number[] | Script): Script {
+export function asBsvSdkScript(script: bsv.HexString | number[] | Script): Script {
   if (Array.isArray(script)) {
     script = Script.fromBinary(script)
   } else if (typeof script === 'string') {
@@ -153,7 +154,7 @@ export function wait(msecs: number): Promise<void> {
 }
 
 /**
- * @returns count cryptographically secure random bytes as Buffer
+ * @returns count cryptographically secure random bytes as array of bytes
  */
 export function randomBytes(count: number): number[] {
   return Random(count)
@@ -171,41 +172,6 @@ export function randomBytesHex(count: number): string {
  */
 export function randomBytesBase64(count: number): string {
   return Utils.toBase64(Random(count))
-}
-
-/**
- * Coerce a value to Buffer if currently encoded as a string or 
- * @param val Buffer or string or number[]. If string, encoding param applies. If number[], Buffer.from constructor is used.
- * @param encoding defaults to 'hex'. Only applies to val of type string
- * @returns input val if it is a Buffer or new Buffer from string val
- * @publicbody
- */
-export function asBuffer(val: Buffer | string | number[], encoding?: BufferEncoding): Buffer {
-  let b: Buffer
-  if (Buffer.isBuffer(val)) b = val
-  else if (typeof val === 'string') b = Buffer.from(val, encoding ?? 'hex')
-  else b = Buffer.from(val)
-  return b
-}
-
-/**
- * Coerce a value to an encoded string if currently a Buffer or number[]
- * @param val Buffer or string or number[]. If string, encoding param applies. If number[], Buffer.from constructor is used.
- * @param encoding defaults to 'hex'
- * @returns input val if it is a string; or if number[], first converted to Buffer then as Buffer; if Buffer encoded using `encoding`
- * @publicbody
- */
-export function asString(val: Buffer | string | number[], encoding?: BufferEncoding): string {
-  if (Array.isArray(val)) val = Buffer.from(val)
-  return Buffer.isBuffer(val) ? val.toString(encoding ?? 'hex') : val
-}
-
-export function asArray(val: Buffer | string | number[], encoding?: BufferEncoding): number[] {
-  let a: number[]
-  if (Array.isArray(val)) a = val
-  else if (Buffer.isBuffer(val)) a = Array.from(val)
-  else a = Array.from(Buffer.from(val, encoding || 'hex'))
-  return a
 }
 
 export function validateSecondsSinceEpoch (time: number): Date {

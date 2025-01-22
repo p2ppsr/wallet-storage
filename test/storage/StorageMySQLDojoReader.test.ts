@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { _tu } from '../utils/TestUtilsWalletStorage'
-import { entity, maxDate, sdk, StorageKnex, sync } from '../../src'
+import { entity, maxDate, sdk, StorageKnex, sync } from '../../src/index.all'
 import { StorageMySQLDojoReader } from '../../src/storage/sync/StorageMySQLDojoReader'
 
 import * as dotenv from 'dotenv'

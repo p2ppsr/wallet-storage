@@ -1,4 +1,4 @@
-import { Monitor, sdk, Services, StorageKnex, StorageKnexOptions, StorageProvider, wait, WalletStorageManager } from '..'
+import { Monitor, sdk, Services, StorageKnex, StorageKnexOptions, StorageProvider, wait, WalletStorageManager } from '../index.all'
 
 import { Knex, knex as makeKnex } from "knex";
 

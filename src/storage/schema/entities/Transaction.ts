@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as bsv from '@bsv/sdk'
-import { arraysEqual, entity, optionalArraysEqual, sdk, table, verifyId, verifyOneOrNone } from '../../..'
+import { arraysEqual, entity, optionalArraysEqual, sdk, table, verifyId, verifyOneOrNone } from '../../../index.client'
 import { EntityBase } from '.'
 
 export class Transaction extends EntityBase<table.Transaction> {

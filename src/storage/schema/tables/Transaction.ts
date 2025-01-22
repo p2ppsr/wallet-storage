@@ -1,4 +1,5 @@
-import { sdk } from "../../.."
+import * as bsv from '@bsv/sdk'
+import { sdk } from "../../../index.client"
 
 export interface Transaction extends sdk.EntityTimeStamp {
    created_at: Date
@@ -10,7 +11,7 @@ export interface Transaction extends sdk.EntityTimeStamp {
    /**
      * max length of 64, hex encoded
      */
-   reference: sdk.Base64String
+   reference: bsv.Base64String
    /**
      * true if transaction originated in this wallet, change returns to it.
      * false for a transaction created externally and handed in to this wallet.

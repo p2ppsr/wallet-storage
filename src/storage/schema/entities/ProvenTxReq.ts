@@ -1,8 +1,7 @@
 import { MerklePath } from '@bsv/sdk'
-import { arraysEqual, asString, entity, sdk, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy, WalletStorageManager } from '../../..'
+import { arraysEqual, asString, entity, sdk, StorageProvider, table, verifyId, verifyOne, verifyOneOrNone, verifyTruthy, WalletStorageManager } from '../../../index.client'
 import { EntityBase } from '.'
 
-import prettyjson from 'prettyjson'
 import { StorageProcessActionArgs } from '../../../sdk'
 
 export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
@@ -136,7 +135,7 @@ export class ProvenTxReq extends EntityBase<table.ProvenTxReq> {
       if (keyLimit && key < keyLimit) continue
       h.notes[key] = this.parseHistoryNote(h.notes[key])
     }
-    let log = prettyjson.render(h, { keysColor: 'blue' }, indent)
+    let log = ''
     if (log.slice(-1) !== '\n') log += '\n'
     return log
   }

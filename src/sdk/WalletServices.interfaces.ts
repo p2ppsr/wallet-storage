@@ -1,6 +1,6 @@
 import * as bsv from '@bsv/sdk'
-import { sdk } from '..'
-import { ChaintracksClientApi } from '../services/chaintracker'
+import { sdk } from '../index.client'
+import { ChaintracksServiceClient } from '../services/chaintracker'
 /**
  * Defines standard interfaces to access functionality implemented by external transaction processing services.
  */
@@ -46,7 +46,7 @@ export interface WalletServices {
      * 
      * On success:
      * Result txid is the requested transaction hash
-     * Result rawTx will be Buffer containing raw transaction bytes.
+     * Result rawTx will be an array containing raw transaction bytes.
      * Result name will be the responding service's identifying name.
      * Returns result without incrementing active service.
      * 
@@ -112,7 +112,7 @@ export interface WalletServices {
      *      'hashLE' little-endian sha256 hash of output script
      *      'hashBE' big-endian sha256 hash of output script
      *      'script' entire transaction output script
-     *      undefined if asBuffer length of `output` is 32 then 'hashBE`, otherwise 'script'.
+     *      undefined if length of `output` is 32 then 'hashBE`, otherwise 'script'.
      * @param useNext optional, forces skip to next service before starting service requests cycle.
      */
     getUtxoStatus(output: string, outputFormat?: GetUtxoStatusOutputFormat, useNext?: boolean): Promise<GetUtxoStatusResult>
@@ -121,7 +121,7 @@ export interface WalletServices {
      * @returns a block header
      * @param hash block hash
      */
-    hashToHeader(hash: string): Promise<sdk.BlockHeaderHex>
+    hashToHeader(hash: string): Promise<sdk.BlockHeader>
 
     /**
      * @returns whether the locktime value allows the transaction to be mined at the current chain height
@@ -154,7 +154,7 @@ export interface WalletServicesOptions {
     disableMapiCallback?: boolean,
     exchangeratesapiKey?: string
     chaintracksFiatExchangeRatesUrl?: string
-    chaintracks?: ChaintracksClientApi
+    chaintracks?: ChaintracksServiceClient
 }
 
 /**
@@ -194,7 +194,7 @@ export interface GetMerklePathResult {
      */
     merklePath?: bsv.MerklePath
 
-    header?: BlockHeaderHex
+    header?: BlockHeader
 
     /**
      * The first exception error that occurred during processing, if any.
@@ -306,24 +306,52 @@ export interface GetUtxoStatusResult {
 }
 
 /**
- * Like BlockHeader but 32 byte fields are hex encoded strings.
+ * These are fields of 80 byte serialized header in order whose double sha256 hash is a block's hash value
+ * and the next block's previousHash value.
+ *
+ * All block hash values and merkleRoot values are 32 byte hex string values with the byte order reversed from the serialized byte order.
  */
-export interface BaseBlockHeaderHex {
+export interface BaseBlockHeader {
+  /**
+   * Block header version value. Serialized length is 4 bytes.
+   */
   version: number
+  /**
+   * Hash of previous block's block header. Serialized length is 32 bytes.
+   */
   previousHash: string
+  /**
+   * Root hash of the merkle tree of all transactions in this block. Serialized length is 32 bytes.
+   */
   merkleRoot: string
+  /**
+   * Block header time value. Serialized length is 4 bytes.
+   */
   time: number
+  /**
+   * Block header bits value. Serialized length is 4 bytes.
+   */
   bits: number
+  /**
+   * Block header nonce value. Serialized length is 4 bytes.
+   */
   nonce: number
 }
 
 /**
- * Like BlockHeader but 32 byte fields are hex encoded strings.
+ * A `BaseBlockHeader` extended with its computed hash and height in its chain.
  */
-export interface BlockHeaderHex extends BaseBlockHeaderHex {
+export interface BlockHeader extends BaseBlockHeader {
+  /**
+     * Height of the header, starting from zero.
+     */
   height: number
+  /**
+     * The double sha256 hash of the serialized `BaseBlockHeader` fields.
+     */
   hash: string
 }
+
 
 export type GetUtxoStatusService = (output: string, chain: sdk.Chain, outputFormat?: GetUtxoStatusOutputFormat) => Promise<GetUtxoStatusResult>
 

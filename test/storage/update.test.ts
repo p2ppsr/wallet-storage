@@ -1,9 +1,8 @@
+import * as bsv from '@bsv/sdk'
 import { _tu, TestSetup1 } from '../utils/TestUtilsWalletStorage'
-import { randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, table, verifyOne } from '../../src'
-import { ProvenTxReqStatus } from '../../src/sdk'
+import { sdk, StorageProvider, StorageKnex, table, verifyOne } from '../../src/index.all'
 import { log, normalizeDate, setLogging, triggerForeignKeyConstraintError, triggerUniqueConstraintError, updateTable, validateUpdateTime, verifyValues } from '../utils/testUtilsUpdate'
 import { ProvenTx, ProvenTxReq, User, Certificate, CertificateField, OutputBasket, Transaction, Commission, Output, OutputTag, OutputTagMap, TxLabel, TxLabelMap, MonitorEvent, SyncState } from '../../src/storage/schema/tables'
-import { SyncMap } from '../../src/storage/schema/entities'
 
 setLogging(false)
 
@@ -1677,7 +1676,7 @@ describe('update tests', () => {
             transactionId: record.transactionId,
             userId: record.userId ?? 1, // Default userId if missing
             provenTxId: 1, // Example value for update
-            reference: `updated_reference_string_${record.transactionId}==` as sdk.Base64String, // Ensure unique reference value
+            reference: `updated_reference_string_${record.transactionId}==` as bsv.Base64String, // Ensure unique reference value
             status: 'confirmed' as sdk.TransactionStatus, // Example status
             txid: `updated_txid_example_${record.transactionId}`, // Ensure unique txid
             created_at: new Date('2024-12-30T23:00:00Z'),

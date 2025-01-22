@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as bsv from '@bsv/sdk'
-import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../..";
+import { asArray, asString, entity, parseTxScriptOffsets, randomBytesBase64, sdk, sha256Hash, stampLog, stampLogFormat, StorageProvider, table, TxScriptOffsets, validateStorageFeeModel, verifyId, verifyNumber, verifyOne, verifyOneOrNone, verifyTruthy } from "../../index.client";
 
 export async function processAction(
     storage: StorageProvider,
@@ -55,7 +55,7 @@ export async function processAction(
  * @param isDelayed 
  */
 async function shareReqsWithWorld(storage: StorageProvider, userId: number, txids: string[], isDelayed: boolean)
-: Promise<sdk.SendWithResult[]>
+: Promise<bsv.SendWithResult[]>
 {
     if (txids.length < 1) return []
 
@@ -119,10 +119,10 @@ async function shareReqsWithWorld(storage: StorageProvider, userId: number, txid
 
     return rs
 
-    function createSendWithResults(): sdk.SendWithResult[] {
-        const rs: sdk.SendWithResult[] = []
+    function createSendWithResults(): bsv.SendWithResult[] {
+        const rs: bsv.SendWithResult[] = []
         for (const ar of ars) {
-            let status: sdk.SendWithResultStatus = 'failed';
+            let status: bsv.SendWithResultStatus = 'failed';
             if (ar.getReq.status === 'alreadySent')
                 status = 'unproven';
             else if (ar.getReq.status === 'readyToSend' && (isDelayed || ar.postBeef?.status === 'success'))

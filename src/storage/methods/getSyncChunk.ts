@@ -1,4 +1,4 @@
-import { sdk, table, verifyOne, verifyTruthy } from '../..'
+import { sdk, table, verifyTruthy } from '../../index.client'
 import { StorageReader } from '../StorageReader'
 
 /**

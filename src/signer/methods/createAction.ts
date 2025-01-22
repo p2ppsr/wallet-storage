@@ -1,10 +1,11 @@
+import * as bsv from '@bsv/sdk'
 import { Script, Transaction, TransactionInput } from "@bsv/sdk"
-import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyId, verifyTruthy, WalletSigner } from "../.."
+import { asBsvSdkScript, makeAtomicBeef, PendingSignAction, PendingStorageInput, ScriptTemplateSABPPP, sdk, verifyId, verifyTruthy, WalletSigner } from "../../index.client"
 
 export async function createAction(signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidCreateActionArgs)
-: Promise<sdk.CreateActionResult>
+: Promise<bsv.CreateActionResult>
 {
-  const r: sdk.CreateActionResult = {}
+  const r: bsv.CreateActionResult = {}
   
   let prior: PendingSignAction | undefined = undefined
 
@@ -44,14 +45,14 @@ async function createNewTx(signer: WalletSigner, args: sdk.ValidCreateActionArgs
 }
 
 function makeSignableTransactionResult(prior: PendingSignAction, signer: WalletSigner, args: sdk.ValidCreateActionArgs)
-: sdk.CreateActionResult
+: bsv.CreateActionResult
 {
   if (!prior.dcr.inputBeef)
     throw new sdk.WERR_INTERNAL('prior.dcr.inputBeef must be valid')
 
   const txid = prior.tx.id('hex')
 
-  const r: sdk.CreateActionResult = {
+  const r: bsv.CreateActionResult = {
     noSendChange: args.isNoSend ? prior.dcr.noSendChangeOutputVouts?.map(vout => `${txid}.${vout}`) : undefined,
     signableTransaction: {
       reference: prior.dcr.reference,
@@ -84,7 +85,7 @@ function makeChangeLock(
 
 export async function completeSignedTransaction(
   prior: PendingSignAction,
-  spends: Record<number, sdk.SignActionSpend>,
+  spends: Record<number, bsv.SignActionSpend>,
   signer: WalletSigner,
 )
 : Promise<Transaction>
@@ -107,7 +108,7 @@ export async function completeSignedTransaction(
   }
 
   const results = {
-    sdk: <sdk.SignActionResult>{}
+    sdk: <bsv.SignActionResult>{}
   }
 
   /////////////////////
@@ -154,7 +155,7 @@ function removeUnlockScripts(args: sdk.ValidCreateActionArgs) {
 }
 
 export async function processAction(prior: PendingSignAction | undefined, signer: WalletSigner, auth: sdk.AuthId, vargs: sdk.ValidProcessActionArgs)
-: Promise<sdk.SendWithResult[] | undefined>
+: Promise<bsv.SendWithResult[] | undefined>
 {
   const args: sdk.StorageProcessActionArgs = {
     isNewTx: vargs.isNewTx,

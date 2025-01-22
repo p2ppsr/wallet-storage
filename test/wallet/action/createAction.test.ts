@@ -183,60 +183,20 @@ describe('createAction test', () => {
     }
   })
 
-  test('3_Basic Transaction Creation', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet } of ctxs) {
-      const args: bsv.CreateActionArgs = {
-        description: 'Basic Transaction',
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Basic Output'
-          }
-        ],
-        options: {
-          signAndProcess: false,
-          noSend: true
-        }
-      }
-
-      const r = await wallet.createAction(args)
-
-      // Validate signableTransaction exists and has a reference
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-
-      // Validate txid exists if transaction is finalized
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-
-      // Validate optional properties: noSendChange
-      expect(r).toHaveProperty('noSendChange')
-      expect(r.noSendChange).toEqual([])
-
-      // Skip validation for sendWithResults if not returned
-      expect(r.sendWithResults).toBeUndefined()
-    }
-  })
-
-  test.skip('4_Transaction with Multiple Outputs', async () => {
+  test('3_Transaction with multiple outputs()', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
     for (const { wallet } of ctxs) {
       const args: bsv.CreateActionArgs = {
-        description: 'Multiple Outputs',
+        description: 'Multiple outputs',
         outputs: [
           {
-            satoshis: 2000,
+            satoshis: 10,
             lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
             outputDescription: 'Output 1'
           },
           {
-            satoshis: 3000,
+            satoshis: 20,
             lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
             outputDescription: 'Output 2'
           }
@@ -246,120 +206,28 @@ describe('createAction test', () => {
           noSend: true
         }
       }
-
       const r = await wallet.createAction(args)
-
-      // Validate signableTransaction exists and has a reference
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-
-      // Validate txid exists if transaction is finalized
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-
-      // Validate optional properties: noSendChange
-      expect(r).toHaveProperty('noSendChange')
-      expect(r.noSendChange).toEqual([])
-
-      // Skip validation for sendWithResults if not returned
-      expect(r.sendWithResults).toBeUndefined()
+      expect(r.signableTransaction?.reference).toBeTruthy()
+      expect(r.noSendChange?.length).toBe(1)
+      expect(r.signableTransaction?.reference).toBeTruthy()
+      expect(Array.isArray(r.signableTransaction?.tx)).toBe(true)
     }
   })
 
-  test.skip('5_Transaction with Locking Script Options', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet } of ctxs) {
-      const args: bsv.CreateActionArgs = {
-        description: 'Locking Script Transaction',
-        outputs: [
-          {
-            satoshis: 5000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Locking Script Output'
-          }
-        ],
-        options: {
-          signAndProcess: false,
-          noSend: true,
-          randomizeOutputs: false
-        }
-      }
-
-      const r = await wallet.createAction(args)
-
-      // Validate signableTransaction exists and has a reference
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-
-      // Validate txid exists if transaction is finalized
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-
-      // Validate optional properties: noSendChange
-      expect(r).toHaveProperty('noSendChange')
-      expect(r.noSendChange).toEqual([])
-
-      // Skip validation for sendWithResults if not returned
-      expect(r.sendWithResults).toBeUndefined()
-    }
-  })
-
-  test.skip('6_Transaction with Large Number of Outputs', async () => {
+  test('4_Transaction with large number of outputs(50) and randomized', async () => {
     const root = '02135476'
     const kp = _tu.getKeyPair(root.repeat(8))
 
     for (const { wallet } of ctxs) {
       const outputs = Array.from({ length: 50 }, (_, i) => ({
-        satoshis: 1000 + i * 100, // Increment amounts
+        satoshis: i + 1, // Increment amounts
         lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-        outputDescription: `Output ${i + 1}`
+        outputDescription: `Output ${i}`
       }))
 
       const args: bsv.CreateActionArgs = {
-        description: 'Large Number of Outputs',
-        outputs,
-        options: {
-          signAndProcess: false,
-          noSend: true
-        }
-      }
-
-      const r = await wallet.createAction(args)
-
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-      expect(r.noSendChange).toEqual([])
-      expect(r.sendWithResults).toBeUndefined()
-    }
-  })
-
-  test.skip('7_Transaction with Randomized Outputs', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet } of ctxs) {
-      const outputs = [
-        {
-          satoshis: 2000,
-          lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-          outputDescription: 'Output A'
-        },
-        {
-          satoshis: 3000,
-          lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-          outputDescription: 'Output B'
-        }
-      ]
-
-      const args: bsv.CreateActionArgs = {
         description: 'Randomized Outputs',
+        lockTime: 500000,
         outputs,
         options: {
           signAndProcess: false,
@@ -367,51 +235,11 @@ describe('createAction test', () => {
           randomizeOutputs: true
         }
       }
-
       const r = await wallet.createAction(args)
-
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-      expect(r.noSendChange).toEqual([])
-      expect(r.sendWithResults).toBeUndefined()
-      // Validate randomization by ensuring outputs are not in the original order
-      // Assuming we can decode and inspect the transaction to compare output order.
-    }
-  })
-
-  test.skip('8_Transaction with Lock Time', async () => {
-    const root = '02135476'
-    const kp = _tu.getKeyPair(root.repeat(8))
-
-    for (const { wallet } of ctxs) {
-      const args: bsv.CreateActionArgs = {
-        description: 'Lock Time Transaction',
-        outputs: [
-          {
-            satoshis: 1000,
-            lockingScript: _tu.getLockP2PKH(kp.address).toHex(),
-            outputDescription: 'Lock Time Output'
-          }
-        ],
-        lockTime: 500000, // Example lock time
-        options: {
-          signAndProcess: false,
-          noSend: true
-        }
-      }
-
-      const r = await wallet.createAction(args)
-
-      expect(r).toHaveProperty('signableTransaction')
-      expect(r.signableTransaction).toHaveProperty('reference')
-      if (r.tx) {
-        expect(r).toHaveProperty('txid')
-      }
-      expect(r.noSendChange).toEqual([])
-      expect(r.sendWithResults).toBeUndefined()
+      expect(r.signableTransaction?.reference).toBeTruthy()
+      expect(r.noSendChange?.length).toBe(1)
+      expect(r.signableTransaction?.reference).toBeTruthy()
+      expect(Array.isArray(r.signableTransaction?.tx)).toBe(true)
     }
   })
 })

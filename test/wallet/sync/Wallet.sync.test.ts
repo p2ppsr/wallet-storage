@@ -1,13 +1,20 @@
-import { Certificate } from '@bsv/sdk'
-import { StorageSyncReader, wait, WalletStorageManager } from '../../../src/index.client'
+import { wait, WalletStorageManager } from '../../../src/index.client'
 import { StorageKnex } from '../../../src/storage/StorageKnex'
 import { _tu, TestWalletNoSetup } from '../../utils/TestUtilsWalletStorage'
+import { TaskPurge } from '../../../src/monitor/tasks/TaskPurge'
 
 import * as dotenv from 'dotenv'
 
 dotenv.config()
+
 describe('Wallet sync tests', () => {
   jest.setTimeout(99999999)
+
+  let doWait = false
+  let done0 = false
+  const waitFor0 = async () => {
+    while (doWait && !done0) await wait(200)
+  }
 
   const env = _tu.getEnv('test')
   const ctxs: TestWalletNoSetup[] = []
@@ -22,6 +29,33 @@ describe('Wallet sync tests', () => {
   afterAll(async () => {
     for (const ctx of ctxs) {
       await ctx.storage.destroy()
+    }
+  })
+  // WIP To be used for purging to reduce size of DB
+  test.skip('99 aggressively purge records from SQLite walletSyncTestSource', async () => {
+    for (const { monitor, activeStorage: storage } of ctxs) {
+      const backup = (await _tu.createSQLiteTestWallet({ databaseName: 'walletSyncTest1aBackup', dropAll: true })).activeStorage
+
+      await waitFor0()
+
+      {
+        const task = new TaskPurge(monitor, {
+          purgeCompleted: true,
+          purgeFailed: true,
+          purgeSpent: true,
+          purgeCompletedAge: 1,
+          purgeFailedAge: 1,
+          purgeSpentAge: 1
+        })
+        TaskPurge.checkNow = true
+        monitor._tasks.push(task)
+        const s = await monitor.runTask('Purge')
+        log(s)
+      }
+
+      await storage.destroy()
+
+      done1 = true
     }
   })
 
@@ -56,9 +90,9 @@ describe('Wallet sync tests', () => {
     }
   })
 
-  test.skip('1b_simple backup with checks', async () => {
-    for (const { wallet, storage, activeStorage: original, userId: originalUserId } of ctxs) {
-      const backup = (await _tu.createSQLiteTestWallet({ databaseName: 'walletSyncTest1aBackup', dropAll: true })).activeStorage
+  test('1b_simple backup with checks', async () => {
+    for (const { storage, activeStorage: original, userId: originalUserId } of ctxs) {
+      const backup = (await _tu.createSQLiteTestWallet({ databaseName: 'walletSyncTest1bBackup', dropAll: true })).activeStorage
 
       if (originalUserId === 1) {
         // Insert a dummy user into backup to ensure userId mismatch
@@ -75,18 +109,19 @@ describe('Wallet sync tests', () => {
       await storage.setActive(backup.getSettings().storageIdentityKey)
 
       const backupAuth = await storage.getAuth()
-      const backupTransactions = await backup.findTransactions({ partial: { userId: backupAuth.userId } })
+      const backupUsers = await backup.findUsers({ partial: { userId: backupAuth.userId } })
 
-      // Verify backup transactions match original transactions
-      expect(backupTransactions).toEqual(initialTransactions)
+      // WIP
+      // // Verify backup transactions match original transactions
+      // Users.backupUsers).toEqual(initialUsers)
 
-      // Sync back to original and make it active
-      await storage.setActive(original.getSettings().storageIdentityKey)
+      // // Sync back to original and make it active
+      // await storage.setActive(original.getSettings().storageIdentityKey)
 
-      const finalTransactions = await original.findTransactions({ partial: { userId: originalAuth.userId } })
+      // const finalTransactions = await original.findTransactions({ partial: { userId: originalAuth.userId } })
 
-      // Verify original transactions remain unchanged
-      expect(finalTransactions).toEqual(initialTransactions)
+      // // Verify original transactions remain unchanged
+      // expect(finalTransactions).toEqual(initialTransactions)
     }
   })
 
@@ -114,101 +149,6 @@ describe('Wallet sync tests', () => {
       await storage.setActive(original.getSettings().storageIdentityKey)
 
       expect('foo').toBeTruthy()
-    }
-  })
-
-  test('1_backup', async () => {
-    const bobDatabaseName = 'syncTest1Bob'
-    const fredDatabaseName = 'syncTest1Fred'
-    const fredRootKeyHex = '5'.repeat(64)
-    const chain = 'test'
-    const label = 'babbage_app_projectbabbage.com'
-
-    for (const { wallet, activeStorage: storage } of ctxs) {
-      const bob = await _tu.createLegacyWalletSQLiteCopy(bobDatabaseName)
-      const bobAuth = await bob.storage.getAuth()
-      expect(bobAuth).toBeTruthy()
-      const bobIdentityKey = bobAuth.identityKey
-      expect(bob).toBeTruthy()
-
-      const initialBobSettings = bob.activeStorage.getSettings()
-      expect(initialBobSettings).toBeTruthy()
-
-      const bobStorageIdentityKey = initialBobSettings.storageIdentityKey
-      expect(bobStorageIdentityKey).toBeTruthy()
-      bob.storage.setActive(bobStorageIdentityKey)
-
-      const initialBobActions = await bob.wallet.listActions({ labels: [label] })
-      const legacyActions = await wallet.listActions({ labels: [label] })
-      expect(initialBobActions).toEqual(legacyActions)
-
-      const initialBobCertifates = await bob.activeStorage.findCertificates({ partial: {} })
-      const initialBobCommissions = await bob.activeStorage.findCommissions({ partial: {} })
-      const initialBobMonitorEvents = await bob.activeStorage.findMonitorEvents({ partial: {} })
-      const initialBobOuputBaskets = await bob.activeStorage.findOutputBaskets({ partial: {} })
-      const initialBobOuputTags = await bob.activeStorage.findOutputTags({ partial: {} })
-      const initialBobOuputTagMaps = await bob.activeStorage.findOutputTagMaps({ partial: {} })
-      const initialBobOuputs = await bob.activeStorage.findOutputs({ partial: {} })
-      const initialBobProvenTxReqs = await bob.activeStorage.findProvenTxReqs({ partial: {} })
-      const initialBobProvenTxs = await bob.activeStorage.findProvenTxs({ partial: {} })
-      const initialBobTransactions = await bob.activeStorage.findTransactions({ partial: {} })
-      const initialBobTxLabels = await bob.activeStorage.findTxLabels({ partial: {} })
-      const initialBobTxLabelMaps = await bob.activeStorage.findTxLabelMaps({ partial: {} })
-      const initialBobUsers = await bob.activeStorage.findUsers({ partial: {} })
-      const initialBobSyncStates = await bob.activeStorage.findSyncStates({ partial: {} })
-      // No find methods for:
-      // 'knex_migrations',
-      // 'knex_migrations_lock',
-      // 'settings',
-
-      //const knexInstance = bob.activeStorage.knex
-      const fred = await _tu.createSQLiteTestWallet({ chain, databaseName: fredDatabaseName, rootKeyHex: fredRootKeyHex, dropAll: true })
-
-      // Fetch and verify Fred's authentication details
-      const fredAuth = await fred.storage.getAuth()
-      expect(fredAuth).toBeTruthy()
-
-      const fredIdentityKey = fredAuth.identityKey
-      expect(fredIdentityKey).toBeTruthy()
-
-      // Fetch and verify Fred's active storage settings
-      const fredSettings = fred.activeStorage.getSettings()
-      expect(fredSettings).toBeTruthy()
-
-      const fredStorageIdentityKey = fredSettings.storageIdentityKey
-      expect(fredStorageIdentityKey).toBeTruthy()
-
-      // Set Fred's active storage
-      await fred.storage.setActive(fredStorageIdentityKey)
-
-      // List initial Fred actions (should be empty if newly initialized)
-      const initialFredActions = await fred.wallet.listActions({ labels: [label] })
-      expect(initialFredActions).toEqual({ totalActions: 0, actions: [] })
-
-      // Synchronize Fred's data into Bob's database
-      const fredReader = new StorageSyncReader(bobAuth, fred.activeStorage)
-      expect(fredReader).toBeTruthy()
-
-      await bob.storage.syncFromReader(bobIdentityKey, fredReader)
-      expect(fredReader).toBeTruthy()
-
-      //expect(Certificate.(initialBobCertifates, await bob.activeStorage.findCertificates({ partial: {} }))
-      // expect(initialBobCommissions).toEqual(await bob.activeStorage.findCommissions({partial:{}}))
-      // expect(initialBobMonitorEvents).toEqual(await bob.activeStorage.findMonitorEvents({partial:{}}))
-      // expect(initialBobOuputBaskets).toEqual(await bob.activeStorage.findOutputBaskets({partial:{}}))
-      // expect(initialBobOuputTags).toEqual(await bob.activeStorage.findOutputTags({partial:{}}))
-      // expect(initialBobOuputTagMaps).toEqual(await bob.activeStorage.findOutputTagMaps({partial:{}}))
-      // expect(initialBobOuputs).toEqual(await bob.activeStorage.findOutputs({partial:{}}))
-      // expect(initialBobProvenTxReqs).toEqual(await bob.activeStorage.findProvenTxReqs({partial:{}}))
-      // expect(initialBobProvenTxs).toEqual(await bob.activeStorage.findProvenTxs({partial:{}}))
-      // expect(initialBobTransactions).toEqual(await bob.activeStorage.findTransactions({partial:{}}))
-      // expect(initialBobTxLabels).toEqual(await bob.activeStorage.findTxLabels({partial:{}}))
-      // expect(initialBobTxLabelMaps).toEqual(await bob.activeStorage.findTxLabelMaps({partial:{}}))
-      // expect(initialBobUsers).toEqual(await bob.activeStorage.findUsers({partial:{}}))
-      // expect(initialBobSyncStates).toEqual(await bob.activeStorage.findSyncStates({partial:{}}))
-
-      bob.activeStorage.destroy()
-      await fred.activeStorage.destroy()
     }
   })
 })

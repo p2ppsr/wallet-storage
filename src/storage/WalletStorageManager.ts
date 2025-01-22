@@ -428,8 +428,13 @@ export class WalletStorageManager implements sdk.WalletStorage {
         if (newActiveIndex === 0)
             /** Setting the current active as the new active is a permitted no-op. */
             return;
+        
+        const auth = await this.getAuth()
+        const newActive = this.stores[newActiveIndex]
+        const newActiveStorageIdentityKey = (await newActive.makeAvailable()).storageIdentityKey
 
         return await this.runAsSync(async (sync) => {
+            //await sync.setActive(auth, newActiveStorageIdentityKey)
             await this.updateBackups(sync)
             // swap stores...
             const oldActive = this.stores[0]

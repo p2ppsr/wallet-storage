@@ -38,7 +38,7 @@ export async function listActions(
     if (isQueryModeAll && labelIds.length < vargs.labels.length)
         return r
 
-    if (labelIds.length === 0 || isQueryModeAll && labelIds.length < vargs.labels.length)
+    if (isQueryModeAll && labelIds.length < vargs.labels.length)
         // No actions will match if a required label doesn't exist yet...
         return r
 

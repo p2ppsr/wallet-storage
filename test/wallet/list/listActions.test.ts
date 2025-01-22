@@ -23,13 +23,32 @@ describe('listActions tests', () => {
     test('0 invalid params', async () => {
         for (const { wallet } of ctxs) {
             const invalidArgs: bsv.ListActionsArgs[] = [
-                { labels: [] },
-                { includeLabels: true, labels: [] }
+                { labels: ['toolong890'.repeat(31)] },
                 // Oh so many things to test...
             ]
 
             for (const args of invalidArgs) {
                 await expectToThrowWERR(sdk.WERR_INVALID_PARAMETER, () => wallet.listActions(args))
+            }
+        }
+    })
+
+    test('1 all actions', async () => {
+        for (const { wallet } of ctxs) {
+            {
+                const args: bsv.ListActionsArgs = {
+                    includeLabels: true,
+                    labels: []
+                }
+                const r = await wallet.listActions(args)
+                expect(r.totalActions).toBe(191)
+                expect(r.actions.length).toBe(10)
+                let i = 0
+                for (const a of r.actions) {
+                    expect(a.inputs).toBeUndefined()
+                    expect(a.outputs).toBeUndefined()
+                    expect(Array.isArray(a.labels)).toBe(true)
+                }
             }
         }
     })

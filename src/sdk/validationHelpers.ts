@@ -819,9 +819,6 @@ export function validateListActionsArgs(args: bsv.ListActionsArgs) : ValidListAc
       seekPermission: defaultTrue(args.seekPermission),
     }
 
-    if (vargs.labels.length < 1)
-      throw new sdk.WERR_INVALID_PARAMETER('labels', 'at least one label')
-
     return vargs
 }
 

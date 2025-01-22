@@ -4770,6 +4770,7 @@ export interface WalletStorageSync extends WalletStorageWriter {
         syncState: table.SyncState;
         isNew: boolean;
     }>;
+    setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number>;
     getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk>;
     processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult>;
 }
@@ -5672,6 +5673,7 @@ export class StorageClient implements sdk.WalletStorageProvider {
     async processSyncChunk(args: sdk.RequestSyncChunkArgs, chunk: sdk.SyncChunk): Promise<sdk.ProcessSyncChunkResult> 
     async getSyncChunk(args: sdk.RequestSyncChunkArgs): Promise<sdk.SyncChunk> 
     async updateProvenTxReqWithNewProvenTx(args: sdk.UpdateProvenTxReqWithNewProvenTxArgs): Promise<sdk.UpdateProvenTxReqWithNewProvenTxResult> 
+    async setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number> 
 }
 ```
 
@@ -6263,6 +6265,7 @@ export abstract class StorageReaderWriter extends StorageReader {
     abstract updateTxLabel(id: number, update: Partial<table.TxLabel>, trx?: sdk.TrxToken): Promise<number>;
     abstract updateTxLabelMap(transactionId: number, txLabelId: number, update: Partial<table.TxLabelMap>, trx?: sdk.TrxToken): Promise<number>;
     abstract updateUser(id: number, update: Partial<table.User>, trx?: sdk.TrxToken): Promise<number>;
+    async setActive(auth: sdk.AuthId, newActiveStorageIdentityKey: string): Promise<number> 
     async findCertificateById(id: number, trx?: sdk.TrxToken): Promise<table.Certificate | undefined> 
     async findCommissionById(id: number, trx?: sdk.TrxToken): Promise<table.Commission | undefined> 
     async findOutputById(id: number, trx?: sdk.TrxToken, noScript?: boolean): Promise<table.Output | undefined> 
@@ -6635,6 +6638,7 @@ export abstract class TestUtilsWalletStorage {
     static async createTestWalletWithStorageClient(args: {
         rootKeyHex?: string;
         endpointUrl?: string;
+        chain?: sdk.Chain;
     }): Promise<TestWalletOnly> 
     static async createKnexTestWalletWithSetup<T>(args: {
         knex: Knex<any, any[]>;
@@ -8258,7 +8262,7 @@ Links: [API](#api), [Interfaces](#interfaces), [Classes](#classes), [Functions](
 #### Function: postBeefToArcMiner
 
 ```ts
-export async function postBeefToArcMiner(beef: bsv.Beef, txids: string[], config: ArcServiceConfig): Promise<sdk.PostBeefResult> 
+export async function postBeefToArcMiner(beef: bsv.Beef | number[], txids: string[], config: ArcServiceConfig): Promise<sdk.PostBeefResult> 
 ```
 
 See also: [ArcServiceConfig](#interface-arcserviceconfig), [PostBeefResult](#interface-postbeefresult)

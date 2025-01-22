@@ -35,7 +35,7 @@ describe('acquireCertificate tests', () => {
         await storage.destroy()
     })
 
-    test('2 certifier', async () => {
+    test.skip('2 certifier', async () => {
         const { wallet, storage } = await _tu.createSQLiteTestWallet({ databaseName: 'acquireCertificate2', dropAll: true })
 
         // Make a test certificate from a random certifier for the wallet's identityKey

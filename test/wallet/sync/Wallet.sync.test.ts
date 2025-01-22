@@ -2,9 +2,6 @@ import { verifyOne, verifyOneOrNone, verifyTruthy, wait, WalletStorageManager } 
 import { StorageKnex } from "../../../src/storage/StorageKnex";
 import { _tu, TestWalletNoSetup } from "../../utils/TestUtilsWalletStorage"
 
-import * as dotenv from 'dotenv'
-
-dotenv.config();
 describe('Wallet sync tests', () => {
     jest.setTimeout(99999999)
 

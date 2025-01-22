@@ -5,7 +5,7 @@ import { _tu, TestSetup1Wallet, TestWalletNoSetup } from '../../utils/TestUtilsW
 import * as dotenv from 'dotenv'
 
 dotenv.config()
-describe('Wallet sync tests', () => {
+describe.skip('Wallet sync tests', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')

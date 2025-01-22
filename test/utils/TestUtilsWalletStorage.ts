@@ -39,7 +39,7 @@ export abstract class TestUtilsWalletStorage {
       identityKey,
       mainTaalApiKey: verifyTruthy(process.env.MAIN_TAAL_API_KEY || '', `.env value for 'mainTaalApiKey' is required.`),
       testTaalApiKey: verifyTruthy(process.env.TEST_TAAL_API_KEY || '', `.env value for 'testTaalApiKey' is required.`),
-      devKeys: JSON.parse(DEV_KEYS),
+      devKeys: JSON.parse(DEV_KEYS) as Record<string, string>,
       noMySQL,
       runSlowTests,
       logTests
@@ -188,8 +188,12 @@ export abstract class TestUtilsWalletStorage {
 
   static async createTestWalletWithStorageClient(args: {
     rootKeyHex?: string,
-    endpointUrl?: string
+    endpointUrl?: string,
+    chain?: sdk.Chain
   }): Promise<TestWalletOnly> {
+    if (args.chain === 'main')
+      throw new sdk.WERR_INVALID_PARAMETER('chain', `'test' for now, 'main' is not yet supported.`)
+
     const wo = await _tu.createWalletOnly({ chain: 'test', rootKeyHex: args.rootKeyHex })
     args.endpointUrl ||= 'https://staging-dojo.babbage.systems'
     const client = new StorageClient(wo.wallet, args.endpointUrl)

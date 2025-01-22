@@ -29,7 +29,7 @@ export class TaskNewHeader extends WalletMonitorTask {
         if (!oldHeader) {
             log = `first header: ${this.header.height} ${this.header.hash}`
         } else if (oldHeader.height < this.header.height) {
-            const skip = this.header.height - oldHeader.height + 1
+            const skip = this.header.height - oldHeader.height - 1
             const skipped = skip > 0 ? ` SKIPPED ${skip}` : ''
             log = `new header: ${this.header.height} ${this.header.hash}${skipped}`
         } else if (oldHeader.height === this.header.height && oldHeader.hash != this.header.hash) {

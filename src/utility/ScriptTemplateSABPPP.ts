@@ -1,5 +1,5 @@
 import * as bsv from '@bsv/sdk'
-import { asBsvSdkPrivateKey, verifyTruthy } from ".";
+import { asBsvSdkPrivateKey, verifyTruthy } from "./index.client";
 import { LockingScript, P2PKH, PrivateKey, Script, ScriptTemplate, Transaction, UnlockingScript } from "@bsv/sdk";
 import { sdk } from "../index.client";
 

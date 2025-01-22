@@ -1,2 +1,2 @@
 export * from './index.all'
-export { _tu } from '../test/utils/TestUtilsWalletStorage'
+export * as test from '../test/utils/TestUtilsWalletStorage'

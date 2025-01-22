@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { asString, StorageKnex } from '../../index.all'
-import { sdk, table, verifyOne, verifyId } from '../../index.all'
-import { Services } from '../../index.all'
+import { Services, asString, StorageKnex, sdk, table, verifyOne, verifyId } from '../../index.all'
 import { _tu, TestWalletNoSetup } from '../../../test/utils/TestUtilsWalletStorage'
 
 describe.skip('walletLive test', () => {

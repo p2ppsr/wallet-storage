@@ -2,7 +2,7 @@ import { Utils } from "@bsv/sdk"
 import { Base64String, CertificateFieldNameUnder50Bytes, HexString, OutpointString, PubKeyHex } from "./Wallet.interfaces"
 import { WalletCrypto } from "./WalletCrypto"
 import { KeyDeriver } from "./KeyDeriver"
-import { asString } from "../utility"
+import { asString } from "../utility/index.client"
 
 /**
  * Represents an Identity Certificate as per the Wallet interface specifications.

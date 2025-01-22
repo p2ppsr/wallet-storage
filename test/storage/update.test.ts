@@ -1661,6 +1661,18 @@ describe('update tests', () => {
     }
   })
 
+  test('6a updateTransactionStatus', async () => {
+    const { activeStorage: storage } = await _tu.createLegacyWalletSQLiteCopy('updateTransactionStatus6a')
+
+    let tx = verifyOne(await storage.findTransactions({ partial: { status: 'unproven' }, paged: {limit: 1 }}))
+    expect(tx.status).toBe('unproven')
+    await storage.updateTransactionStatus('completed', tx.transactionId)
+    tx = verifyOne(await storage.findTransactions({ partial: { transactionId: tx.transactionId } }))
+    expect(tx.status).toBe('completed')
+
+    await storage.destroy()
+  })
+
   test('6 update Transaction', async () => {
     const primaryKey = 'transactionId' // Use transactionId as the unique primary key
 

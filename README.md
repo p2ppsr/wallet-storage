@@ -4754,6 +4754,7 @@ export interface WalletStorageServerOptions {
     port: number;
     wallet: Wallet;
     monetize: boolean;
+    calculateRequestPrice?: (req: Request) => number | Promise<number>;
 }
 ```
 

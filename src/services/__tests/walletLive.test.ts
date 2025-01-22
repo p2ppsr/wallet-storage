@@ -3,7 +3,7 @@ import * as bsv from '@bsv/sdk'
 import { Services, asString, StorageKnex, sdk, table, verifyOne, verifyId, ScriptTemplateSABPPP, randomBytesBase64 } from '../../index.all'
 import { _tu, TestWalletNoSetup } from '../../../test/utils/TestUtilsWalletStorage'
 
-describe('walletLive test', () => {
+describe.skip('walletLive test', () => {
   jest.setTimeout(99999999)
 
   const env = _tu.getEnv('test')

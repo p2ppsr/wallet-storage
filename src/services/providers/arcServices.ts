@@ -245,23 +245,11 @@ export async function postBeefToTaalArcMiner(
     return r1
 
     if (r1.status === 'success') return r1
+
     const datas: object = { r1: r1.data }
 
-    // 2024-12-15 Testing still fails to consistently accept multiple new transactions in one Beef.
-    // Earlier testing seemed to confirm it worked. Did they break it??
-    // This has to work eventually, but for now, break multiple new transactions into
-    // individual atomic beefs and send them.
-    // Clearly they updated their code since the atomic beef spec wasn't written until after
-    // the original tests were done...
-    {
-        if (beef.atomicTxid === undefined) {
-            const abeef = beef.toBinaryAtomic(txids[txids.length -1])
-            const r2 = await postBeefToArcMiner(beef, txids, config)
-            datas['r2'] = r2.data
-            r2.data = datas
-            if (r2.status === 'success') return r2
-        }
-    }
+    const r2 = await services.postTxs(beef, txids)
+    
 
     const r3: sdk.PostBeefResult = {
         name: config.name,
@@ -269,10 +257,10 @@ export async function postBeefToTaalArcMiner(
         data: {},
         txidResults: []
     }
+
     for (const txid of txids) {
-        const ab = beef.toBinaryAtomic(txid)
-        const b = bsv.Beef.fromBinary(ab)
-        const rt = await postBeefToArcMiner(b, [txid], config)
+        const rawTx = beef.findTxid(txid)!.rawTx!
+        const rt = await postBeefToArcMiner(rawTx, [txid], config)
         if (rt.status === 'error') r3.status = 'error'
         r3.data![txid] = rt.data
         r3.txidResults.push(rt.txidResults[0])
@@ -283,7 +271,7 @@ export async function postBeefToTaalArcMiner(
 }
 
 export async function postBeefToArcMiner(
-    beef: bsv.Beef,
+    beef: bsv.Beef | number[],
     txids: string[],
     config: ArcServiceConfig
 )
@@ -298,10 +286,15 @@ export async function postBeefToArcMiner(
     // HACK to resolve ARC error when row has zero leaves.
     // beef.addComputedLeaves()
 
-    // HACK to resolve ARC not handling V2 Beef after change Beef class to always serialize as V2 if default constructed:
-    beef.version = BEEF_V1
+    let beefBinary: number[]
 
-    const beefBinary = beef.toBinary()
+    if (Array.isArray(beef))
+        beefBinary = beef
+    else {
+        // HACK to resolve ARC not handling V2 Beef after change Beef class to always serialize as V2 if default constructed:
+        beef.version = BEEF_V1
+        beefBinary = beef.toBinary()
+    }
 
     try {
         const length = beefBinary.length

@@ -128,10 +128,14 @@ export class Services implements sdk.WalletServices {
      */
     async postBeef(beef: bsv.Beef, txids: string[]): Promise<sdk.PostBeefResult[]> {
 
-        const rs = await Promise.all(this.postBeefServices.allServices.map(async service => {
+        let rs = await Promise.all(this.postBeefServices.allServices.map(async service => {
             const r = await service(beef, txids, this)
             return r
         }))
+
+        if (rs.every(r => r.status !== 'success')) {
+            rs = await this.postTxs(beef, txids)
+        }
 
         return rs
     }

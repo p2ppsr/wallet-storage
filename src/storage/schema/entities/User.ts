@@ -63,7 +63,9 @@ export class User extends EntityBase<table.User> {
     }
     override async mergeExisting(storage: entity.EntityStorage, since: Date | undefined, ei: table.User, syncMap?: entity.SyncMap, trx?: sdk.TrxToken): Promise<boolean> {
         let wasMerged = false
-        if (ei.updated_at > this.updated_at) {
+        // The condition on activeStorage here is critical as a new user record may have just been created
+        // in a backup store to which a backup is being pushed.
+        if (ei.updated_at > this.updated_at || this.activeStorage === undefined && ei.activeStorage !== undefined) {
             this.activeStorage = ei.activeStorage
             this.updated_at = new Date()
             await storage.updateUser(this.id, this.toApi(), trx)

@@ -208,7 +208,8 @@ export class WalletStorageManager implements sdk.WalletStorage {
 
     async destroy(): Promise<void> {
         return await this.runAsWriter(async (writer) => {
-            return writer.destroy()
+            for (const store of this.stores)
+                await store.destroy()
         })
     }
 
@@ -440,6 +441,7 @@ export class WalletStorageManager implements sdk.WalletStorage {
             const oldActive = this.stores[0]
             this.stores[0] = this.stores[newActiveIndex]
             this.stores[newActiveIndex] = oldActive
+            this._authId = { ...this._authId, userId: undefined }
         })
     }
 }

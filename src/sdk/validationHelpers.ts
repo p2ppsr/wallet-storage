@@ -659,7 +659,7 @@ export function validateProveCertificateArgs(args: bsv.ProveCertificateArgs)
     subject: validateOptionalHexString(args.certificate.subject, 'certificate.subject'),
     revocationOutpoint: validateOptionalOutpointString(args.certificate.revocationOutpoint, 'certificate.revocationOutpoint'),
     signature: validateOptionalHexString(args.certificate.signature, 'certificate.signature'),
-    fieldsToReveal: defaultEmpty(args.fieldsToReveal).map(fieldName => validateStringLength(`fieldsToReveal ${fieldName}`, 'valid field name', 1, 50)),
+    fieldsToReveal: defaultEmpty(args.fieldsToReveal).map(fieldName => validateStringLength(fieldName, `fieldsToReveal ${fieldName}`, 1, 50)),
     verifier: validateHexString(args.verifier, 'verifier'),
     privileged: defaultFalse(args.privileged),
     privilegedReason: validateOptionalStringLength(args.privilegedReason, 'privilegedReason', 5, 50),

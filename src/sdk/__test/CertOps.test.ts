@@ -8,8 +8,15 @@ describe('CertOps tests', () => {
     test('0 encrypt decrypt sign verify', async () => {
         const { cert, certifier, subject } = makeSampleCert()
 
-        const crypto = new bsv.ProtoWallet(certifier)
-        const co = new sdk.CertOps(crypto, cert)
+        const c = new bsv.Certificate(cert.type, cert.serialNumber, cert.subject, cert.certifier, cert.revocationOutpoint, cert.fields)
+
+        const certifierWallet = new bsv.ProtoWallet(certifier)
+        await c.sign(certifierWallet)
+        const verified = await c.verify()
+        expect(verified).toBe(true)
+
+
+        const co = new sdk.CertOps(certifierWallet, cert)
         
         expect(co.signature).toBe('')
         await expect(co.verify()).rejects.toThrow('Signature DER must start with 0x30')

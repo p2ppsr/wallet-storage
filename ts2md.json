@@ -1,0 +1,38 @@
+{
+  "options": [
+    {
+      "inputFilename": "src/index.ts",
+      "outputFilename": "docs/monitor.md",
+      "firstHeadingLevel": 1,
+      "filenameSubString": "monitor"
+    },
+    {
+      "inputFilename": "src/index.ts",
+      "outputFilename": "docs/services.md",
+      "firstHeadingLevel": 1,
+      "filenameSubString": "services"
+    },
+    {
+      "inputFilename": "src/index.ts",
+      "outputFilename": "docs/storage.md",
+      "firstHeadingLevel": 1,
+      "filenameSubString": "storage"
+    },
+    {
+      "inputFilename": "src/index.client.ts",
+      "outputFilename": "docs/client.md",
+      "firstHeadingLevel": 1
+    },
+    {
+      "inputFilename": "src/index.client.ts",
+      "outputFilename": "docs/signer.md",
+      "firstHeadingLevel": 1,
+      "filenameSubString": "signer"
+    },
+    {
+      "inputFilename": "src/Wallet.ts",
+      "outputFilename": "docs/wallet.md",
+      "firstHeadingLevel": 1
+    }
+  ]
+}

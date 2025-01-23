@@ -21,8 +21,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "build": "tsc --build",
-    "build:readme": "npx ts2md",
-    "doc": "npm run build:readme"
+    "doc": "ts2md"
   },
   "bugs": {
     "url": "https://github.com/p2ppsr/wallet/issues"

@@ -1,10 +1,9 @@
 import * as bsv from '@bsv/sdk'
 import { sdk } from '../index.client'
 import { SymmetricKey, Utils } from "@bsv/sdk";
-import { Certificate } from './Certificate';
 import { WERR_INVALID_OPERATION } from './WERR_errors';
 
-export class CertOps extends Certificate {
+export class CertOps extends bsv.Certificate {
     _keyring?: Record<bsv.CertificateFieldNameUnder50Bytes, string>
     _encryptedFields?: Record<bsv.CertificateFieldNameUnder50Bytes, bsv.Base64String>
     _decryptedFields?: Record<bsv.CertificateFieldNameUnder50Bytes, string>

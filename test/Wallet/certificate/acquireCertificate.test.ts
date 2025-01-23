@@ -8,11 +8,9 @@ describe('acquireCertificate tests', () => {
     const env = _tu.getEnv('test')
 
     beforeAll(async () => {
-        //ccnr = await _tu.createCloudNinja(env.chain, env.devKeys[env.identityKey])
     })
 
     afterAll(async () => {
-        //await ccnr.dojo.destroy()
     })
 
     test('1 invalid params', async () => {
@@ -35,7 +33,7 @@ describe('acquireCertificate tests', () => {
         await storage.destroy()
     })
 
-    test.skip('2 certifier', async () => {
+    test('2 certifier', async () => {
         const { wallet, storage } = await _tu.createSQLiteTestWallet({ databaseName: 'acquireCertificate2', dropAll: true })
 
         // Make a test certificate from a random certifier for the wallet's identityKey
@@ -70,7 +68,7 @@ describe('acquireCertificate tests', () => {
         const r = await wallet.acquireCertificate(args)
         expect(r.serialNumber).toBe(c.serialNumber)
 
-        // Attempt to retreive it... since
+        // Attempt to retrieve it... since
         // the certifier is random this should
         // always be unique :-)
         const lcs = await wallet.listCertificates({

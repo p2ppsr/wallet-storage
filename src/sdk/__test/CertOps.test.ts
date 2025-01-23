@@ -19,6 +19,7 @@ describe('CertOps tests', () => {
         {
             await co.encryptFields(subject.toPublicKey().toString())
             await expect(co.verify()).rejects.toThrow('Signature is not valid')
+            co.signature = undefined
             await co.sign(new bsv.ProtoWallet(new bsv.KeyDeriver(certifier)))
             expect(await co.verify()).toBe(true)
         }

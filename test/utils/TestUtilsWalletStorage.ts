@@ -1,7 +1,25 @@
 import * as bsv from '@bsv/sdk'
 import path from 'path'
 import { promises as fsp } from 'fs'
-import { asArray, randomBytesBase64, randomBytesHex, sdk, StorageProvider, StorageKnex, StorageSyncReader, table, verifyTruthy, Wallet, Monitor, MonitorOptions, Services, WalletSigner, WalletStorageManager, verifyOne, StorageClient } from '../../src/index.all'
+import {
+  asArray,
+  randomBytesBase64,
+  randomBytesHex,
+  sdk,
+  StorageProvider,
+  StorageKnex,
+  StorageSyncReader,
+  table,
+  verifyTruthy,
+  Wallet,
+  Monitor,
+  MonitorOptions,
+  Services,
+  WalletSigner,
+  WalletStorageManager,
+  verifyOne,
+  StorageClient
+} from '../../src/index.all'
 
 import { Knex, knex as makeKnex } from 'knex'
 import { Beef } from '@bsv/sdk'
@@ -186,13 +204,8 @@ export abstract class TestUtilsWalletStorage {
     return r
   }
 
-  static async createTestWalletWithStorageClient(args: {
-    rootKeyHex?: string,
-    endpointUrl?: string,
-    chain?: sdk.Chain
-  }): Promise<TestWalletOnly> {
-    if (args.chain === 'main')
-      throw new sdk.WERR_INVALID_PARAMETER('chain', `'test' for now, 'main' is not yet supported.`)
+  static async createTestWalletWithStorageClient(args: { rootKeyHex?: string; endpointUrl?: string; chain?: sdk.Chain }): Promise<TestWalletOnly> {
+    if (args.chain === 'main') throw new sdk.WERR_INVALID_PARAMETER('chain', `'test' for now, 'main' is not yet supported.`)
 
     const wo = await _tu.createWalletOnly({ chain: 'test', rootKeyHex: args.rootKeyHex })
     args.endpointUrl ||= 'https://staging-dojo.babbage.systems'
@@ -344,6 +357,15 @@ export abstract class TestUtilsWalletStorage {
     })
   }
 
+  static async createSQLiteTestSetup2Wallet(args: { databaseName: string; chain?: sdk.Chain; rootKeyHex?: string }): Promise<TestWallet<TestSetup2>> {
+    const localSQLiteFile = await _tu.newTmpFile(`${args.databaseName}.sqlite`, false, false, true)
+    return await this.createKnexTestSetup2Wallet({
+      ...args,
+      dropAll: true,
+      knex: _tu.createLocalSQLite(localSQLiteFile)
+    })
+  }
+
   static async createKnexTestWallet(args: { knex: Knex<any, any[]>; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWalletNoSetup> {
     return await _tu.createKnexTestWalletWithSetup({
       ...args,
@@ -355,6 +377,13 @@ export abstract class TestUtilsWalletStorage {
     return await _tu.createKnexTestWalletWithSetup({
       ...args,
       insertSetup: _tu.createTestSetup1
+    })
+  }
+
+  static async createKnexTestSetup2Wallet(args: { knex: Knex<any, any[]>; databaseName: string; chain?: sdk.Chain; rootKeyHex?: string; dropAll?: boolean }): Promise<TestWallet<TestSetup2>> {
+    return await _tu.createKnexTestWalletWithSetup({
+      ...args,
+      insertSetup: _tu.createTestSetup2
     })
   }
 
@@ -450,25 +479,24 @@ export abstract class TestUtilsWalletStorage {
     return r
   }
 
-  static makeSampleCert(subject?: string): { cert: bsv.WalletCertificate, subject: string, certifier: bsv.PrivateKey }
-  {
-      subject ||= bsv.PrivateKey.fromRandom().toPublicKey().toString()
-      const certifier = bsv.PrivateKey.fromRandom()
-      const verifier = bsv.PrivateKey.fromRandom()
-      const cert: bsv.WalletCertificate = {
-          type: bsv.Utils.toBase64(new Array(32).fill(1)),
-          serialNumber: bsv.Utils.toBase64(new Array(32).fill(2)),
-          revocationOutpoint: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.1',
-          subject,
-          certifier: certifier.toPublicKey().toString(),
-          fields: {
-              name: 'Alice',
-              email: 'alice@example.com',
-              organization: 'Example Corp'
-          },
-          signature: "",
-      }
-      return { cert, subject, certifier }
+  static makeSampleCert(subject?: string): { cert: bsv.WalletCertificate; subject: string; certifier: bsv.PrivateKey } {
+    subject ||= bsv.PrivateKey.fromRandom().toPublicKey().toString()
+    const certifier = bsv.PrivateKey.fromRandom()
+    const verifier = bsv.PrivateKey.fromRandom()
+    const cert: bsv.WalletCertificate = {
+      type: bsv.Utils.toBase64(new Array(32).fill(1)),
+      serialNumber: bsv.Utils.toBase64(new Array(32).fill(2)),
+      revocationOutpoint: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.1',
+      subject,
+      certifier: certifier.toPublicKey().toString(),
+      fields: {
+        name: 'Alice',
+        email: 'alice@example.com',
+        organization: 'Example Corp'
+      },
+      signature: ''
+    }
+    return { cert, subject, certifier }
   }
 
   static async insertTestProvenTx(storage: StorageProvider, txid?: string) {
@@ -820,6 +848,11 @@ export abstract class TestUtilsWalletStorage {
     }
   }
 
+  static async createTestSetup2(storage: StorageProvider, u1IdentityKey?: string): Promise<TestSetup2> {
+    //storage.insertTransaction()
+    return {}
+  }
+
   static mockPostServicesAsSuccess(ctxs: TestWalletOnly[]): void {
     mockPostServices(ctxs, 'success')
   }
@@ -883,6 +916,8 @@ export interface TestSetup1 {
 
   we1: table.MonitorEvent
 }
+
+export interface TestSetup2 {}
 
 export interface TestWallet<T> extends TestWalletOnly {
   activeStorage: StorageKnex

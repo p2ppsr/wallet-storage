@@ -193,7 +193,7 @@ describe('update tests', () => {
     }
   })
 
-  test.skip('002 ProvenTx setting individual values', async () => {
+  test('002 ProvenTx setting individual values', async () => {
     for (const { storage, setup } of setups) {
       // Step 1: Insert initial record with mock data.
       const initialRecord: ProvenTx = {
@@ -291,8 +291,7 @@ describe('update tests', () => {
       expect(r11[1].txid).toBe('mockValidTxid')
 
       // Step 17: Update the random record with undefined (no value) for a unique field.
-      const r12 = await storage.updateProvenTx(9999, { txid: undefined })
-      await expect(Promise.resolve(r12)).resolves.toBe(1)
+      await expect(storage.updateProvenTx(9999, { txid: undefined })).rejects.toThrow()
 
       // Step 18: Verify that the txid is set to undefined for the random record.
       const r13 = await storage.findProvenTxs({ partial: {} })
